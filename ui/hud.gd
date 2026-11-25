@@ -25,6 +25,7 @@ const MARGIN: int = 16
 const BAR_HEIGHT: float = 18.0
 const ICON_RADII: PackedFloat32Array = [6.0, 10.0, 15.0]
 const ICON_SPACING: float = 60.0
+const ICON_LEFT: float = 16.0
 const DONE_ALPHA: float = 0.5
 const BUS_NAME: String = "EventBus"
 const LOCALE_NAME: String = "Locale"
@@ -87,6 +88,18 @@ func connect_to(bus: Node, locale: Node = null) -> void:
 	_locale = locale if locale != null else _autoload(LOCALE_NAME)
 	_set_bus_wiring(true)
 	_wire(_locale, &"language_changed", _on_language_changed, true)
+
+
+## Removes every objective row. Runs on EventBus.level_loaded so a new chapter starts with an empty list.
+func clear_objectives() -> void:
+	for id: StringName in _objective_ids:
+		var label: Label = _objective_labels[id] as Label
+		_objectives_box.remove_child(label)
+		label.queue_free()
+	_objective_ids.clear()
+	_objective_texts.clear()
+	_objective_done.clear()
+	_objective_labels.clear()
 
 
 ## Re-reads every translated string with the current language.
@@ -238,6 +251,10 @@ func _on_objective_updated(id: StringName, text: String, done: bool) -> void:
 	_refresh_objective(id)
 
 
+func _on_level_loaded(_id: StringName) -> void:
+	clear_objectives()
+
+
 func _on_alarm_raised(pos: Vector3) -> void:
 	_alarm_pos = pos
 	_alarm_left = ALARM_SECONDS
@@ -316,7 +333,7 @@ func _draw_size_icons() -> void:
 	var active: int = _size_icon_index()
 	var mid: float = _size_icons.size.y * 0.5
 	for i: int in ICON_RADII.size():
-		var center: Vector2 = Vector2(MARGIN + 16.0 + ICON_SPACING * float(i), mid)
+		var center: Vector2 = Vector2(ICON_LEFT + ICON_SPACING * float(i), mid)
 		var color: Color = Palette.GOLD if i == active else Color(Palette.STONE, 0.35)
 		_size_icons.draw_circle(center, ICON_RADII[i], color)
 
@@ -329,6 +346,7 @@ func _set_bus_wiring(on: bool) -> void:
 	_wire(_bus, &"size_changed", _on_size_changed, on)
 	_wire(_bus, &"objective_updated", _on_objective_updated, on)
 	_wire(_bus, &"alarm_raised", _on_alarm_raised, on)
+	_wire(_bus, &"level_loaded", _on_level_loaded, on)
 
 
 func _wire(source: Node, signal_name: StringName, handler: Callable, on: bool) -> void:

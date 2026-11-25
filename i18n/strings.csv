@@ -100,14 +100,3 @@ DLG_EPI_004,"""Hanuman, you have done what no other could. I have nothing to giv
 DLG_TSR_001,"Days later, on the southern shore, the whole vanara army gathers before the endless sea.","कुछ दिनों बाद, दक्षिणी तट पर पूरी वानर सेना अनंत सागर के सामने एकत्र होती है।"
 DLG_TSR_002,"""The Ocean has promised to bear what I build. Bring every stone — and write Rama's name upon each one.""","""सागर ने वचन दिया है कि जो मैं बनाऊँगा, वह उसे धारण करेगा। हर पत्थर लाओ — और हर एक पर श्रीराम का नाम लिखो।"""
 DLG_TSR_003,"Nala lays the first stone, marked ""राम"", upon the waves — and it floats. सेतु · Setu — coming next.","नल ""राम"" लिखा पहला पत्थर लहरों पर रखते हैं — और वह तैरने लगता है। सेतु · Setu — शीघ्र आ रहा है।"
-UI_HUD_VITALITY,Vitality,जीवन-शक्ति
-UI_HUD_VITALITY_VALUE,%d / %d,%d / %d
-UI_HUD_SMARANA,Smarana · राम,स्मरण · राम
-UI_HUD_SIZE,Size,आकार
-UI_HUD_SIZE_SMALL,Small,छोटा
-UI_HUD_SIZE_NORMAL,Normal,सामान्य
-UI_HUD_SIZE_LARGE,Large,विशाल
-UI_HUD_SIZE_GIANT,Giant,विराट
-UI_HUD_OBJECTIVES,Objectives,लक्ष्य
-UI_HUD_OBJ_DONE,done,पूर्ण
-UI_HUD_ALARM,Alarm! The rakshasas have seen you,सावधान! राक्षसों ने आपको देख लिया है
