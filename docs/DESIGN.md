@@ -1,6 +1,6 @@
-# Hanumaan — Sundara Kanda (Design Document v0.2)
+# Hanumaan — Sundara Kanda (Design Document v1.0)
 
-> Status: **DRAFT — awaiting approval.** Written by the design and orchestration agent (Opus).
+> Status: **APPROVED 2026-11-25.** Written by the design and orchestration agent (Opus).
 > This is the single source of truth for every agent that works on the game. The module contracts in §9 are
 > binding for the coding agents (Haiku). The review agents (Sonnet) check the code against §9 and §10.
 
@@ -259,6 +259,12 @@ The shloka data is stored in `data/shlokas.json`: `{id, devanagari, iast, transl
 
 - **Engine:** Godot 4.7.2 (stable), GDScript with **static typing required** (warnings treated as errors, see §10).
 - **Renderer:** Forward+ (desktop). Target 60 fps at 1080p on a mid-range GPU.
+- **Frame rate and graphics options** (owner decision 2026-11-25): Settings offers a **frame-rate cap of 30 / 60 /
+  Unlimited** (default 60; vsync on/off) and a **graphics preset of Low / Medium / High**. *Low* targets **30 fps on
+  low-end and integrated GPUs**: 0.75 render scale, no SSAO or glow, shadows only from the main light (1024 px),
+  half the particles, and fewer props drawn at a distance. Steam Deck defaults to Low at 30 fps.
+  Gameplay **must not depend on frame rate**: physics runs at a fixed 60 ticks per second, and all movement and timers
+  use `delta`. The acceptance tests for M18–M22 run at both 30 and 60 fps and must produce the same outcomes.
 
 ```
 res://
@@ -411,7 +417,7 @@ Mainaka, Surasa and Simhika.
 **M31 `narrative/cutscene_player.gd`**: plays cutscenes made from steps (camera moves, actor moves, dialogue, waits) defined in JSON.
 
 **M32 `ui/hud.gd`**: Vitality, the Smarana meter with "राम", the size indicator, objectives, and the boss bar.
-**M33 `ui/menus.gd`**: title, pause, settings (language, shloka cards on/short/off, volume, fullscreen, key remapping),
+**M33 `ui/menus.gd`**: title, pause, settings (language, shloka cards on/short/off, frame-rate cap 30/60/Unlimited, graphics preset Low/Medium/High, vsync, volume, fullscreen, key remapping),
 the first-launch language picker, and chapter select once unlocked. Every label updates when `language_changed` fires.
 **M34 `ui/dialogue_box.gd`**: typewriter text, choices, speaker portrait (rendered model). The typewriter steps by
 grapheme cluster, so Devanagari conjuncts never render half-drawn.
@@ -449,6 +455,16 @@ fading walls and roofs that block the view, and a `world_to_input_basis()` used 
   attaches them to a GitHub release.
 - The version is in `project.godot` (`application/config/version`).
 
+### Steam (planned)
+- Steam is the main storefront, alongside the GitHub Releases builds. Steam builds include **GodotSteam** (a GDExtension)
+  for the overlay, **achievements** (one per chapter, each boss, and every shloka heard) and **Steam Cloud** saves.
+- All platform calls go through `core/platform.gd` (`unlock_achievement(id)`, `cloud_save(...)`), which does nothing in
+  builds without Steam, so the GitHub builds and tests work without the Steam SDK.
+- **Target: Steam Deck Verified.** Full gamepad support, 1280×800 layouts, text at least 9 px tall at 800p
+  (check the Devanagari specifically), and the Low/30 fps preset.
+- The store art (capsules, screenshots, trailer) is rendered from the game itself by a scripted camera.
+- Uploads use SteamPipe (`steamcmd`) from CI on a `v*` tag, to a beta branch first.
+
 ## 12. Risks
 
 | Risk | Mitigation |
@@ -465,7 +481,10 @@ fading walls and roofs that block the view, and a `world_to_input_basis()` used 
 | 2026-11-25 | Languages: English and Hindi, chosen by the player. Sanskrit shlokas from the Valmiki Ramayana at key moments, with transliteration and translation (§7A). |
 | 2026-11-25 | Camera: the player can rotate it in 90° steps (§4.1, M35). |
 | 2026-11-25 | Ending: a post-credits teaser for the next game, *Setu* (§3). |
+| 2026-11-25 | **Design approved.** Added a 30 fps cap and a Low graphics preset for low-end GPUs (§8). |
+| 2026-11-25 | Shlokas in §7A accepted as proposed (they may change after playtesting). The owner reviews the Hindi and checks the shloka texts. |
+| 2026-11-25 | The next game is *Setu*. Steam release planned (§11). |
 
 ## 14. Open questions for the owner
-1. Approve the shloka list in §7A (add or replace verses?) and choose the epilogue verse.
-2. Who reviews the Hindi translation and checks the shloka texts (the `verified_by` field)?
+1. Choose the epilogue verse (§7A).
+2. Steam: price, release date, and whether to have a demo or an Early Access period.
