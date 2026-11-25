@@ -725,7 +725,8 @@ func bind_leap(runtime: LevelRuntime) -> void:
 	controller.gate_reached.connect(_on_gate_reached)
 	controller.failed.connect(_on_leap_failed)
 	runtime.dialogue_done.connect(_on_leap_dialogue_done)
-	runtime.game_event.connect(handle_event)
+	if not runtime.game_event.is_connected(handle_event):
+		runtime.game_event.connect(handle_event)
 	_rt.show_prompt("")
 
 

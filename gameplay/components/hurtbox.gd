@@ -25,6 +25,8 @@ func _ready() -> void:
 
 
 func _physics_process(_delta: float) -> void:
+	if not monitoring:
+		return  # e.g. an enemy dissolving switches monitoring off; querying overlaps then errors
 	for area: Area3D in get_overlapping_areas():
 		var hitbox: Hitbox = area as Hitbox
 		if hitbox != null:

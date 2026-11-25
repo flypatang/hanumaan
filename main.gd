@@ -135,6 +135,15 @@ func _on_quit_to_title() -> void:
 # ---------------------------------------------------------------- levels and cutscenes
 
 func _on_level_requested(level_id: StringName, options: Dictionary) -> void:
+	# Level swaps are often requested from a trigger's body_entered (a physics callback); building and freeing
+	# collision objects there is an engine error, so swap at the end of the frame instead.
+	if Engine.is_in_physics_frame():
+		_load_level_now.call_deferred(level_id, options)
+		return
+	_load_level_now(level_id, options)
+
+
+func _load_level_now(level_id: StringName, options: Dictionary) -> void:
 	_clear_runtime()
 	_runtime = LevelRuntime.new()
 	_runtime.name = "Level_%s" % str(level_id)
@@ -143,7 +152,8 @@ func _on_level_requested(level_id: StringName, options: Dictionary) -> void:
 	if err != OK:
 		push_error("Main: level '%s' could not be loaded (error %d)" % [str(level_id), err])
 		return
-	_runtime.game_event.connect(_flow.handle_event)
+	if not _runtime.game_event.is_connected(_flow.handle_event):
+		_runtime.game_event.connect(_flow.handle_event)
 	_runtime.cutscene_finished.connect(_flow.notify_cutscene_finished)
 	_flow.notify_level_loaded(level_id, _runtime)
 
