@@ -6,6 +6,7 @@ extends RefCounted
 
 
 static var _flat_material: StandardMaterial3D = null
+static var _warned_degenerate: bool = false
 
 
 static func flat_material() -> StandardMaterial3D:
@@ -42,15 +43,16 @@ static func box(size: Vector3, color: Color) -> ArrayMesh:
 
 ## Truncated cone along Y, centred on the origin. A zero radius turns the top or bottom into an apex.
 static func cylinder(r_top: float, r_bottom: float, h: float, sides: int, color: Color) -> ArrayMesh:
+	var n_sides: int = _clamp_sides(sides)
 	var st: SurfaceTool = SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var half: float = h * 0.5
 	var origin: Vector3 = Vector3.ZERO
 	var top_centre: Vector3 = Vector3(0.0, half, 0.0)
 	var bottom_centre: Vector3 = Vector3(0.0, -half, 0.0)
-	for i: int in range(sides):
-		var a0: float = TAU * float(i) / float(sides)
-		var a1: float = TAU * float(i + 1) / float(sides)
+	for i: int in range(n_sides):
+		var a0: float = TAU * float(i) / float(n_sides)
+		var a1: float = TAU * float(i + 1) / float(n_sides)
 		var t0: Vector3 = Vector3(sin(a0) * r_top, half, cos(a0) * r_top)
 		var t1: Vector3 = Vector3(sin(a1) * r_top, half, cos(a1) * r_top)
 		var b0: Vector3 = Vector3(sin(a0) * r_bottom, -half, cos(a0) * r_bottom)
@@ -74,38 +76,43 @@ static func cone(r: float, h: float, sides: int, color: Color) -> ArrayMesh:
 
 ## UV sphere with `rings` latitude bands (rings >= 2) and `segments` longitude slices (segments >= 3).
 static func sphere(r: float, rings: int, segments: int, color: Color) -> ArrayMesh:
+	var n_rings: int = _clamp_rings(rings)
+	var n_segments: int = _clamp_sides(segments)
 	var st: SurfaceTool = SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var origin: Vector3 = Vector3.ZERO
-	for i: int in range(rings):
-		for k: int in range(segments):
-			var a: Vector3 = _sphere_point(r, rings, segments, i, k)
-			var b: Vector3 = _sphere_point(r, rings, segments, i, k + 1)
-			var c: Vector3 = _sphere_point(r, rings, segments, i + 1, k + 1)
-			var d: Vector3 = _sphere_point(r, rings, segments, i + 1, k)
+	for i: int in range(n_rings):
+		for k: int in range(n_segments):
+			var a: Vector3 = _sphere_point(r, n_rings, n_segments, i, k)
+			var b: Vector3 = _sphere_point(r, n_rings, n_segments, i, k + 1)
+			var c: Vector3 = _sphere_point(r, n_rings, n_segments, i + 1, k + 1)
+			var d: Vector3 = _sphere_point(r, n_rings, n_segments, i + 1, k)
 			if i == 0:
 				_tri(st, a, c, d, color, origin)
-			elif i == rings - 1:
+			elif i == n_rings - 1:
 				_tri(st, a, b, c, color, origin)
 			else:
 				_quad(st, a, b, c, d, color, origin)
 	return st.commit()
 
 
-## Cylinder body with a full sphere at each end; `h` is the total height including the caps.
+## Cylinder body with a hemisphere at each end (6 rings, 12 segments per hemisphere); `h` is the total
+## height including the caps.
 static func capsule(r: float, h: float, color: Color) -> ArrayMesh:
 	var body_h: float = maxf(0.0, h - 2.0 * r)
 	var end_offset: float = body_h * 0.5
 	var parts: Array[Dictionary] = [
 		{"mesh": cylinder(r, r, body_h, 12, color), "transform": Transform3D(Basis(), Vector3.ZERO)},
-		{"mesh": sphere(r, 6, 12, color), "transform": Transform3D(Basis(), Vector3(0.0, end_offset, 0.0))},
-		{"mesh": sphere(r, 6, 12, color), "transform": Transform3D(Basis(), Vector3(0.0, -end_offset, 0.0))},
+		{"mesh": _hemisphere(r, 6, 12, color, 1.0), "transform": Transform3D(Basis(), Vector3(0.0, end_offset, 0.0))},
+		{"mesh": _hemisphere(r, 6, 12, color, -1.0), "transform": Transform3D(Basis(), Vector3(0.0, -end_offset, 0.0))},
 	]
 	return merge(parts)
 
 
 ## Combines meshes into one flat-shaded ArrayMesh. Each part is {"mesh": ArrayMesh, "transform": Transform3D}.
-## Vertices get the part transform, normals get its rotation (non-uniform scale is not corrected).
+## Vertices get the part transform. Normals get the inverse-transpose of its basis, so they stay perpendicular
+## to their faces under non-uniform scale. When the basis is mirrored (negative determinant) each triangle's
+## winding is reversed so the faces still point outward.
 static func merge(parts: Array[Dictionary]) -> ArrayMesh:
 	var st: SurfaceTool = SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -116,21 +123,80 @@ static func merge(parts: Array[Dictionary]) -> ArrayMesh:
 		if mesh == null:
 			continue
 		var basis: Basis = xf.basis
+		var normal_basis: Basis = basis.inverse().transposed()
+		var mirrored: bool = basis.determinant() < 0.0
 		for s: int in range(mesh.get_surface_count()):
 			var arrays: Array = mesh.surface_get_arrays(s)
 			var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX] as PackedVector3Array
 			var norms: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL] as PackedVector3Array
 			var cols: PackedColorArray = arrays[Mesh.ARRAY_COLOR] as PackedColorArray
-			for vi: int in range(verts.size()):
-				var n: Vector3 = norms[vi] if norms.size() > vi else Vector3.UP
-				var c: Color = cols[vi] if cols.size() > vi else Color.WHITE
-				st.set_normal((basis * n).normalized())
-				st.set_color(c)
-				st.add_vertex(xf * verts[vi])
-				count += 1
+			var order: Array[int] = [0, 1, 2]
+			if mirrored:
+				order = [0, 2, 1]
+			var tri_start: int = 0
+			while tri_start + 2 < verts.size():
+				for j: int in range(3):
+					var vi: int = tri_start + order[j]
+					var n: Vector3 = norms[vi] if norms.size() > vi else Vector3.UP
+					var c: Color = cols[vi] if cols.size() > vi else Color.WHITE
+					st.set_normal((normal_basis * n).normalized())
+					st.set_color(c)
+					st.add_vertex(xf * verts[vi])
+					count += 1
+				tri_start += 3
 	if count == 0:
 		return ArrayMesh.new()
 	return st.commit()
+
+
+## Clamps a sides/segments argument to the minimum of 3, warning once.
+static func _clamp_sides(value: int) -> int:
+	if value >= 3:
+		return value
+	_warn_degenerate("sides/segments below 3 clamped to 3")
+	return 3
+
+
+## Clamps a rings argument to the minimum of 2, warning once.
+static func _clamp_rings(value: int) -> int:
+	if value >= 2:
+		return value
+	_warn_degenerate("rings below 2 clamped to 2")
+	return 2
+
+
+static func _warn_degenerate(message: String) -> void:
+	if _warned_degenerate:
+		return
+	_warned_degenerate = true
+	push_warning("MeshKit: " + message)
+
+
+## Upper (sign = 1) or lower (sign = -1) half of a UV sphere, open at the equator.
+static func _hemisphere(r: float, rings: int, segments: int, color: Color, sign: float) -> ArrayMesh:
+	var n_rings: int = _clamp_rings(rings)
+	var n_segments: int = _clamp_sides(segments)
+	var st: SurfaceTool = SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var origin: Vector3 = Vector3.ZERO
+	for i: int in range(n_rings):
+		for k: int in range(n_segments):
+			var a: Vector3 = _hemisphere_point(r, n_rings, n_segments, i, k, sign)
+			var b: Vector3 = _hemisphere_point(r, n_rings, n_segments, i, k + 1, sign)
+			var c: Vector3 = _hemisphere_point(r, n_rings, n_segments, i + 1, k + 1, sign)
+			var d: Vector3 = _hemisphere_point(r, n_rings, n_segments, i + 1, k, sign)
+			if i == 0:
+				_tri(st, a, c, d, color, origin)
+			else:
+				_quad(st, a, b, c, d, color, origin)
+	return st.commit()
+
+
+static func _hemisphere_point(r: float, rings: int, segments: int, row: int, col: int, sign: float) -> Vector3:
+	var phi: float = (PI * 0.5) * float(row) / float(rings)
+	var theta: float = TAU * float(col) / float(segments)
+	var rad: float = r * sin(phi)
+	return Vector3(rad * sin(theta), sign * r * cos(phi), rad * cos(theta))
 
 
 static func _sphere_point(r: float, rings: int, segments: int, row: int, col: int) -> Vector3:
