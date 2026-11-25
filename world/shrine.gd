@@ -1,14 +1,23 @@
 class_name Shrine
 extends Area3D
 ## A meditation shrine (DESIGN §9 M27). Interacting with it meditates: it records `GameState.last_shrine`,
-## refills the player's Health to max (the Health child found by type) and saves game slot 0.
-## Built procedurally: a stone plinth, a saffron flag and a gold lamp (MeshKit, DESIGN §6.1 palette).
+## refills the player's Health to max (the Health child found by type), refills Smarana completely and saves
+## game slot 0. Built procedurally: a stone plinth, a saffron flag and a gold lamp (MeshKit, DESIGN §6.1 palette).
+##
+## Smarana is owned by the devotion code (M20), which this module must not depend on. The refill goes two ways:
+## a descendant of the player with a `refill()` method is called directly, and `EventBus.smarana_changed(100.0)`
+## is emitted so any listener can follow. Vitality is announced with `EventBus.vitality_changed` for the HUD.
+## Exhaustion and `Health.invulnerable` belong to other systems and are left untouched here.
 
 signal meditated
 
 const SAVE_SLOT: int = 0
-const GAME_STATE_NAME: StringName = &"GameState"
+const GAME_STATE_NAME: String = "GameState"
+const EVENT_BUS_NAME: String = "EventBus"
+const SMARANA_FULL: float = 100.0
+const REFILL_METHOD: StringName = &"refill"
 const _HALF_EXTENT: float = 0.8
+const _COLLIDER_HEIGHT: float = 1.6
 
 ## Shrine id as written in the level JSON (levels/SCHEMA.md). Empty falls back to the node name.
 @export var shrine_id: String = ""
@@ -25,10 +34,10 @@ func _ready() -> void:
 	_add_visuals()
 
 
-## Meditates at this shrine. `player` is any node that has a Health child; a player without one is still
-## recorded and saved, just not healed.
+## Meditates at this shrine. `player` is any node that may have a Health child and a `refill()` component;
+## a player missing either is still recorded and saved, just not refilled.
 func interact(player: Node) -> void:
-	var state: Node = _game_state()
+	var state: Node = _autoload(GAME_STATE_NAME)
 	if state != null:
 		state.set("last_shrine", {
 			"level": _level_id(),
@@ -38,6 +47,8 @@ func interact(player: Node) -> void:
 	var health: Health = _find_health(player)
 	if health != null:
 		health.heal(health.max_value)
+		_announce_vitality(health)
+	_refill_smarana(player)
 	if state != null:
 		state.call("save_game", SAVE_SLOT)
 	meditated.emit()
@@ -57,11 +68,27 @@ func _level_id() -> String:
 	return ""
 
 
-func _game_state() -> Node:
+## Returns the named autoload (e.g. "GameState") from the scene tree root, or null when it is not present.
+func _autoload(autoload_name: String) -> Node:
 	var tree: SceneTree = Engine.get_main_loop() as SceneTree
 	if tree == null:
 		return null
-	return tree.root.get_node_or_null(NodePath(str(GAME_STATE_NAME))) as Node
+	return tree.root.get_node_or_null(autoload_name) as Node
+
+
+func _announce_vitality(health: Health) -> void:
+	var bus: Node = _autoload(EVENT_BUS_NAME)
+	if bus != null:
+		bus.emit_signal("vitality_changed", health.value, health.max_value)
+
+
+func _refill_smarana(player: Node) -> void:
+	var refillable: Node = _find_refillable(player)
+	if refillable != null:
+		refillable.call(REFILL_METHOD)
+	var bus: Node = _autoload(EVENT_BUS_NAME)
+	if bus != null:
+		bus.emit_signal("smarana_changed", SMARANA_FULL)
 
 
 ## Depth-first search for the first Health component under `node`.
@@ -78,13 +105,26 @@ func _find_health(node: Node) -> Health:
 	return null
 
 
+## Depth-first search for the first node under `node` (inclusive) that has a `refill()` method.
+func _find_refillable(node: Node) -> Node:
+	if node == null:
+		return null
+	if node.has_method(REFILL_METHOD):
+		return node
+	for child: Node in node.get_children():
+		var found: Node = _find_refillable(child)
+		if found != null:
+			return found
+	return null
+
+
 func _add_collision() -> void:
 	var shape: BoxShape3D = BoxShape3D.new()
-	shape.size = Vector3(_HALF_EXTENT * 2.0, 1.6, _HALF_EXTENT * 2.0)
+	shape.size = Vector3(_HALF_EXTENT * 2.0, _COLLIDER_HEIGHT, _HALF_EXTENT * 2.0)
 	var collider: CollisionShape3D = CollisionShape3D.new()
 	collider.name = "Collider"
 	collider.shape = shape
-	collider.position = Vector3(0.0, 0.8, 0.0)
+	collider.position = Vector3(0.0, _COLLIDER_HEIGHT * 0.5, 0.0)
 	add_child(collider)
 
 
