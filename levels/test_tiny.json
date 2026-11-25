@@ -1,0 +1,36 @@
+{
+  "id": "test_tiny",
+  "nav": true,
+  "tiles": [
+    { "x": 0, "z": 0, "type": "ground", "step": 0 },
+    { "x": 1, "z": 0, "type": "ground", "step": 0 },
+    { "x": 2, "z": 0, "type": "ground", "step": 0 },
+    { "x": 3, "z": 0, "type": "water", "step": 0 },
+    { "x": 0, "z": 1, "type": "ground", "step": 0 },
+    { "x": 1, "z": 1, "type": "stone_floor", "step": 2 },
+    { "x": 2, "z": 1, "type": "ground", "step": 0 },
+    { "x": 3, "z": 1, "type": "ground", "step": 0 },
+    { "x": 0, "z": 2, "type": "ground", "step": 0 },
+    { "x": 1, "z": 2, "type": "ground", "step": 0 },
+    { "x": 2, "z": 2, "type": "grass", "step": 1 },
+    { "x": 3, "z": 2, "type": "sand", "step": 0 },
+    { "x": 0, "z": 3, "type": "wall", "step": 0 },
+    { "x": 1, "z": 3, "type": "ground", "step": 0 },
+    { "x": 2, "z": 3, "type": "ground", "step": 0 },
+    { "x": 3, "z": 3, "type": "ground", "step": 0 }
+  ],
+  "props": [
+    { "kind": "rock", "pos": [4.0, 4.0], "rot": 0, "seed": 7, "size": [1.5, 1.0, 1.5], "opts": { "flammable": false, "protected": false } },
+    { "kind": "pillar", "pos": [6.0, 2.0], "rot": 90, "seed": 3, "size": [1.0, 4.0, 1.0], "opts": { "flammable": true, "protected": false } }
+  ],
+  "spawns": [
+    { "id": "hanuman_start", "kind": "player", "pos": [1.0, 1.0], "facing": 0 },
+    { "id": "rakshasa_1", "kind": "rakshasa_spear", "pos": [5.0, 5.0], "facing": 180 }
+  ],
+  "triggers": [
+    { "id": "intro_trigger", "shape": "box", "size": [2.0, 2.0, 2.0], "pos": [3.0, 5.0], "on_enter": "intro_seen", "once": true }
+  ],
+  "shrines": [
+    { "id": "shrine_1", "pos": [7.0, 7.0] }
+  ]
+}
