@@ -21,10 +21,12 @@ func _initialize() -> void:
 	root3d.add_child(h)
 	h.build()
 	h.position = Vector3(0, 0, 0)
+	h.rotation_degrees.y = 200.0
 	var x: float = 2.0
 	for v: StringName in [&"spear", &"archer", &"brute", &"lankini"]:
 		var r: Node3D = RakshasaModel.build(v)
 		r.position = Vector3(x, 0, 0)
+		r.rotation_degrees.y = 200.0
 		root3d.add_child(r)
 		x += 2.0
 	var house: Node3D = ArchitectureKit.tier_house(Vector3(4, 5, 4), 7)

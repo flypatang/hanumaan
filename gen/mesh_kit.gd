@@ -8,7 +8,9 @@ extends RefCounted
 const _TOON_SHADER: String = """shader_type spatial;
 render_mode diffuse_lambert, specular_disabled;
 
-const float WARM_RIM_STRENGTH = 0.35;
+// Rim disabled: the fresnel term washed every face out under the orthographic iso camera (see the 2026-11-26 art
+// review). Rim lighting comes from a back DirectionalLight in each level's light rig instead.
+const float WARM_RIM_STRENGTH = 0.0;
 const vec3 WARM_RIM = vec3(1.0, 0.82, 0.55);
 const float AMBIENT = 0.30;
 
@@ -21,7 +23,9 @@ void vertex() {
 void fragment() {
 	ALBEDO = v_color;
 	ROUGHNESS = 1.0;
-	float fres = pow(1.0 - clamp(dot(normalize(NORMAL), normalize(VIEW)), 0.0, 1.0), 3.0);
+	// Orthographic cameras (the iso camera) have a constant view direction; VIEW is unreliable there.
+	vec3 view_dir = PROJECTION_MATRIX[3][3] != 0.0 ? vec3(0.0, 0.0, 1.0) : normalize(VIEW);
+	float fres = pow(1.0 - clamp(dot(normalize(NORMAL), view_dir), 0.0, 1.0), 4.0);
 	EMISSION = v_color * AMBIENT * 0.35 + WARM_RIM * fres * WARM_RIM_STRENGTH;
 }
 
