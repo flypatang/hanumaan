@@ -395,3 +395,87 @@ func test_m31_stop_cancels_without_finished() -> void:
 	player.call("stop")
 	assert_bool(player.call("is_playing") as bool).is_false()
 	assert_int(rec.finished_count).is_equal(0)
+
+
+func test_m31_tick_after_stop_does_nothing() -> void:
+	_write_fixture("stop_tick", """{"steps": [{"type": "wait", "duration": 0.5}, {"type": "set_flag", "k": "m31_never", "v": true}]}""")
+	var player: Node = _make_player()
+	var rec: Recorder = _record(player)
+	var flags: Array[String] = []
+	player.connect("flag_set", func(key: StringName, _value: Variant) -> void:
+		flags.append(str(key)))
+	assert_int(player.call("play", _fixture_id("stop_tick"), {}, null) as int).is_equal(OK)
+	player.call("stop")
+	var steps_before: int = rec.step_types.size()
+	var index_before: int = player.call("current_index") as int
+	player.call("tick", 1.0)
+	player.call("tick", 1.0)
+	assert_bool(player.call("is_playing") as bool).is_false()
+	assert_int(player.call("current_index") as int).is_equal(index_before)
+	assert_int(rec.step_types.size()).is_equal(steps_before)
+	assert_array(flags).is_empty()
+	assert_int(rec.finished_count).is_equal(0)
+
+
+func test_m31_play_while_playing_restarts_with_new_cutscene() -> void:
+	_write_fixture("first_cut", """{"steps": [{"type": "wait", "duration": 5.0}]}""")
+	_write_fixture("second_cut", """{"steps": [{"type": "wait", "duration": 0.2}]}""")
+	var player: Node = _make_player()
+	var finished_ids: Array[StringName] = []
+	player.connect("finished", func(id: StringName) -> void:
+		finished_ids.append(id))
+	assert_int(player.call("play", _fixture_id("first_cut"), {}, null) as int).is_equal(OK)
+	player.call("tick", 1.0)
+	assert_int(player.call("current_index") as int).is_equal(0)
+	assert_int(player.call("play", _fixture_id("second_cut"), {}, null) as int).is_equal(OK)
+	assert_bool(player.call("is_playing") as bool).is_true()
+	assert_int(player.call("current_index") as int).is_equal(0)
+	player.call("tick", 0.2)
+	assert_bool(player.call("is_playing") as bool).is_false()
+	# Only the second cutscene finishes; the first one was replaced without emitting finished.
+	assert_array(finished_ids).is_equal([_fixture_id("second_cut")])
+
+
+func test_m31_shloka_pauses_until_continue() -> void:
+	_write_fixture("shloka_pause", """{"steps": [{"type": "shloka", "id": "leap_39"}, {"type": "wait", "duration": 0.1}]}""")
+	var player: Node = _make_player()
+	var rec: Recorder = _record(player)
+	assert_int(player.call("play", _fixture_id("shloka_pause"), {}, null) as int).is_equal(OK)
+	player.call("tick", 5.0)
+	assert_bool(player.call("is_awaiting_ui") as bool).is_true()
+	assert_int(player.call("current_index") as int).is_equal(0)
+	assert_array(rec.shlokas).is_equal([&"leap_39"])
+	player.call("tick", 5.0)
+	assert_int(player.call("current_index") as int).is_equal(0)
+	player.call("continue_after_ui")
+	assert_bool(player.call("is_awaiting_ui") as bool).is_false()
+	player.call("tick", 0.1)
+	assert_bool(player.call("is_playing") as bool).is_false()
+	assert_int(rec.finished_count).is_equal(1)
+
+
+func test_m31_sync_continue_inside_dialogue_signal_finishes() -> void:
+	_write_fixture("sync_talk", """{"steps": [{"type": "dialogue", "id": "ch1_sync"}, {"type": "wait", "duration": 0.5}]}""")
+	var player: Node = _make_player()
+	var rec: Recorder = _record(player)
+	# The listener answers at once, while the pause is being requested.
+	player.connect("dialogue_requested", func(_id: StringName, _node: StringName) -> void:
+		player.call("continue_after_ui"))
+	assert_int(player.call("play", _fixture_id("sync_talk"), {}, null) as int).is_equal(OK)
+	assert_bool(player.call("is_awaiting_ui") as bool).is_false()
+	assert_int(player.call("current_index") as int).is_equal(1)
+	assert_array(rec.dialogues).is_equal([&"ch1_sync"])
+	player.call("tick", 0.5)
+	assert_bool(player.call("is_playing") as bool).is_false()
+	assert_int(rec.finished_count).is_equal(1)
+
+
+func test_m31_sync_continue_inside_shloka_signal_finishes() -> void:
+	_write_fixture("sync_shloka", """{"steps": [{"type": "shloka", "id": "leap_39"}]}""")
+	var player: Node = _make_player()
+	var rec: Recorder = _record(player)
+	player.connect("shloka_requested", func(_id: StringName) -> void:
+		player.call("continue_after_ui"))
+	assert_int(player.call("play", _fixture_id("sync_shloka"), {}, null) as int).is_equal(OK)
+	assert_bool(player.call("is_playing") as bool).is_false()
+	assert_int(rec.finished_count).is_equal(1)

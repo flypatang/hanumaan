@@ -46,6 +46,9 @@ var _steps: Array[Dictionary] = []
 var _index: int = 0
 var _playing: bool = false
 var _awaiting_ui: bool = false
+# True while tick() runs. _generation changes on play() and stop(), so a running loop can detect a restart.
+var _ticking: bool = false
+var _generation: int = 0
 var _actors: Dictionary = {}
 var _camera: Camera3D = null
 
@@ -78,8 +81,13 @@ func load_cutscene(id: StringName) -> Error:
 	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
 	if file == null:
 		return ERR_FILE_CANT_OPEN
-	var parsed: Variant = JSON.parse_string(file.get_as_text())
+	var json: JSON = JSON.new()
+	var parse_err: Error = json.parse(file.get_as_text())
 	file.close()
+	if parse_err != OK:
+		push_warning("CutscenePlayer: %s is not valid JSON (line %d): %s" % [path, json.get_error_line(), json.get_error_message()])
+		return ERR_PARSE_ERROR
+	var parsed: Variant = json.data
 	var raw_steps: Variant = parsed
 	if parsed is Dictionary:
 		raw_steps = (parsed as Dictionary).get("steps", null)
@@ -101,12 +109,14 @@ func play(id: StringName, actors: Dictionary, camera: Camera3D) -> Error:
 	var err: Error = load_cutscene(id)
 	if err != OK:
 		return err
+	_generation += 1
 	_actors = actors
 	_camera = camera
 	_index = 0
 	_playing = true
 	_awaiting_ui = false
 	_step_active = false
+	_clear_move_state()
 	started.emit(_id)
 	tick(0.0)
 	return OK
@@ -114,38 +124,29 @@ func play(id: StringName, actors: Dictionary, camera: Camera3D) -> Error:
 
 ## Advances the sequence by delta seconds. Does nothing while stopped or waiting for continue_after_ui().
 func tick(delta: float) -> void:
-	if not _playing:
+	# A tick that arrives while another is running (for example from a listener that calls play() or tick() inside
+	# a signal) is ignored. The running loop picks up the new state itself.
+	if not _playing or _ticking:
 		return
-	var budget: float = maxf(delta, 0.0)
-	while _playing and not _awaiting_ui:
-		if not _step_active:
-			if _index >= _steps.size():
-				_finish()
-				return
-			_begin_step(_steps[_index])
-			continue
-		var remaining: float = _step_duration - _step_elapsed
-		if budget < remaining:
-			_step_elapsed += budget
-			_apply_progress(_step_elapsed / _step_duration)
-			return
-		budget -= remaining
-		_step_elapsed = _step_duration
-		_apply_progress(1.0)
-		_complete_step()
+	_ticking = true
+	_advance(maxf(delta, 0.0))
+	_ticking = false
 
 
-## Resumes after a dialogue or shloka step. Ignored when nothing is waiting.
+## Resumes after a dialogue or shloka step. Ignored when nothing is waiting. When called from inside the signal that
+## requested the pause, the running tick loop continues on its own; otherwise this ticks the rest of the sequence.
 func continue_after_ui() -> void:
 	if not _awaiting_ui:
 		return
 	_awaiting_ui = false
 	_complete_step()
-	tick(0.0)
+	if not _ticking:
+		tick(0.0)
 
 
 ## Cancels the cutscene without emitting finished.
 func stop() -> void:
+	_generation += 1
 	_playing = false
 	_awaiting_ui = false
 	_step_active = false
@@ -162,6 +163,30 @@ func is_awaiting_ui() -> bool:
 
 func current_index() -> int:
 	return _index
+
+
+func _advance(budget_in: float) -> void:
+	var budget: float = budget_in
+	while _playing and not _awaiting_ui:
+		if not _step_active:
+			if _index >= _steps.size():
+				_finish()
+				return
+			var generation: int = _generation
+			_begin_step(_steps[_index])
+			# A listener may have stopped or restarted the cutscene while the step was being begun.
+			if generation != _generation:
+				return
+			continue
+		var remaining: float = _step_duration - _step_elapsed
+		if budget < remaining:
+			_step_elapsed += budget
+			_apply_progress(_step_elapsed / _step_duration)
+			return
+		budget -= remaining
+		_step_elapsed = _step_duration
+		_apply_progress(1.0)
+		_complete_step()
 
 
 func _finish() -> void:
@@ -197,13 +222,14 @@ func _begin_step(step: Dictionary) -> void:
 			flag_set.emit(StringName(str(step.get("k", ""))), step.get("v", null))
 			_step_duration = 0.0
 		&"dialogue":
+			# Set the pause before emitting, so a listener can answer synchronously with continue_after_ui().
+			_step_duration = 0.0
+			_awaiting_ui = true
 			dialogue_requested.emit(StringName(str(step.get("id", ""))), StringName(str(step.get("node", ""))))
-			_step_duration = 0.0
-			_awaiting_ui = true
 		&"shloka":
-			shloka_requested.emit(StringName(str(step.get("id", ""))))
 			_step_duration = 0.0
 			_awaiting_ui = true
+			shloka_requested.emit(StringName(str(step.get("id", ""))))
 		&"fade":
 			var color: Color = _color_for(StringName(str(step.get("color", "UI_DARK"))))
 			fade_requested.emit(color, _step_duration, _as_bool(step.get("out", true)))

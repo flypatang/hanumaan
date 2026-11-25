@@ -40,8 +40,10 @@ a warning, not an error: the step still runs for its duration and nothing moves.
 - Timed steps advance on the `delta` passed to `tick()`. Leftover time carries into the next step. Outcomes do not
   depend on frame rate (DESIGN §8).
 - `dialogue` and `shloka` steps pause the sequence. Call `continue_after_ui()` to resume. Calls made while nothing is
-  waiting are ignored.
-- `finished(id)` is emitted once, after the last step completes. `stop()` cancels without emitting it.
+  waiting are ignored. A listener may call `continue_after_ui()` synchronously inside the `dialogue_requested` or
+  `shloka_requested` handler; the sequence then continues without pausing.
+- `finished(id)` is emitted once, after the last step completes. `stop()` cancels without emitting it. Calling `play()`
+  while a cutscene runs replaces it, and the replaced cutscene never emits `finished`.
 
 ## Example
 
