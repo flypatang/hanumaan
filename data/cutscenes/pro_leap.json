@@ -1,0 +1,56 @@
+{
+ "steps": [
+  {
+   "type": "actor_move",
+   "actor": "hanuman",
+   "to": [
+    43,
+    43
+   ],
+   "duration": 1.5
+  },
+  {
+   "type": "camera_move",
+   "to": [
+    60,
+    30,
+    60
+   ],
+   "look_at": [
+    43,
+    4,
+    43
+   ],
+   "duration": 3.0
+  },
+  {
+   "type": "actor_pose",
+   "actor": "hanuman",
+   "pose": "meditate"
+  },
+  {
+   "type": "dialogue",
+   "id": "pro_leap"
+  },
+  {
+   "type": "actor_pose",
+   "actor": "hanuman",
+   "pose": "attack_wind"
+  },
+  {
+   "type": "wait",
+   "duration": 0.8
+  },
+  {
+   "type": "fade",
+   "color": "SAFFRON",
+   "duration": 1.0,
+   "out": true
+  },
+  {
+   "type": "set_flag",
+   "k": "prologue_done",
+   "v": true
+  }
+ ]
+}

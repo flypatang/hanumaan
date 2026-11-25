@@ -1,0 +1,38 @@
+{
+ "steps": [
+  {
+   "type": "fade",
+   "color": "UI_DARK",
+   "duration": 1.5,
+   "out": false
+  },
+  {
+   "type": "camera_move",
+   "to": [
+    20,
+    10,
+    -10
+   ],
+   "look_at": [
+    13,
+    0,
+    4
+   ],
+   "duration": 6.0
+  },
+  {
+   "type": "dialogue",
+   "id": "teaser_setu"
+  },
+  {
+   "type": "wait",
+   "duration": 2.0
+  },
+  {
+   "type": "fade",
+   "color": "UI_DARK",
+   "duration": 2.0,
+   "out": true
+  }
+ ]
+}

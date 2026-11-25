@@ -1,0 +1,51 @@
+{
+ "steps": [
+  {
+   "type": "camera_move",
+   "to": [
+    40,
+    18,
+    40
+   ],
+   "look_at": [
+    33,
+    1,
+    33
+   ],
+   "duration": 2.0
+  },
+  {
+   "type": "fade",
+   "color": "GOLD",
+   "duration": 0.6,
+   "out": true
+  },
+  {
+   "type": "fade",
+   "color": "GOLD",
+   "duration": 0.6,
+   "out": false
+  },
+  {
+   "type": "actor_pose",
+   "actor": "hanuman",
+   "pose": "meditate"
+  },
+  {
+   "type": "dialogue",
+   "id": "ch4_grove_battle",
+   "node": "b1"
+  },
+  {
+   "type": "fade",
+   "color": "UI_DARK",
+   "duration": 1.5,
+   "out": true
+  },
+  {
+   "type": "set_flag",
+   "k": "ch4_done",
+   "v": true
+  }
+ ]
+}

@@ -1,0 +1,33 @@
+{
+ "steps": [
+  {
+   "type": "camera_move",
+   "to": [
+    45,
+    20,
+    10
+   ],
+   "look_at": [
+    33,
+    3,
+    5
+   ],
+   "duration": 2.0
+  },
+  {
+   "type": "actor_pose",
+   "actor": "hanuman",
+   "pose": "attack_wind"
+  },
+  {
+   "type": "dialogue",
+   "id": "ch4_grove_battle",
+   "node": "c1"
+  },
+  {
+   "type": "actor_pose",
+   "actor": "hanuman",
+   "pose": "idle"
+  }
+ ]
+}

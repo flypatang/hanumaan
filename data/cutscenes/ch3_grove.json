@@ -1,0 +1,38 @@
+{
+ "steps": [
+  {
+   "type": "fade",
+   "color": "NIGHT_INDIGO",
+   "duration": 1.0,
+   "out": false
+  },
+  {
+   "type": "camera_move",
+   "to": [
+    44,
+    22,
+    44
+   ],
+   "look_at": [
+    31,
+    2,
+    33
+   ],
+   "duration": 4.0
+  },
+  {
+   "type": "actor_pose",
+   "actor": "sita",
+   "pose": "idle"
+  },
+  {
+   "type": "dialogue",
+   "id": "ch3_grove"
+  },
+  {
+   "type": "set_flag",
+   "k": "ch3_done",
+   "v": true
+  }
+ ]
+}

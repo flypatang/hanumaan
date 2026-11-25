@@ -1,0 +1,43 @@
+{
+ "steps": [
+  {
+   "type": "camera_move",
+   "to": [
+    80,
+    30,
+    0
+   ],
+   "look_at": [
+    64,
+    0,
+    8
+   ],
+   "duration": 3.0
+  },
+  {
+   "type": "dialogue",
+   "id": "ch5_dahan",
+   "node": "f2"
+  },
+  {
+   "type": "actor_pose",
+   "actor": "hanuman",
+   "pose": "attack_wind"
+  },
+  {
+   "type": "wait",
+   "duration": 0.8
+  },
+  {
+   "type": "fade",
+   "color": "SAFFRON",
+   "duration": 1.2,
+   "out": true
+  },
+  {
+   "type": "set_flag",
+   "k": "ch5_done",
+   "v": true
+  }
+ ]
+}

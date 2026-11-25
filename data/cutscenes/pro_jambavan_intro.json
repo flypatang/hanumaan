@@ -1,0 +1,52 @@
+{
+ "steps": [
+  {
+   "type": "fade",
+   "color": "SAFFRON",
+   "duration": 1.0,
+   "out": false
+  },
+  {
+   "type": "camera_move",
+   "to": [
+    26,
+    16,
+    30
+   ],
+   "look_at": [
+    16,
+    0,
+    12
+   ],
+   "duration": 3.0
+  },
+  {
+   "type": "actor_pose",
+   "actor": "hanuman",
+   "pose": "meditate"
+  },
+  {
+   "type": "actor_move",
+   "actor": "jambavan",
+   "to": [
+    17,
+    13
+   ],
+   "duration": 2.0
+  },
+  {
+   "type": "dialogue",
+   "id": "pro_jambavan"
+  },
+  {
+   "type": "actor_pose",
+   "actor": "hanuman",
+   "pose": "idle"
+  },
+  {
+   "type": "set_flag",
+   "k": "grow_unlocked",
+   "v": true
+  }
+ ]
+}

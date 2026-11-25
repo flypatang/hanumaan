@@ -1,0 +1,19 @@
+{
+ "steps": [
+  {
+   "type": "actor_pose",
+   "actor": "lankini",
+   "pose": "meditate"
+  },
+  {
+   "type": "dialogue",
+   "id": "ch2_lankini",
+   "node": "w1"
+  },
+  {
+   "type": "set_flag",
+   "k": "gate_open",
+   "v": true
+  }
+ ]
+}

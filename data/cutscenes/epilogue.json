@@ -1,0 +1,48 @@
+{
+ "steps": [
+  {
+   "type": "fade",
+   "color": "SAFFRON",
+   "duration": 1.5,
+   "out": false
+  },
+  {
+   "type": "camera_move",
+   "to": [
+    26,
+    14,
+    26
+   ],
+   "look_at": [
+    13,
+    1,
+    13
+   ],
+   "duration": 5.0
+  },
+  {
+   "type": "actor_move",
+   "actor": "hanuman",
+   "to": [
+    15,
+    14
+   ],
+   "duration": 2.0
+  },
+  {
+   "type": "actor_pose",
+   "actor": "hanuman",
+   "pose": "meditate"
+  },
+  {
+   "type": "dialogue",
+   "id": "epilogue"
+  },
+  {
+   "type": "fade",
+   "color": "UI_DARK",
+   "duration": 2.0,
+   "out": true
+  }
+ ]
+}

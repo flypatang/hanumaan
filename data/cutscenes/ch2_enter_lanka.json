@@ -1,0 +1,32 @@
+{
+ "steps": [
+  {
+   "type": "fade",
+   "color": "NIGHT_INDIGO",
+   "duration": 1.5,
+   "out": false
+  },
+  {
+   "type": "camera_move",
+   "to": [
+    40,
+    40,
+    -20
+   ],
+   "look_at": [
+    19,
+    0,
+    30
+   ],
+   "duration": 4.0
+  },
+  {
+   "type": "wait",
+   "duration": 1.0
+  },
+  {
+   "type": "dialogue",
+   "id": "ch2_lankini"
+  }
+ ]
+}

@@ -1,0 +1,19 @@
+{
+ "steps": [
+  {
+   "type": "fade",
+   "color": "FIRE_EDGE",
+   "duration": 0.8,
+   "out": false
+  },
+  {
+   "type": "dialogue",
+   "id": "ch5_dahan"
+  },
+  {
+   "type": "set_flag",
+   "k": "tail_fire",
+   "v": true
+  }
+ ]
+}

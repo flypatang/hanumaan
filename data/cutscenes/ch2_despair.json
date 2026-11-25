@@ -1,0 +1,32 @@
+{
+ "steps": [
+  {
+   "type": "camera_move",
+   "to": [
+    100,
+    24,
+    10
+   ],
+   "look_at": [
+    89,
+    0,
+    9
+   ],
+   "duration": 2.5
+  },
+  {
+   "type": "actor_pose",
+   "actor": "hanuman",
+   "pose": "meditate"
+  },
+  {
+   "type": "dialogue",
+   "id": "ch2_despair"
+  },
+  {
+   "type": "actor_pose",
+   "actor": "hanuman",
+   "pose": "idle"
+  }
+ ]
+}
