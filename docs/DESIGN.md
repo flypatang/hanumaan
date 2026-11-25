@@ -1,4 +1,4 @@
-# Hanumaan — Sundara Kanda (Design Document v0.1)
+# Hanumaan — Sundara Kanda (Design Document v0.2)
 
 > Status: **DRAFT — awaiting approval.** Written by the design and orchestration agent (Opus).
 > This is the single source of truth for every agent that works on the game. The module contracts in §9 are
@@ -33,6 +33,7 @@ listed here so the reviewers can tell them apart from mistakes.
 | No gore | Defeated enemies dissolve into smoke and embers. There is no blood. Bosses kneel, then dissolve. |
 | Respectful portrayal | Hanuman is never shown as comic, clumsy or mocked. He speaks with humility and devotion. Rama and Sita are **never playable** and **never in combat**. |
 | Rama's name | Shown in Devanagari "राम" on the HUD Smarana meter. The name is never used as a joke or a pickup. |
+| Shlokas | Every Sanskrit verse shown in the game is quoted **exactly** from the Valmiki Ramayana with its reference (Kanda.Sarga.Shloka), and is checked against the IIT Kanpur Valmiki Ramayana text (valmiki.iitk.ac.in) before release. Verses are never paraphrased and presented as scripture. |
 | Sita | Shown with dignity under the shimshapa tree. Ravana's threats are delivered in text, without menace animations aimed at her. |
 | Gameplay liberties | (a) The kinkaras' numbers are shown as waves, not 80,000. (b) The leap is an on-rails flight sequence. (c) Shrines are a game device. |
 | Brahmastra | Hanuman **chooses** to submit out of respect for Brahma. This is a cutscene, not a fight you lose. |
@@ -87,6 +88,8 @@ On-rails flight over the ocean. You steer within a corridor and dodge.
 - A moment of fear for Sita, then relief when you reach the grove and see her safe.
 - He cools his tail in the ocean and leaps back.
 - **Epilogue:** "दृष्टा सीता — *I have seen Sita.*" Credits.
+- **Post-credits teaser (the next game, *Setu*):** On the southern shore, Rama looks at the ocean. The vanaras
+  pass stones forward hand to hand, a stone marked "राम" is laid on the water, and **it floats**. The title card reads "सेतु · Setu — coming next".
 
 ## 4. Core gameplay
 
@@ -103,8 +106,13 @@ On-rails flight over the ocean. You steer within a corridor and dodge.
 | Smarana surge (ultimate) | R | RT + LT |
 | Pause | Esc | Start |
 
-The camera is a fixed isometric 3D camera: orthographic, yaw 45°, pitch −35.264° (a true isometric view). It follows
-the player smoothly, and you can rotate it in 90° steps with Z/C or the right stick (to be decided; it may be locked per level).
+The camera is an isometric 3D camera: orthographic, yaw 45°, pitch −35.264° (a true isometric view). It follows
+the player smoothly. **The player can rotate it** in 90° steps (a 0.3 s eased turn) with Z/C, or by flicking the right stick
+left or right. Movement input is always relative to the camera. Levels can lock rotation only during cutscenes and the
+on-rails leap. Walls and roofs between the camera and Hanuman fade to 25% opacity so he is never hidden.
+
+| Rotate camera | Z / C | Right stick flick |
+|---|---|---|
 
 ### 4.2 Stats and resources
 - **Vitality** (HP): 100 at the start, and +25 per **Vow** upgrade. Restored at Shrines and by Mainaka.
@@ -163,7 +171,8 @@ The grid is 1 tile = 2 m, and heights go in 0.5 m steps.
 ## 6. Art direction (procedural, low-poly)
 
 **All meshes and textures are generated in code** (`ArrayMesh` and `SurfaceTool` built from primitives, with flat shading).
-There are no imported images or models.
+There are no imported images or models. **The one exception is fonts:** *Noto Sans* and *Noto Sans Devanagari*
+(for the UI), and *Noto Serif Devanagari* (for shlokas). All are under the SIL Open Font License and kept in `res://fonts/` with their licence files.
 
 **Look:** "temple-sculpture low-poly". Chunky, faceted forms, flat-shaded with a soft toon ramp, strong rim lights,
 and gold trim lines on architecture. It should feel like painted stone and bronze.
@@ -209,6 +218,42 @@ and gold trim lines on architecture. It should feel like painted stone and bronz
   modal melodies in the **Raga Bhairav**-like scale (S r G m P d N), with tabla-like percussion (filtered noise and a
   sine pitch drop). Separate tracks for calm, stealth, combat, boss, and the climactic Dahan scene.
 - All audio settings are on three buses: master, music and SFX.
+
+## 7A. Languages and shlokas
+
+### Player languages
+- There are two languages the player can choose: **English** and **हिन्दी (Hindi)**. The game asks on first launch
+  (by default it follows the OS locale) and you can change it anytime in Settings, with immediate effect and no restart.
+- **All** player-facing text goes through translation keys: UI, dialogue, objectives and subtitles. Source strings live in
+  `res://i18n/strings.csv` (columns `keys,en,hi`), which Godot imports as `Translation` resources.
+- Hindi is written in natural, modern Hindi (not machine-literal), with the Tatsam register (words taken directly
+  from Sanskrit) for the more solemn moments. **The owner reviews the Hindi before release.**
+- Names have fixed spellings: Hanuman/हनुमान, Rama/राम, Sita/सीता, Ravana/रावण, Lanka/लंका, Jambavan/जाम्बवान,
+  Vibhishana/विभीषण, Indrajit/इन्द्रजित्, Akshaya Kumara/अक्षयकुमार, Ashoka Vatika/अशोक वाटिका.
+
+### Shloka moments
+At the key moments, Hanuman (or the narrator) **recites a Valmiki shloka**. A "shloka card" shows:
+1. The **Sanskrit in Devanagari** (Noto Serif Devanagari, large, gold),
+2. The **IAST transliteration** (Sanskrit in Latin letters with diacritics, small, italic) in both languages, so players who
+   don't read Devanagari can pronounce it,
+3. A **translation in the player's chosen language**,
+4. The **reference** (for example *Sundara Kanda 5.1.39*).
+
+The card fades in over a still, slowly zooming camera shot. It stays until the player presses a button (minimum
+4 s), and the chant bell (`chant_bell`) plays with the music ducked. The player can turn the shloka cards off in
+Settings ("Shloka cards: on / short / off"; short shows only the translation for 3 s).
+
+| Moment | Candidate verse (owner to confirm; text must be verified, §2) | Ref. (verify) |
+|---|---|---|
+| Opening title | ततो रावणनीतायाः सीतायाः शत्रुकर्शनः । इयेष पदमन्वेष्टुं चारणाचरिते पथि ॥ | 5.1.1 |
+| The leap (Prologue end) | यथा राघवनिर्मुक्तः शरः श्वसनविक्रमः । गच्छेत्तद्वद्गमिष्यामि लङ्कां रावणपालिताम् ॥ | 5.1.39 |
+| Despair, then resolve (Ch2) | अनिर्वेदः श्रियो मूलमनिर्वेदः परं सुखम् । अनिर्वेदो हि सततं सर्वार्थेषु प्रवर्तकः ॥ | 5.12.10 |
+| Battle cry in the grove (Ch4) | जयत्यतिबलो रामो लक्ष्मणश्च महाबलः । राजा जयति सुग्रीवो राघवेणाभिपालितः ॥ | 5.42.33 |
+| Battle cry, continued (Ch4) | दासोऽहं कोसलेन्द्रस्य रामस्याक्लिष्टकर्मणः । हनूमाञ्शत्रुसैन्यानां निहन्ता मारुतात्मजः ॥ | 5.42.34 |
+| Epilogue | The verse in which Hanuman reports "I have seen Sita" | to be chosen |
+
+The shloka data is stored in `data/shlokas.json`: `{id, devanagari, iast, translation:{en,hi}, ref, verified_by, verified_on}`.
+**The release build fails if any shloka has an empty `verified_by`** (a check in the quality gates, §10).
 
 ## 8. Technical architecture
 
@@ -311,9 +356,18 @@ chest, head, upper/lower arm and leg on each side, tail_0..7, gada_socket). `bui
 spawns, triggers and shrines into nodes, and bakes the navigation region. The JSON schema is in `levels/SCHEMA.md` (written by the same agent).
 *Tests:* a tiny sample level builds with the expected number of nodes, and the navmesh is not empty.
 
-**M16 `narrative/dialogue_runner.gd`** loads `data/dialogue/<id>.json` (nodes with speaker, text, choices
-`{text, next, flags, smarana}`) with `start(id)`, `choose(i)`, and the signals `line_shown` and `finished`.
-*Tests:* walking through the branches reaches the expected end, and flags are applied.
+**M16 `narrative/dialogue_runner.gd`** loads `data/dialogue/<id>.json` (nodes with speaker, a `text_key`
+translation key, choices `{text_key, next, flags, smarana}`, and an optional `shloka:<id>` step) with `start(id)`, `choose(i)`,
+and the signals `line_shown` and `finished`. Text is **never** hard-coded; it always comes through `tr()`.
+*Tests:* walking through the branches reaches the expected end, flags are applied, and every `text_key` exists in `strings.csv`.
+
+**M16b `core/locale.gd`** (autoload `Locale`): `set_language(code:StringName)` (`en`, `hi`), `language() -> StringName`,
+signal `language_changed`. It saves the choice in user settings and picks the matching fonts (`font_for(role:StringName) -> Font`).
+*Tests:* switching languages changes what `tr()` returns; every key has both `en` and `hi` values that aren't empty
+(this test fails the build); the choice persists across a restart.
+
+**M16c `narrative/shlokas.gd`** loads `data/shlokas.json` (§7A) with `get_shloka(id) -> Dictionary` and `all_verified() -> bool`.
+*Tests:* the schema is valid, every entry has both translations, and `all_verified()` is false while any `verified_by` is empty.
 
 **M17 `narrative/objectives.gd`** with `add(id, text)`, `complete(id)`, `is_done(id)`, and it emits through the EventBus.
 *Tests:* adding, completing and checking state behave as expected, and adding the same objective twice does nothing.
@@ -357,11 +411,19 @@ Mainaka, Surasa and Simhika.
 **M31 `narrative/cutscene_player.gd`**: plays cutscenes made from steps (camera moves, actor moves, dialogue, waits) defined in JSON.
 
 **M32 `ui/hud.gd`**: Vitality, the Smarana meter with "राम", the size indicator, objectives, and the boss bar.
-**M33 `ui/menus.gd`**: title, pause, settings (volume, fullscreen, key remapping), and chapter select once unlocked.
-**M34 `ui/dialogue_box.gd`**: typewriter text, choices, speaker portrait (rendered model).
+**M33 `ui/menus.gd`**: title, pause, settings (language, shloka cards on/short/off, volume, fullscreen, key remapping),
+the first-launch language picker, and chapter select once unlocked. Every label updates when `language_changed` fires.
+**M34 `ui/dialogue_box.gd`**: typewriter text, choices, speaker portrait (rendered model). The typewriter steps by
+grapheme cluster, so Devanagari conjuncts never render half-drawn.
+**M34b `ui/shloka_card.gd`** is the presentation layer from §7A (Devanagari, IAST, translation, reference, timing and skip rules).
+*Tests:* it shows the translation for the current language, honours the on/short/off setting, and can't be skipped before 4 s in "on" mode.
+**M35 `gameplay/camera/iso_camera.gd`**: the orthographic isometric rig, 90° rotation steps, the per-level lock flag,
+fading walls and roofs that block the view, and a `world_to_input_basis()` used by the player so movement is relative to the camera.
+*Tests:* after each rotation, "up" input moves the player toward the top of the screen; rotation is refused while locked.
 
 ### Wave 4 — Content (data, written by Opus and Haiku, reviewed by Sonnet)
-- **C1** the 7 level JSON files (§5) · **C2** dialogue JSON for all chapters (written by Opus, for text fidelity) ·
+- **C1** the 7 level JSON files (§5) · **C2** dialogue JSON and `i18n/strings.csv` in **English and Hindi** for all chapters
+  (written by Opus, for text fidelity) · **C2b** `data/shlokas.json` (Opus drafts it, the owner checks the verses) ·
   **C3** `data/enemies.json` · **C4** cutscene JSON · **C5** music cue sheets.
 
 ### Wave 5 — Integration and polish (Sonnet)
@@ -378,7 +440,8 @@ Mainaka, Surasa and Simhika.
 4. **Playtest (from Wave 2 on):** `tests/playtest/*.gd` scenarios run with `--write-movie` at a fixed frame rate.
    The bot plays fixed inputs (for example "walk to the shrine, meditate, grow, hit the rock"). Its assertions check
    game state, and Opus inspects sampled frames for visual problems.
-5. **Rework limit:** if a module fails review twice, Opus takes it over.
+5. **Localization and shloka gate:** every translation key has both `en` and `hi`, and the release export refuses to run unless `Shlokas.all_verified()` is true.
+6. **Rework limit:** if a module fails review twice, Opus takes it over.
 
 ## 11. Build and release
 - Export presets: `Windows Desktop` (x86_64, a single .exe with the game data embedded) and `Linux` (x86_64).
@@ -396,7 +459,13 @@ Mainaka, Surasa and Simhika.
 | Exhausted mechanic lacks tension | Exhaustion resets the boss phase and costs your Smarana. |
 | Getting the source material wrong | Opus writes all the dialogue, and the reviewers check §2 and §3 as a gate. |
 
-## 13. Open questions for the owner
-1. Should the in-game text include a few Sanskrit or Hindi lines (in Devanagari, with English translations), or be English only?
-2. Should camera rotation be allowed (90° steps), or fixed per level?
-3. Should the game include an epilogue preview teasing the next game (for example the Setu bandhan, building the bridge)?
+## 13. Decisions made by the owner
+| Date | Decision |
+|---|---|
+| 2026-11-25 | Languages: English and Hindi, chosen by the player. Sanskrit shlokas from the Valmiki Ramayana at key moments, with transliteration and translation (§7A). |
+| 2026-11-25 | Camera: the player can rotate it in 90° steps (§4.1, M35). |
+| 2026-11-25 | Ending: a post-credits teaser for the next game, *Setu* (§3). |
+
+## 14. Open questions for the owner
+1. Approve the shloka list in §7A (add or replace verses?) and choose the epilogue verse.
+2. Who reviews the Hindi translation and checks the shloka texts (the `verified_by` field)?
