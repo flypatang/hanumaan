@@ -13,6 +13,8 @@ signal ring_collected()
 signal obstacle_hit(kind: StringName)
 ## Emitted once when the end of the path is reached.
 signal finished_flight()
+## Emitted when health is depleted by an obstacle; the chapter flow should restart the flight.
+signal failed()
 
 const TICK: float = 1.0 / 60.0
 const TICK_EPSILON: float = 0.000001
@@ -67,6 +69,7 @@ func _ready() -> void:
 		health = Health.new()
 		health.name = "Health"
 		add_child(health)
+	health.depleted.connect(_on_depleted)
 	if build_scenery:
 		_build_scenery()
 	_place_rider()
@@ -222,7 +225,8 @@ func _arrive_gate(g: Dictionary) -> void:
 
 func _collect_ring() -> void:
 	if health != null:
-		health.value = health.max_value
+		if health.value < health.max_value:
+			health.heal(health.max_value - health.value)
 		_emit_bus(&"vitality_changed", [health.value, health.max_value])
 	smarana = 100.0
 	_emit_bus(&"smarana_changed", [smarana])
@@ -240,12 +244,16 @@ func _check_obstacles(from_d: float, to_d: float) -> void:
 		if absf(lateral - _num(o, "lateral", 0.0)) > OBSTACLE_RADIUS:
 			continue
 		_hit[i] = true
-		if is_dodging() or health == null:
+		if is_dodging() or health == null or health.value <= 0:
 			continue
 		health.damage(OBSTACLE_DAMAGE, self)
 		_emit_bus(&"player_damaged", [OBSTACLE_DAMAGE, self])
 		_emit_bus(&"vitality_changed", [health.value, health.max_value])
 		obstacle_hit.emit(StringName(str(o.get("kind", "rock"))))
+
+
+func _on_depleted(_source: Node) -> void:
+	failed.emit()
 
 
 func _emit_bus(sig: StringName, args: Array) -> void:

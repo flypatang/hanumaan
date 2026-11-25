@@ -106,7 +106,7 @@ func test_mainaka_ring_missed_does_not_heal() -> void:
 	assert_int(c.health.value).is_equal(20)
 
 
-func test_dodge_gives_invulnerability_and_cooldown() -> void:
+func test_dodge_state_and_cooldown() -> void:
 	var c: LeapController = _make()
 	c.request_dodge()
 	assert_bool(c.is_dodging()).is_true()
@@ -122,3 +122,75 @@ func test_rider_follows_path() -> void:
 	c.rider = rider
 	c.step(TICK)
 	assert_float(rider.position.z).is_greater(0.0)
+
+
+var _hits: Array[StringName] = []
+
+
+func _on_hit(kind: StringName) -> void:
+	_hits.append(kind)
+
+
+func _steer_to_rock(c: LeapController) -> void:
+	c.steer_input = -1.0
+	for i in 26:
+		c.step(TICK)
+	c.steer_input = 0.0
+
+
+func test_obstacle_hit_deals_damage() -> void:
+	var c: LeapController = _make()
+	_hits.clear()
+	c.obstacle_hit.connect(_on_hit)
+	var before: int = c.health.value
+	_steer_to_rock(c)
+	_run(c, 1.5)
+	assert_int(c.health.value).is_equal(before - LeapController.OBSTACLE_DAMAGE)
+	assert_array(_hits).is_equal([&"rock"])
+
+
+func test_dodge_avoids_damage_and_is_invulnerable() -> void:
+	var c: LeapController = _make()
+	_hits.clear()
+	c.obstacle_hit.connect(_on_hit)
+	var before: int = c.health.value
+	_steer_to_rock(c)
+	_run(c, 1.0)
+	c.request_dodge()
+	assert_bool(c.health.invulnerable).is_true()
+	_run(c, 0.2)
+	assert_bool(c.health.invulnerable).is_true()
+	_run(c, 0.2)
+	assert_bool(c.health.invulnerable).is_false()
+	_run(c, 0.1)
+	assert_int(c.health.value).is_equal(before)
+	assert_array(_hits).is_empty()
+
+
+func test_dodge_available_again_after_cooldown() -> void:
+	var c: LeapController = _make()
+	c.request_dodge()
+	_run(c, 1.2)
+	assert_bool(c.is_dodging()).is_false()
+	c.request_dodge()
+	assert_bool(c.is_dodging()).is_true()
+
+
+func test_no_hit_events_at_zero_health() -> void:
+	var c: LeapController = _make()
+	_hits.clear()
+	c.obstacle_hit.connect(_on_hit)
+	c.health.damage(c.health.max_value, null)
+	assert_int(c.health.value).is_equal(0)
+	_steer_to_rock(c)
+	_run(c, 1.5)
+	assert_array(_hits).is_empty()
+
+
+func test_ring_heal_emits_health_changed() -> void:
+	var c: LeapController = _make()
+	var seen: Array[int] = []
+	c.health.changed.connect(func(v: int, _m: int) -> void: seen.append(v))
+	c.health.value = 20
+	_run(c, 7.0)
+	assert_array(seen).is_not_empty()
