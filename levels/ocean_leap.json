@@ -1,0 +1,148 @@
+{
+ "id": "ocean_leap",
+ "length": 900,
+ "speed": 40,
+ "corridor_half_width": 12,
+ "path": [
+  [
+   0,
+   0,
+   0
+  ],
+  [
+   0,
+   0,
+   150
+  ],
+  [
+   90,
+   0,
+   270
+  ],
+  [
+   0,
+   0,
+   390
+  ],
+  [
+   0,
+   0,
+   540
+  ],
+  [
+   -90,
+   0,
+   660
+  ],
+  [
+   0,
+   0,
+   780
+  ]
+ ],
+ "gates": [
+  {
+   "id": "mainaka",
+   "d": 220,
+   "ring": {
+    "lateral": 0,
+    "radius": 4
+   }
+  },
+  {
+   "id": "surasa",
+   "d": 480
+  },
+  {
+   "id": "simhika",
+   "d": 760
+  }
+ ],
+ "obstacles": [
+  {
+   "kind": "rock",
+   "d": 60,
+   "lateral": -6
+  },
+  {
+   "kind": "rock",
+   "d": 100,
+   "lateral": 5
+  },
+  {
+   "kind": "rock",
+   "d": 140,
+   "lateral": -9
+  },
+  {
+   "kind": "rock",
+   "d": 180,
+   "lateral": 8
+  },
+  {
+   "kind": "rock",
+   "d": 260,
+   "lateral": 0
+  },
+  {
+   "kind": "rock",
+   "d": 300,
+   "lateral": -7
+  },
+  {
+   "kind": "rock",
+   "d": 340,
+   "lateral": 6
+  },
+  {
+   "kind": "rock",
+   "d": 390,
+   "lateral": -3
+  },
+  {
+   "kind": "rock",
+   "d": 430,
+   "lateral": 9
+  },
+  {
+   "kind": "rock",
+   "d": 470,
+   "lateral": -8
+  },
+  {
+   "kind": "wave",
+   "d": 530,
+   "lateral": 4
+  },
+  {
+   "kind": "wave",
+   "d": 570,
+   "lateral": -5
+  },
+  {
+   "kind": "wave",
+   "d": 610,
+   "lateral": 7
+  },
+  {
+   "kind": "wave",
+   "d": 650,
+   "lateral": -8
+  },
+  {
+   "kind": "wave",
+   "d": 690,
+   "lateral": 0
+  },
+  {
+   "kind": "wave",
+   "d": 720,
+   "lateral": 6
+  },
+  {
+   "kind": "wave",
+   "d": 745,
+   "lateral": -4
+  }
+ ]
+}
