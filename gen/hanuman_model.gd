@@ -47,25 +47,31 @@ const BONE_REST: Dictionary = {
 	"hips": Vector3(0.0, 0.95, 0.0),
 	"spine": Vector3(0.0, 1.12, 0.0),
 	"chest": Vector3(0.0, 1.32, 0.0),
-	"head": Vector3(0.0, 1.58, 0.0),
-	"upper_arm_l": Vector3(0.2, 1.5, 0.0),
-	"lower_arm_l": Vector3(0.22, 1.2, 0.0),
-	"upper_arm_r": Vector3(-0.2, 1.5, 0.0),
-	"lower_arm_r": Vector3(-0.22, 1.2, 0.0),
+	"head": Vector3(0.0, 1.54, 0.0),
+	"upper_arm_l": Vector3(0.23, 1.5, 0.0),
+	"lower_arm_l": Vector3(0.26, 1.2, 0.0),
+	"upper_arm_r": Vector3(-0.23, 1.5, 0.0),
+	"lower_arm_r": Vector3(-0.26, 1.2, 0.0),
 	"upper_leg_l": Vector3(0.12, 0.92, 0.0),
 	"lower_leg_l": Vector3(0.12, 0.5, 0.0),
 	"upper_leg_r": Vector3(-0.12, 0.92, 0.0),
 	"lower_leg_r": Vector3(-0.12, 0.5, 0.0),
-	"tail_0": Vector3(0.0, 0.95, 0.12),
-	"tail_1": Vector3(0.0, 0.99, 0.22),
-	"tail_2": Vector3(0.0, 1.03, 0.31),
-	"tail_3": Vector3(0.0, 1.08, 0.38),
-	"tail_4": Vector3(0.0, 1.14, 0.43),
-	"tail_5": Vector3(0.0, 1.2, 0.46),
-	"tail_6": Vector3(0.0, 1.26, 0.47),
-	"tail_7": Vector3(0.0, 1.32, 0.46),
-	"gada_socket": Vector3(-0.22, 0.92, 0.0),
+	"tail_0": Vector3(0.0, 0.95, 0.14),
+	"tail_1": Vector3(0.0, 0.93, 0.26),
+	"tail_2": Vector3(0.0, 0.97, 0.38),
+	"tail_3": Vector3(0.0, 1.05, 0.47),
+	"tail_4": Vector3(0.0, 1.17, 0.52),
+	"tail_5": Vector3(0.0, 1.3, 0.52),
+	"tail_6": Vector3(0.0, 1.42, 0.46),
+	"tail_7": Vector3(0.0, 1.5, 0.37),
+	"gada_socket": Vector3(-0.26, 0.92, 0.0),
 }
+
+## Where the tail tip ends: the curl turns forward and then down a little at the top.
+const TAIL_TIP: Vector3 = Vector3(0.0, 1.53, 0.27)
+
+## Slightly lighter fur for the chest and face (HANUMAN_FUR lightened by about 14%, stored as an exact 8-bit colour).
+const FUR_LIGHT: Color = Color("#D09B56")
 
 ## Pose tables: bone name -> euler rotation in degrees, relative to rest. Bones not listed return to rest.
 ## Rotating about +X by a positive angle moves a hanging limb toward -Z (forward). Meditate folds the legs forward.
@@ -74,7 +80,7 @@ const POSES: Dictionary = {
 		"chest": Vector3(2.0, 0.0, 0.0),
 		"upper_arm_l": Vector3(0.0, 0.0, -6.0),
 		"upper_arm_r": Vector3(0.0, 0.0, 6.0),
-		"tail_0": Vector3(-8.0, 0.0, 0.0),
+		"tail_0": Vector3(-3.0, 0.0, 0.0),
 	},
 	"walk_a": {
 		"hips": Vector3(0.0, 0.0, 3.0),
@@ -192,45 +198,92 @@ func _build_rig() -> void:
 ## The rigid parts hanging under one bone, each a MeshKit mesh and a transform relative to the bone joint.
 func _bone_parts(bone_name: String) -> Array[Dictionary]:
 	var parts: Array[Dictionary] = []
+	var fur: Color = Palette.HANUMAN_FUR
+	var gold: Color = Palette.GOLD
 	match bone_name:
 		"hips":
-			parts.append(_part(MeshKit.cylinder(0.19, 0.23, 0.3, 10, Palette.SAFFRON), Vector3(0.0, -0.1, 0.0)))
+			# Saffron dhoti: a wide cone frustum to the knees, a gold waist sash, and a drape of cloth at the front.
+			parts.append(_part(MeshKit.cylinder(0.2, 0.31, 0.46, 12, Palette.SAFFRON), Vector3(0.0, -0.13, 0.0),
+				Vector3.ZERO, Vector3(1.0, 1.0, 0.85)))
+			parts.append(_part(MeshKit.cylinder(0.225, 0.225, 0.05, 12, gold), Vector3(0.0, 0.1, 0.0),
+				Vector3.ZERO, Vector3(1.0, 1.0, 0.85)))
+			parts.append(_part(MeshKit.box(Vector3(0.12, 0.3, 0.03), Palette.SAFFRON), Vector3(0.0, -0.2, -0.27),
+				Vector3(-8.0, 0.0, 0.0)))
 		"spine":
-			parts.append(_part(MeshKit.box(Vector3(0.34, 0.2, 0.2), Palette.HANUMAN_FUR), Vector3(0.0, 0.1, 0.0)))
+			parts.append(_part(MeshKit.cylinder(0.18, 0.17, 0.24, 10, fur), Vector3(0.0, 0.1, 0.0),
+				Vector3.ZERO, Vector3(1.0, 1.0, 0.75)))
 		"chest":
-			# Capsule with a broad chest: wider on X than on Z.
-			parts.append(_part(MeshKit.capsule(0.15, 0.42, Palette.HANUMAN_FUR), Vector3(0.0, 0.1, 0.0),
-				Vector3.ZERO, Vector3(1.2, 1.0, 0.85)))
+			# Broad V-shaped torso: a frustum wide at the shoulders and narrow at the waist, with a lighter chest plate.
+			parts.append(_part(MeshKit.cylinder(0.27, 0.17, 0.42, 12, fur), Vector3(0.0, 0.1, 0.0),
+				Vector3.ZERO, Vector3(1.0, 1.0, 0.62)))
+			parts.append(_part(MeshKit.cylinder(0.215, 0.145, 0.36, 10, FUR_LIGHT), Vector3(0.0, 0.1, -0.035),
+				Vector3.ZERO, Vector3(1.0, 1.0, 0.62)))
+			# Trapezius slope up to the neck.
+			parts.append(_part(MeshKit.cylinder(0.07, 0.2, 0.07, 10, fur), Vector3(0.0, 0.265, 0.0),
+				Vector3.ZERO, Vector3(1.0, 1.0, 0.8)))
+			# Deltoids at the shoulder joints.
+			parts.append(_part(MeshKit.sphere(0.105, 5, 8, fur), Vector3(0.23, 0.18, 0.0)))
+			parts.append(_part(MeshKit.sphere(0.105, 5, 8, fur), Vector3(-0.23, 0.18, 0.0)))
+			# Sacred thread-style gold chest band.
+			parts.append(_part(MeshKit.cylinder(0.23, 0.215, 0.04, 12, gold), Vector3(0.0, 0.17, -0.005),
+				Vector3.ZERO, Vector3(1.0, 1.0, 0.64)))
 		"head":
-			# Elongated head: scaled taller than wide, with a sindoor-tinted muzzle on -Z (forward).
-			parts.append(_part(MeshKit.sphere(0.13, 6, 10, Palette.HANUMAN_FUR), Vector3(0.0, 0.08, 0.0),
-				Vector3.ZERO, Vector3(0.95, 1.15, 1.0)))
-			parts.append(_part(MeshKit.sphere(0.06, 5, 8, Palette.SINDOOR), Vector3(0.0, 0.06, -0.12)))
-			# Five-point crown: five cones at 72 degree steps around the head top, plus a thin gold band.
+			# Skull (parts 0), protruding sindoor muzzle on -Z (part 1), lighter face mask, brow ridge, eyes, ears, crown.
+			parts.append(_part(MeshKit.sphere(0.148, 6, 10, fur), Vector3(0.0, 0.1, 0.0),
+				Vector3.ZERO, Vector3(1.0, 1.1, 1.0)))
+			parts.append(_part(MeshKit.sphere(0.082, 5, 8, Palette.SINDOOR), Vector3(0.0, 0.045, -0.15),
+				Vector3.ZERO, Vector3(1.15, 0.85, 1.25)))
+			parts.append(_part(MeshKit.sphere(0.108, 5, 8, FUR_LIGHT), Vector3(0.0, 0.1, -0.085),
+				Vector3.ZERO, Vector3(1.05, 0.95, 0.8)))
+			parts.append(_part(MeshKit.box(Vector3(0.27, 0.05, 0.08), fur), Vector3(0.0, 0.16, -0.125)))
+			for sx: float in [-1.0, 1.0]:
+				parts.append(_part(MeshKit.sphere(0.03, 4, 6, Palette.MOON), Vector3(sx * 0.06, 0.125, -0.17),
+					Vector3.ZERO, Vector3(1.0, 0.8, 0.6)))
+				parts.append(_part(MeshKit.sphere(0.014, 3, 5, Palette.UI_DARK), Vector3(sx * 0.06, 0.125, -0.188)))
+				parts.append(_part(MeshKit.sphere(0.04, 4, 6, fur), Vector3(sx * 0.15, 0.105, 0.0),
+					Vector3.ZERO, Vector3(0.5, 1.0, 0.8)))
+			# Gold crown (mukuta): a band and five tall points at 72 degree steps.
+			parts.append(_part(MeshKit.cylinder(0.155, 0.16, 0.05, 12, gold), Vector3(0.0, 0.195, 0.0)))
 			for k: int in range(5):
 				var angle: float = TAU * float(k) / 5.0
-				parts.append(_part(MeshKit.cone(0.03, 0.1, 5, Palette.GOLD),
-					Vector3(sin(angle) * 0.09, 0.19, cos(angle) * 0.09)))
-			parts.append(_part(MeshKit.cylinder(0.12, 0.12, 0.03, 12, Palette.GOLD), Vector3(0.0, 0.15, 0.0)))
+				parts.append(_part(MeshKit.cone(0.042, 0.15, 5, gold),
+					Vector3(sin(angle) * 0.105, 0.27, cos(angle) * 0.105)))
 		"upper_arm_l", "upper_arm_r":
-			parts.append(_part(MeshKit.cylinder(0.05, 0.045, 0.3, 8, Palette.HANUMAN_FUR), Vector3(0.0, -0.15, 0.0)))
+			parts.append(_part(MeshKit.cylinder(0.09, 0.07, 0.3, 8, fur), Vector3(0.0, -0.15, 0.0)))
+			# Gold armlet.
+			parts.append(_part(MeshKit.cylinder(0.098, 0.098, 0.06, 8, gold), Vector3(0.0, -0.1, 0.0)))
 		"lower_arm_l", "lower_arm_r":
-			parts.append(_part(MeshKit.cylinder(0.045, 0.04, 0.28, 8, Palette.HANUMAN_FUR), Vector3(0.0, -0.14, 0.0)))
+			parts.append(_part(MeshKit.cylinder(0.07, 0.052, 0.28, 8, fur), Vector3(0.0, -0.14, 0.0)))
+			# Gold wristband and a fist.
+			parts.append(_part(MeshKit.cylinder(0.066, 0.066, 0.045, 8, gold), Vector3(0.0, -0.23, 0.0)))
+			parts.append(_part(MeshKit.sphere(0.06, 4, 8, fur), Vector3(0.0, -0.3, 0.0)))
 		"upper_leg_l", "upper_leg_r":
-			parts.append(_part(MeshKit.cylinder(0.075, 0.06, 0.42, 8, Palette.HANUMAN_FUR), Vector3(0.0, -0.21, 0.0)))
+			parts.append(_part(MeshKit.cylinder(0.105, 0.08, 0.44, 8, fur), Vector3(0.0, -0.22, 0.0)))
 		"lower_leg_l", "lower_leg_r":
-			parts.append(_part(MeshKit.cylinder(0.06, 0.045, 0.46, 8, Palette.HANUMAN_FUR), Vector3(0.0, -0.23, 0.0)))
+			parts.append(_part(MeshKit.cylinder(0.08, 0.055, 0.46, 8, fur), Vector3(0.0, -0.23, 0.0)))
 			# Foot: its toes point to -Z (forward).
-			parts.append(_part(MeshKit.box(Vector3(0.12, 0.06, 0.22), Palette.HANUMAN_FUR), Vector3(0.0, -0.47, -0.04)))
+			parts.append(_part(MeshKit.box(Vector3(0.13, 0.07, 0.26), fur), Vector3(0.0, -0.465, -0.05)))
 		"gada_socket":
-			# Gada in the right hand: a gold shaft rising from the socket, with the club head at the top (+Y).
-			parts.append(_part(MeshKit.cylinder(0.018, 0.018, 0.7, 6, Palette.GOLD), Vector3(0.0, 0.35, 0.0)))
-			parts.append(_part(MeshKit.sphere(0.09, 6, 10, Palette.GOLD), Vector3(0.0, 0.78, 0.0)))
+			# Gada in the right hand: a gold shaft rising from the socket, a wide club head, and a gold collar.
+			parts.append(_part(MeshKit.cylinder(0.026, 0.03, 0.66, 8, gold), Vector3(0.0, 0.31, 0.0)))
+			parts.append(_part(MeshKit.sphere(0.15, 6, 10, gold), Vector3(0.0, 0.74, 0.0)))
+			parts.append(_part(MeshKit.cylinder(0.07, 0.04, 0.06, 8, gold), Vector3(0.0, 0.62, 0.0)))
+			parts.append(_part(MeshKit.cone(0.04, 0.07, 6, gold), Vector3(0.0, 0.89, 0.0)))
 		_:
 			if bone_name.begins_with("tail_"):
-				# Each segment runs along +Z (behind him), so the offset is also on +Z.
-				parts.append(_part(MeshKit.cylinder(0.035, 0.03, 0.11, 6, Palette.HANUMAN_FUR), Vector3(0.0, 0.0, 0.05),
-					Vector3(90.0, 0.0, 0.0)))
+				var index: int = int(bone_name.substr(5))
+				var here: Vector3 = BONE_REST[bone_name] as Vector3
+				var next: Vector3 = TAIL_TIP
+				if index < 7:
+					next = BONE_REST["tail_%d" % (index + 1)] as Vector3
+				var along: Vector3 = next - here
+				var radius: float = lerpf(0.058, 0.032, float(index) / 7.0)
+				var aim: Basis = Basis(Quaternion(Vector3.UP, along.normalized()))
+				var seg: Mesh = MeshKit.cylinder(radius * 0.92, radius, along.length() * 1.08, 6, fur)
+				parts.append({"mesh": seg, "transform": Transform3D(aim, along * 0.5)})
+				if index == 7:
+					# Raised curl at the tip: a gold-free fur ball ending the tail.
+					parts.append(_part(MeshKit.sphere(0.04, 4, 6, fur), along))
 	return parts
 
 

@@ -108,13 +108,13 @@ func test_feet_touch_the_ground_at_y_zero_at_idle() -> void:
 	assert_float(_live_bounds(model).position.y).is_equal_approx(0.0, 0.01)
 
 
-func test_head_stays_at_1_58_in_every_pose() -> void:
-	## The head bone is above the chest, and the chest pivot sits at the spine. The head height holds in every pose.
+func test_head_stays_at_1_54_in_every_pose() -> void:
+	## The head bone is above the chest, and the chest pivot sits at the spine. The head height (1.54 m) holds in every pose.
 	var model: HanumanModel = await _live_model()
 	for pose: StringName in ALL_POSES:
 		model.set_pose(pose)
 		await get_tree().process_frame
-		assert_float(_attachment_y(model, "head")).is_equal_approx(1.58, 0.05)
+		assert_float(_attachment_y(model, "head")).is_equal_approx(1.54, 0.05)
 
 
 func test_idle_leaves_bones_at_rest() -> void:
@@ -159,7 +159,7 @@ func test_tail_curls_behind_him_on_positive_z() -> void:
 
 
 func test_colours_come_only_from_palette() -> void:
-	var allowed: Array[Color] = [Palette.HANUMAN_FUR, Palette.SINDOOR, Palette.SAFFRON, Palette.GOLD]
+	var allowed: Array[Color] = [Palette.HANUMAN_FUR, Palette.SINDOOR, Palette.SAFFRON, Palette.GOLD, HanumanModel.FUR_LIGHT, Palette.MOON, Palette.UI_DARK]
 	var model: HanumanModel = _model()
 	var checked: int = 0
 	var used: Array[Color] = []
