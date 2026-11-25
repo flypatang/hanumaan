@@ -1,0 +1,819 @@
+class_name ChapterFlow
+extends Node
+## The story sequence (DESIGN §3, §9 M40), driven by data/chapters.json. For every chapter the file lists its levels,
+## the cutscenes to play on entry (`entry_cutscenes`), rule cutscenes (`on`), exit cutscenes (`exit_cutscenes`), the
+## objectives (OBJ_* translation keys) and the completion condition (`complete`):
+##   {"type": "flag", "key": k}                    a GameState flag is set
+##   {"type": "level_exit", "to": level_id}        the level trigger `level:<to>` fired
+##   {"type": "waves"}                             the EncounterDirector finished every wave
+##   {"type": "boss_yielded", "kind": kind}        a boss yielded (Lankini)
+##   {"type": "searches", "count": n}              n different search points were searched
+##   {"type": "event", "name": e}                  any LevelRuntime game_event
+##   {"type": "cutscenes_done"}                    the entry cutscenes have all finished
+## Any condition may carry "requires": {"flag": k, "searches": n}. A level may carry an "advance" condition that moves
+## on to the next level of the chapter. The flow only emits signals (level_requested, cutscene_requested ...); the main
+## scene loads the levels and plays the cutscenes. Chapter 1 (the leap) is handled by bind_leap(): the gates
+## (Mainaka, Surasa, Simhika) and the Surasa size puzzle. There is no game-over state anywhere in this flow.
+
+signal chapter_started(chapter_id: StringName)
+signal chapter_ready(chapter_id: StringName)
+signal chapter_finished(chapter_id: StringName)
+signal level_requested(level_id: StringName, options: Dictionary)
+signal cutscene_requested(cutscene_id: StringName)
+signal encounter_requested(chapter_number: int)
+signal objectives_changed
+signal all_done
+
+const DATA_PATH: String = "res://data/chapters.json"
+const DEFAULT_SAVE_SLOT: int = 0
+const SHRINK_UNLOCK_FLAG: StringName = &"shrink_unlocked"
+const MAINAKA_FILE: String = "ch1_mainaka"
+const SURASA_FILE: String = "ch1_surasa"
+const SIMHIKA_FILE: String = "ch1_simhika"
+const SEA_LEVEL: float = -12.0
+const SURASA_SCALE: float = 6.0
+const SURASA_DISTANCE: float = 34.0
+const MAINAKA_SCALE: float = 5.0
+const SIMHIKA_DISTANCE: float = 26.0
+const LEAP_ATTACK_RANGE: float = 40.0
+const LEAP_LIGHT_DAMAGE: int = 12
+const LEAP_HEAVY_DAMAGE: int = 35
+const LEAP_HEAVY_HOLD: float = 0.5
+
+
+## The Surasa size puzzle (DESIGN §3 Ch1). Surasa opens her mouth one step wider each time Hanuman grows. After the
+## third growth a 1.5 s window opens in which he must SHRINK to slip in and out; a late shrink resets the puzzle
+## (there is no failure state). Sizes are forced through SizeShift.force_size, so the unlocked abilities do not matter.
+class SurasaPuzzle extends RefCounted:
+	enum Phase { IDLE, GROWING, WINDOW, DONE }
+
+	signal mouth_changed(level: int)
+	signal window_opened
+	signal window_failed
+	signal solved
+
+	const GROWS_NEEDED: int = 3
+	const WINDOW_TIME: float = 1.5
+	## Size after the 1st, 2nd and 3rd growth (SizeShift.SIZE values: LARGE, GIANT, GIANT).
+	const GROW_SIZES: Array[int] = [2, 3, 3]
+	const SIZE_NORMAL: int = 1
+	const SIZE_SMALL: int = 0
+
+	var phase: Phase = Phase.IDLE
+	var grows: int = 0
+	var window_left: float = 0.0
+	var shift: SizeShift = null
+
+	## Starts a fresh attempt with Hanuman at normal size.
+	func begin(size_shift: SizeShift) -> void:
+		shift = size_shift
+		grows = 0
+		window_left = 0.0
+		phase = Phase.GROWING
+		_force(SIZE_NORMAL)
+		mouth_changed.emit(0)
+
+	## The player pressed Grow. Counts only while growing. Returns true when it counted.
+	func on_grow() -> bool:
+		if phase != Phase.GROWING:
+			return false
+		grows += 1
+		_force(GROW_SIZES[mini(grows, GROWS_NEEDED) - 1])
+		mouth_changed.emit(grows)
+		if grows >= GROWS_NEEDED:
+			phase = Phase.WINDOW
+			window_left = WINDOW_TIME
+			window_opened.emit()
+		return true
+
+	## The player pressed Shrink. Succeeds only inside the window. Returns true when the puzzle is solved.
+	func on_shrink() -> bool:
+		if phase != Phase.WINDOW or window_left <= 0.0:
+			return false
+		phase = Phase.DONE
+		window_left = 0.0
+		_force(SIZE_SMALL)
+		solved.emit()
+		return true
+
+	## Advances the window timer. A window that runs out resets the puzzle to the start.
+	func tick(delta: float) -> void:
+		if phase != Phase.WINDOW:
+			return
+		window_left -= delta
+		if window_left > 0.0:
+			return
+		window_failed.emit()
+		begin(shift)
+
+	func is_active() -> bool:
+		return phase == Phase.GROWING or phase == Phase.WINDOW
+
+	func _force(size_index: int) -> void:
+		if shift != null:
+			shift.force_size(size_index as SizeShift.SIZE)
+
+
+## Test hook: when false the flow does not write its save slot.
+var autosave: bool = true
+## The GameState save slot used for chapter starts and Continue (shrines also save to slot 0).
+var save_slot: int = DEFAULT_SAVE_SLOT
+## Overrides the autoload lookups (tests).
+var event_bus: Node = null
+var game_state: Node = null
+
+var _chapters: Array[Dictionary] = []
+var _index: int = -1
+var _level_pos: int = 0
+var _searches: Array[String] = []
+var _objectives: Array[Dictionary] = []
+var _queue: Array[Dictionary] = []
+var _busy: bool = false
+var _entry_pending: bool = false
+var _awaiting_ready: bool = false
+var _completing: bool = false
+var _finished: bool = false
+var _fired_rules: Array[int] = []
+
+# --- leap (chapter 1) ---
+var _rt: LevelRuntime = null
+var _puzzle: SurasaPuzzle = null
+var _surasa: Node3D = null
+var _mouth: MeshInstance3D = null
+var _mainaka: Node3D = null
+var _boss: BossSimhika = null
+var _surasa_stage: int = 0
+var _simhika_stage: int = 0
+var _gate: StringName = &""
+var _heavy_hold: float = 0.0
+
+
+func _init() -> void:
+	load_data(DATA_PATH)
+
+
+# ---------------------------------------------------------------- data
+
+## Reads the chapter list. Returns OK, ERR_FILE_NOT_FOUND or ERR_PARSE_ERROR.
+func load_data(path: String) -> Error:
+	if not FileAccess.file_exists(path):
+		return ERR_FILE_NOT_FOUND
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+	if not (parsed is Dictionary):
+		return ERR_PARSE_ERROR
+	var raw: Variant = (parsed as Dictionary).get("chapters", null)
+	if not (raw is Array):
+		return ERR_PARSE_ERROR
+	_chapters.clear()
+	for entry: Variant in raw as Array:
+		if entry is Dictionary:
+			_chapters.append(entry as Dictionary)
+	return OK
+
+
+func chapter_count() -> int:
+	return _chapters.size()
+
+
+func chapter_ids() -> Array[StringName]:
+	var out: Array[StringName] = []
+	for chapter: Dictionary in _chapters:
+		out.append(StringName(str(chapter.get("id", ""))))
+	return out
+
+
+func chapter_data(index: int) -> Dictionary:
+	if index < 0 or index >= _chapters.size():
+		return {}
+	return _chapters[index]
+
+
+func current_index() -> int:
+	return _index
+
+
+func current_id() -> StringName:
+	if _index < 0 or _index >= _chapters.size():
+		return &""
+	return StringName(str(_chapters[_index].get("id", "")))
+
+
+func current_level() -> StringName:
+	return StringName(str(_level_def(_level_pos).get("id", "")))
+
+
+func is_finished() -> bool:
+	return _finished
+
+
+func search_count() -> int:
+	return _searches.size()
+
+
+func objective_ids() -> Array[StringName]:
+	var out: Array[StringName] = []
+	for obj: Dictionary in _objectives:
+		out.append(StringName(str(obj["id"])))
+	return out
+
+
+func is_objective_done(id: StringName) -> bool:
+	for obj: Dictionary in _objectives:
+		if str(obj["id"]) == str(id):
+			return obj["complete"] as bool
+	return false
+
+
+func is_busy_with_cutscene() -> bool:
+	return _busy
+
+
+func queued_cutscenes() -> Array[StringName]:
+	var out: Array[StringName] = []
+	for item: Dictionary in _queue:
+		out.append(StringName(str(item["id"])))
+	return out
+
+
+func _chapter() -> Dictionary:
+	return chapter_data(_index)
+
+
+func _level_defs() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	var raw: Variant = _chapter().get("levels", [])
+	if raw is Array:
+		for entry: Variant in raw as Array:
+			if entry is Dictionary:
+				out.append(entry as Dictionary)
+			else:
+				out.append({"id": str(entry)})
+	return out
+
+
+func _level_def(pos: int) -> Dictionary:
+	var defs: Array[Dictionary] = _level_defs()
+	if pos < 0 or pos >= defs.size():
+		return {}
+	return defs[pos]
+
+
+# ---------------------------------------------------------------- starting and continuing
+
+## New game: wipes GameState and the objective list and starts chapter 0.
+func new_game() -> void:
+	var gs: Node = _state()
+	if gs != null:
+		gs.call("reset")
+	_reset_objectives_autoload()
+	_finished = false
+	start_chapter(0)
+
+
+## True when a save exists in slot 0.
+func has_save() -> bool:
+	return FileAccess.file_exists("user://save_%d.json" % save_slot)
+
+
+## Continue: loads slot 0 and resumes at the start of the saved chapter. Returns false when there is no usable save.
+func continue_game() -> bool:
+	var gs: Node = _state()
+	if gs == null or not has_save():
+		return false
+	if (gs.call("load_game", save_slot) as int) != OK:
+		return false
+	var saved: StringName = gs.get("chapter") as StringName
+	var found: int = chapter_ids().find(saved)
+	if found < 0:
+		found = 0
+	_reset_objectives_autoload()
+	_finished = false
+	start_chapter(found, false)
+	return true
+
+
+## Starts the chapter at `index`: unlocks its abilities, saves (chapter start), and asks for its first level.
+func start_chapter(index: int, save: bool = true) -> void:
+	if index < 0 or index >= _chapters.size():
+		_finished = true
+		all_done.emit()
+		return
+	_index = index
+	_level_pos = 0
+	_searches.clear()
+	_queue.clear()
+	_busy = false
+	_completing = false
+	_fired_rules.clear()
+	_entry_pending = true
+	_awaiting_ready = false
+	_build_objectives()
+	var gs: Node = _state()
+	if gs != null:
+		gs.set("chapter", current_id())
+		for ability: Variant in _chapter().get("unlocks", []) as Array:
+			gs.call("unlock", StringName(str(ability)))
+		LevelRuntime.sync_unlocks(gs)
+		if save and autosave:
+			gs.call("save_game", save_slot)
+	chapter_started.emit(current_id())
+	_request_level()
+
+
+func _request_level() -> void:
+	var def: Dictionary = _level_def(_level_pos)
+	var opts: Dictionary = {}
+	var raw: Variant = def.get("opts", {})
+	if raw is Dictionary:
+		opts = (raw as Dictionary).duplicate(true)
+	level_requested.emit(StringName(str(def.get("id", ""))), opts)
+
+
+# ---------------------------------------------------------------- objectives
+
+func _build_objectives() -> void:
+	_objectives.clear()
+	var raw: Variant = _chapter().get("objectives", [])
+	if raw is Array:
+		for entry: Variant in raw as Array:
+			if not (entry is Dictionary):
+				continue
+			var source: Dictionary = entry as Dictionary
+			_objectives.append({
+				"id": str(source.get("id", "")),
+				"key": str(source.get("key", "")),
+				"done": str(source.get("done", "")),
+				"complete": false,
+			})
+	var objectives: Node = _autoload("Objectives")
+	if objectives != null:
+		for obj: Dictionary in _objectives:
+			objectives.call("add", StringName(str(obj["id"])), tr(str(obj["key"])))
+
+
+func _reset_objectives_autoload() -> void:
+	var objectives: Node = _autoload("Objectives")
+	if objectives != null:
+		objectives.set("_texts", {})
+		objectives.set("_done", {})
+
+
+func _announce_objectives() -> void:
+	var bus: Node = _bus()
+	if bus == null:
+		return
+	for obj: Dictionary in _objectives:
+		bus.emit_signal("objective_updated", StringName(str(obj["id"])), tr(str(obj["key"])), obj["complete"] as bool)
+
+
+func _complete_objective(obj: Dictionary) -> void:
+	if obj["complete"] as bool:
+		return
+	obj["complete"] = true
+	var objectives: Node = _autoload("Objectives")
+	if objectives != null:
+		objectives.call("complete", StringName(str(obj["id"])))
+	objectives_changed.emit()
+
+
+func _update_objectives(event_name: String) -> void:
+	for obj: Dictionary in _objectives:
+		if obj["complete"] as bool:
+			continue
+		var done: String = str(obj["done"])
+		if done == "":
+			continue
+		if done == event_name or _state_condition(done):
+			_complete_objective(obj)
+
+
+## "flag:<k>" and "searches:<n>" objective triggers are checked against the current state on every event.
+func _state_condition(text: String) -> bool:
+	if text.begins_with("flag:"):
+		return _flag(text.substr(5))
+	if text.begins_with("searches:"):
+		return _searches.size() >= text.substr(9).to_int()
+	return false
+
+
+# ---------------------------------------------------------------- level loading and events
+
+## Called by the main scene after a LevelRuntime finished loading `level_id`.
+func notify_level_loaded(level_id: StringName, runtime: LevelRuntime) -> void:
+	_announce_objectives()
+	if runtime != null and runtime.leap() != null:
+		bind_leap(runtime)
+	if not _entry_pending:
+		_after_level_ready()
+		return
+	_entry_pending = false
+	_awaiting_ready = true
+	var entry: Variant = _chapter().get("entry_cutscenes", [])
+	if entry is Array:
+		for id: Variant in entry as Array:
+			_queue.append({"id": str(id), "kind": "entry"})
+	_pump()
+	if level_id == &"":
+		return
+
+
+func _after_level_ready() -> void:
+	chapter_ready.emit(current_id())
+	var waves: int = (_chapter().get("waves", 0) as int)
+	if waves > 0:
+		encounter_requested.emit(waves)
+	var complete: Dictionary = _chapter().get("complete", {}) as Dictionary
+	if str(complete.get("type", "")) == "cutscenes_done":
+		_complete_chapter()
+
+
+## The generic entry point: every LevelRuntime.game_event is forwarded here.
+func handle_event(event_name: String) -> void:
+	if _index < 0 or _finished or _completing:
+		return
+	if event_name.begins_with("search:"):
+		var search_id: String = event_name.substr(7)
+		if not _searches.has(search_id):
+			_searches.append(search_id)
+	_update_objectives(event_name)
+	var rules: Variant = _chapter().get("on", [])
+	if rules is Array:
+		var rule_list: Array = rules as Array
+		for i: int in range(rule_list.size()):
+			var rule: Dictionary = rule_list[i] as Dictionary
+			if str(rule.get("event", "")) == event_name and not _fired_rules.has(i):
+				_fired_rules.append(i)
+				_queue.append({"id": str(rule.get("cutscene", "")), "kind": "rule"})
+	var advance: Dictionary = _level_def(_level_pos).get("advance", {}) as Dictionary
+	if not advance.is_empty() and _level_pos < _level_defs().size() - 1 and condition_met(advance, event_name):
+		_level_pos += 1
+		_request_level()
+		_pump()
+		return
+	var complete: Dictionary = _chapter().get("complete", {}) as Dictionary
+	if condition_met(complete, event_name):
+		_complete_chapter()
+		return
+	_pump()
+
+
+## Does `condition` hold for `event_name`? Event-type conditions match the event; flag and search ones read the state.
+func condition_met(condition: Dictionary, event_name: String) -> bool:
+	if condition.is_empty():
+		return false
+	var requires: Variant = condition.get("requires", {})
+	if requires is Dictionary and not _requires_met(requires as Dictionary):
+		return false
+	match str(condition.get("type", "")):
+		"flag":
+			return _flag(str(condition.get("key", "")))
+		"level_exit":
+			return event_name == "level:%s" % str(condition.get("to", ""))
+		"waves":
+			return event_name == "waves_completed"
+		"boss_yielded":
+			return event_name == "boss_yielded:%s" % str(condition.get("kind", ""))
+		"searches":
+			return _searches.size() >= (condition.get("count", 1) as int)
+		"event":
+			return event_name == str(condition.get("name", ""))
+	return false
+
+
+func _requires_met(requires: Dictionary) -> bool:
+	if requires.has("flag") and not _flag(str(requires["flag"])):
+		return false
+	if requires.has("searches") and _searches.size() < (requires["searches"] as int):
+		return false
+	return true
+
+
+func _flag(key: String) -> bool:
+	var gs: Node = _state()
+	if gs == null:
+		return false
+	return gs.call("get_flag", StringName(key), false) as bool
+
+
+# ---------------------------------------------------------------- cutscene queue
+
+func _pump() -> void:
+	if _busy:
+		return
+	if _queue.is_empty():
+		_on_queue_empty()
+		return
+	_busy = true
+	cutscene_requested.emit(StringName(str(_queue[0]["id"])))
+
+
+## The main scene calls this when a cutscene it started has finished (or could not be played).
+func notify_cutscene_finished(_cutscene_id: StringName) -> void:
+	if not _busy:
+		return
+	_busy = false
+	if not _queue.is_empty():
+		_queue.pop_front()
+	_pump()
+
+
+func _on_queue_empty() -> void:
+	if _completing:
+		_finish_chapter()
+	elif _awaiting_ready:
+		_awaiting_ready = false
+		_after_level_ready()
+
+
+func _complete_chapter() -> void:
+	if _completing or _finished:
+		return
+	_completing = true
+	var exits: Variant = _chapter().get("exit_cutscenes", [])
+	if exits is Array:
+		for id: Variant in exits as Array:
+			_queue.append({"id": str(id), "kind": "exit"})
+	_pump()
+
+
+func _finish_chapter() -> void:
+	var finished_id: StringName = current_id()
+	for obj: Dictionary in _objectives:
+		_complete_objective(obj)
+	var gs: Node = _state()
+	if gs != null:
+		gs.call("set_flag", StringName("chapter_%s_done" % str(finished_id)), true)
+	_completing = false
+	chapter_finished.emit(finished_id)
+	var bus: Node = _bus()
+	if bus != null:
+		bus.emit_signal("chapter_completed", finished_id)
+	if _index + 1 < _chapters.size():
+		start_chapter(_index + 1)
+	else:
+		_finished = true
+		all_done.emit()
+
+
+# ---------------------------------------------------------------- the leap (chapter 1)
+
+## Wires the leap gates of a runtime built for ocean_leap: Mainaka (dialogue, the ring heals), Surasa (the size
+## puzzle) and Simhika (BossSimhika.attach_leap). Called by notify_level_loaded.
+func bind_leap(runtime: LevelRuntime) -> void:
+	_rt = runtime
+	var controller: LeapController = runtime.leap()
+	if controller == null:
+		return
+	_surasa_stage = 0
+	_simhika_stage = 0
+	_puzzle = SurasaPuzzle.new()
+	_puzzle.mouth_changed.connect(_on_mouth_changed)
+	_puzzle.window_opened.connect(_on_window_opened)
+	_puzzle.window_failed.connect(_on_window_failed)
+	_puzzle.solved.connect(_on_puzzle_solved)
+	controller.gate_reached.connect(_on_gate_reached)
+	controller.failed.connect(_on_leap_failed)
+	runtime.dialogue_done.connect(_on_leap_dialogue_done)
+	runtime.game_event.connect(handle_event)
+	_rt.show_prompt("")
+
+
+func puzzle() -> SurasaPuzzle:
+	return _puzzle
+
+
+func _on_gate_reached(gate_id: StringName) -> void:
+	_gate = gate_id
+	if _rt == null:
+		return
+	match gate_id:
+		&"mainaka":
+			_place_mainaka()
+			_rt.play_dialogue(MAINAKA_FILE)
+		&"surasa":
+			_place_surasa()
+			_surasa_stage = 0
+			_rt.play_dialogue("%s#n1" % SURASA_FILE)
+		&"simhika":
+			_place_simhika()
+			_simhika_stage = 0
+			_rt.play_dialogue("%s#n1" % SIMHIKA_FILE)
+
+
+func _on_leap_dialogue_done(file_id: StringName) -> void:
+	var controller: LeapController = _rt.leap() if _rt != null else null
+	if controller == null:
+		return
+	match str(file_id):
+		MAINAKA_FILE:
+			_remove(_mainaka)
+			_mainaka = null
+			controller.resume()
+		SURASA_FILE:
+			if _surasa_stage == 0:
+				_surasa_stage = 1
+				_puzzle.begin(_rt.size_shift())
+			elif _surasa_stage == 2:
+				_surasa_stage = 3
+				var gs: Node = _state()
+				if gs != null:
+					gs.call("set_flag", SHRINK_UNLOCK_FLAG, true)
+					LevelRuntime.sync_unlocks(gs)
+				_rt.size_shift().force_size(SizeShift.SIZE.GIANT)
+				_remove(_surasa)
+				_surasa = null
+				controller.resume()
+		SIMHIKA_FILE:
+			if _simhika_stage == 0:
+				_simhika_stage = 1
+				_boss.engage(_rt.rider())
+			elif _simhika_stage == 2:
+				_simhika_stage = 3
+
+
+func _remove(node: Node3D) -> void:
+	if node != null and is_instance_valid(node):
+		node.queue_free()
+
+
+func _gate_origin(extra: float) -> Vector3:
+	var controller: LeapController = _rt.leap()
+	var pos: Vector3 = controller.rider_position()
+	var ahead: Vector3 = controller.rail_tangent(controller.distance)
+	var spot: Vector3 = pos + ahead * extra
+	spot.y = SEA_LEVEL
+	return spot
+
+
+func _face_rider(node: Node3D) -> void:
+	var rider: Node3D = _rt.rider()
+	var to: Vector3 = rider.global_position - node.global_position
+	to.y = 0.0
+	if to.length() > 0.01:
+		node.rotation.y = atan2(-to.x, -to.z)
+
+
+func _place_mainaka() -> void:
+	_mainaka = NpcModels.build(&"mainaka")
+	_mainaka.scale = Vector3.ONE * MAINAKA_SCALE
+	_rt.add_child(_mainaka)
+	var controller: LeapController = _rt.leap()
+	var side: Vector3 = controller.rail_tangent(controller.distance).cross(Vector3.UP).normalized()
+	_mainaka.global_position = _gate_origin(12.0) - side * 30.0
+
+
+func _place_surasa() -> void:
+	_surasa = NpcModels.build(&"surasa")
+	_surasa.scale = Vector3.ONE * SURASA_SCALE
+	_rt.add_child(_surasa)
+	_surasa.global_position = _gate_origin(SURASA_DISTANCE)
+	_face_rider(_surasa)
+	_mouth = MeshInstance3D.new()
+	_mouth.name = "Mouth"
+	_mouth.mesh = MeshKit.sphere(0.3, 5, 8, Palette.UI_DARK)
+	_mouth.material_override = MeshKit.flat_material()
+	_mouth.position = Vector3(0.0, 3.5, -0.62)
+	_surasa.add_child(_mouth)
+	_on_mouth_changed(0)
+
+
+func _place_simhika() -> void:
+	_boss = BossSimhika.new()
+	_boss.name = "BossSimhika"
+	_rt.add_child(_boss)
+	_boss.global_position = _gate_origin(SIMHIKA_DISTANCE)
+	_face_rider(_boss)
+	_boss.attach_leap(_rt.leap(), _rt.rider())
+	_boss.bind_hud(_rt.hud())
+	_boss.defeated.connect(_on_simhika_defeated)
+	_boss.inner_phase_cleared.connect(_on_simhika_inside_done)
+	_boss.window_missed.connect(_restore_rider_size)
+	_boss.event_bus = _bus()
+
+
+func _on_simhika_defeated() -> void:
+	_simhika_stage = 2
+	_restore_rider_size()
+	_rt.play_dialogue("%s#w1" % SIMHIKA_FILE)
+
+
+func _on_simhika_inside_done(_inner: int) -> void:
+	_restore_rider_size()
+
+
+func _restore_rider_size() -> void:
+	if _rt != null and _rt.size_shift() != null:
+		_rt.size_shift().force_size(SizeShift.SIZE.GIANT)
+
+
+func _on_mouth_changed(level: int) -> void:
+	if _mouth != null and is_instance_valid(_mouth):
+		_mouth.scale = Vector3.ONE * (0.5 + 0.9 * float(level))
+	if _rt == null:
+		return
+	if level < SurasaPuzzle.GROWS_NEEDED:
+		_rt.show_prompt(tr("PUZ_SURASA_GROW"))
+
+
+func _on_window_opened() -> void:
+	if _rt != null:
+		_rt.show_prompt(tr("PUZ_SURASA_SHRINK"))
+
+
+func _on_window_failed() -> void:
+	if _rt != null:
+		_rt.show_prompt(tr("PUZ_SURASA_GROW"))
+
+
+func _on_puzzle_solved() -> void:
+	_surasa_stage = 2
+	if _rt != null:
+		_rt.show_prompt("")
+		_rt.play_dialogue("%s#w1" % SURASA_FILE)
+
+
+## A failed flight (the rail's health ran out) heals Hanuman and, between gates, restarts the flight from the last
+## gate. Nothing in the game can end the run.
+func _on_leap_failed() -> void:
+	if _rt == null or _rt.leap() == null:
+		return
+	var controller: LeapController = _rt.leap()
+	controller.health.heal(controller.health.max_value)
+	var bus: Node = _bus()
+	if bus != null:
+		bus.emit_signal("vitality_changed", controller.health.value, controller.health.max_value)
+	if not controller.paused_at_gate:
+		var checkpoint: float = 0.0
+		for gate: Dictionary in controller.gate_defs:
+			var d: float = gate.get("d", 0.0) as float
+			if d <= controller.distance and d > checkpoint:
+				checkpoint = d
+		controller.distance = checkpoint
+
+
+func _process(delta: float) -> void:
+	if _rt == null or not is_instance_valid(_rt):
+		return
+	tick_leap(delta)
+
+
+## Drives the puzzle clock and reads the leap inputs. Public so tests can step it.
+func tick_leap(delta: float) -> void:
+	if _puzzle != null:
+		_puzzle.tick(delta)
+		if _puzzle.phase == SurasaPuzzle.Phase.WINDOW:
+			_on_window_opened()
+	if _rt == null or _rt.input_locked():
+		return
+	if _puzzle != null and _puzzle.is_active():
+		if Input.is_action_just_pressed(&"grow"):
+			_puzzle.on_grow()
+		if Input.is_action_just_pressed(&"shrink"):
+			_puzzle.on_shrink()
+	elif _boss != null and is_instance_valid(_boss) and _boss.active:
+		if Input.is_action_just_pressed(&"shrink") and _rt.size_shift() != null:
+			_rt.size_shift().shrink()
+		if Input.is_action_just_pressed(&"attack_light"):
+			leap_attack(LEAP_LIGHT_DAMAGE, false)
+		if Input.is_action_pressed(&"attack_light"):
+			_heavy_hold += delta
+			if _heavy_hold >= LEAP_HEAVY_HOLD:
+				_heavy_hold = 0.0
+				leap_attack(LEAP_HEAVY_DAMAGE, true)
+		else:
+			_heavy_hold = 0.0
+
+
+## Hanuman strikes at Simhika while flying: lands only within range and while she is vulnerable.
+func leap_attack(amount: int, heavy: bool) -> bool:
+	if _boss == null or not is_instance_valid(_boss) or _rt == null or _rt.rider() == null:
+		return false
+	var flat: Vector3 = _boss.global_position - _rt.rider().global_position
+	flat.y = 0.0
+	if flat.length() > LEAP_ATTACK_RANGE and not _boss.is_inside():
+		return false
+	if not _boss.is_vulnerable():
+		return false
+	_boss.apply_hit(amount, Vector3.ZERO, heavy)
+	return true
+
+
+# ---------------------------------------------------------------- autoloads
+
+func _bus() -> Node:
+	if event_bus != null:
+		return event_bus
+	return _autoload("EventBus")
+
+
+func _state() -> Node:
+	if game_state != null:
+		return game_state
+	return _autoload("GameState")
+
+
+func _autoload(autoload_name: String) -> Node:
+	var tree: SceneTree = get_tree() if is_inside_tree() else Engine.get_main_loop() as SceneTree
+	if tree == null:
+		return null
+	return tree.root.get_node_or_null(autoload_name)

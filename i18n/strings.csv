@@ -131,3 +131,22 @@ BOSS_SIMHIKA,Simhika,सिंहिका
 BOSS_LANKINI,Lankini,लंकिनी
 BOSS_JAMBUMALI,Jambumali,जम्बुमाली
 BOSS_AKSHAYA,Akshaya Kumara,अक्षयकुमार
+OBJ_PRO_TALK,Speak with Jambavan,जाम्बवान से बात करें
+OBJ_PRO_TRAIN,Strike the training rocks,प्रशिक्षण-शिलाओं पर प्रहार करें
+OBJ_PRO_LEAP,Climb to the peak and leap,शिखर पर चढ़कर छलाँग लगाएँ
+OBJ_CH1_MAINAKA,Greet Mainaka and fly on,मैनाक का अभिवादन करें और आगे उड़ें
+OBJ_CH1_SURASA,"Pass Surasa: grow, then shrink","सुरसा को पार करें: बढ़ें, फिर सिकुड़ें"
+OBJ_CH1_SIMHIKA,Defeat Simhika,सिंहिका को परास्त करें
+OBJ_CH2_LANKINI,Face Lankini at the gate,द्वार पर लंकिनी का सामना करें
+OBJ_CH2_SEARCH,"Search Lanka: the mansions, the palace, the Pushpaka courtyard","लंका में खोजें: भवन, राजमहल और पुष्पक-प्रांगण"
+OBJ_CH2_VATIKA,Find the Ashoka Vatika,अशोक वाटिका खोजें
+OBJ_CH3_SITA,Speak with Sita,सीता से बात करें
+OBJ_CH4_WAVES,Break the grove's defenders,वाटिका के रक्षकों को परास्त करें
+OBJ_CH5_COURT,Speak before Ravana,रावण के सम्मुख वचन कहें
+OBJ_CH5_BURN,Spread fire to the rakshasa armouries,राक्षसों के शस्त्रागारों में अग्नि फैलाएँ
+OBJ_CH5_OCEAN,Reach the ocean and cool your tail,समुद्र तक पहुँचकर पूँछ की अग्नि शांत करें
+PUZ_SURASA_GROW,Grow! (E),बढ़ें! (E)
+PUZ_SURASA_SHRINK,Shrink now! (Q),अब सिकुड़ें! (Q)
+UI_CREDITS_1,Based on the Sundara Kanda of the Valmiki Ramayana,वाल्मीकि रामायण के सुन्दरकाण्ड पर आधारित
+UI_CREDITS_2,Thank you for playing,खेलने के लिए धन्यवाद
+UI_CREDITS_3,Press any key,कोई भी कुंजी दबाएँ
