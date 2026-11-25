@@ -155,6 +155,11 @@ func _apply_visual() -> void:
 	for child: Node in _player.get_children():
 		var shape: CollisionShape3D = child as CollisionShape3D
 		if shape != null:
+			# Scale the shape's offset too: the capsule is centred above the feet, and scaling only its size left it
+			# floating at full height, so a SMALL Hanuman sank into the ground (director review 2026-11-26).
+			if not shape.has_meta(&"base_position"):
+				shape.set_meta(&"base_position", shape.position)
+			shape.position = (shape.get_meta(&"base_position") as Vector3) * _visual
 			shape.scale = Vector3.ONE * _visual
 
 

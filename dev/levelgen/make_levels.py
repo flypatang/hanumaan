@@ -85,10 +85,10 @@ def lanka_streets():
             if bx + 5 < 47 and bz + 5 < 47: blocks.append((bx, bz))
     houses_idx = 0
     for (bx, bz) in blocks:
-        L.rect(bx, bz, bx + 5, bz + 5, "wall")
-        L.rect(bx + 2, bz - 0, bx + 2, bz + 5, "stone_floor")          # a narrow gap through some blocks
-        L.prop("tier_house", bx + 1, bz + 1, [4, 6, 4]); L.prop("tier_house", bx + 4, bz + 4, [4, 7, 4])
-        houses_idx += 2
+        L.rect(bx, bz, bx + 5, bz + 5, "stone_floor", 1)                # raised plinth (walls hid Hanuman: review 2026-11-26)
+        L.rect(bx + 2, bz - 0, bx + 2, bz + 5, "stone_floor", 0)       # an alley through the block
+        L.prop("tier_house", bx + 4, bz + 3, [4, 6, 5])                 # one mansion per block, clear of the alley
+        houses_idx += 1
     for i, (x, z) in enumerate([(7, 20), (25, 7), (34, 29), (16, 38), (41, 16)]): L.prop("pillar", x, z, [1, 5, 1])
     # Ravana's palace in the north-east
     L.rect(36, 36, 46, 46, "stone_floor", 1); L.prop("gopuram", 41, 44, [8, 14, 6], protected=True)

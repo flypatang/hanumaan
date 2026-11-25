@@ -78,13 +78,14 @@ func test_player_spawns_at_the_player_marker_and_applies_meta() -> void:
 
 func test_a_spawn_inside_a_wall_moves_to_the_nearest_walkable_tile() -> void:
 	var rt: LevelRuntime = _make("lanka_streets")
-	# The level file puts hanuman_start on wall tile (2, 2); the runtime must not leave him inside it.
+	# Tile (0, 5) is part of the level's border wall; a spawn there must be moved to the nearest walkable tile.
+	var in_wall: Vector3 = Vector3(1.0, 0.0, 11.0)
+	var moved: Vector3 = rt.safe_spawn(in_wall)
+	assert_bool(moved.is_equal_approx(in_wall)).is_false()
+	assert_float(Vector2(moved.x - in_wall.x, moved.z - in_wall.z).length()).is_less(4.1)
+	# The real start marker is on walkable ground and is used as is.
 	var marker: Node3D = rt.level_root().get_node("Spawns/hanuman_start") as Node3D
-	var moved: Vector3 = rt.safe_spawn(marker.position)
-	assert_bool(moved.is_equal_approx(marker.position)).is_false()
-	assert_float(Vector2(moved.x - marker.position.x, moved.z - marker.position.z).length()).is_less(4.1)
-	assert_float(rt.player().position.x).is_equal_approx(moved.x, 0.01)
-	assert_float(rt.player().position.z).is_equal_approx(moved.z, 0.01)
+	assert_float(rt.player().position.x).is_equal_approx(rt.safe_spawn(marker.position).x, 0.01)
 	var open_air: Vector3 = Vector3(3.0, 0.0, 19.0)
 	assert_bool(rt.safe_spawn(open_air).is_equal_approx(open_air)).is_true()
 

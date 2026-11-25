@@ -26,6 +26,11 @@ const OCCLUDER_GROUP: StringName = &"occluder"
 const START_SMARANA: float = 60.0
 const SPAWN_LIFT: float = 0.1
 const CAMERA_SIZE: float = 10.0
+## Per-level base framing (ortho size) and a zoom factor per Hanuman size, so a cat-sized Hanuman is never a speck
+## and a giant one stays in frame (director review 2026-11-26).
+const LEVEL_CAMERA_SIZE: Dictionary = {"lanka_streets": 12.0, "lanka_rooftops": 16.0, "ashoka_vatika": 12.0}
+const SIZE_ZOOM: Dictionary = {0: 0.7, 1: 1.0, 2: 1.6, 3: 2.6}
+const NIGHT_LEVELS: Array[String] = ["ashoka_vatika", "ravana_court"]
 const WALKABLE: Array[String] = ["ground", "stone_floor", "grass", "sand"]
 const SPAWN_SEARCH_RADIUS: int = 24
 const NIGHT_AMBIENT_ENERGY: float = 1.9
@@ -243,7 +248,7 @@ func _load_world(data: Dictionary, id: StringName) -> void:
 	_read_tiles(data)
 	_level_root = LevelBuilder.build(data)
 	add_child(_level_root)
-	_add_lighting(str(id).begins_with(NIGHT_PREFIX))
+	_add_lighting(str(id).begins_with(NIGHT_PREFIX) or NIGHT_LEVELS.has(str(id)))
 	_make_occluders()
 	_collect_props()
 	_hud = Hud.new()
@@ -981,9 +986,10 @@ func _apply_sync_unlocks() -> void:
 
 # ---------------------------------------------------------------- per-frame
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if _player == null or not is_instance_valid(_player):
 		return
+	_update_camera_zoom(delta)
 	if _lock_depth == 0 and not _bound and _devotion != null and not _devotion.is_exhausted():
 		if Input.is_action_just_pressed(&"grow"):
 			_size_shift.grow()
@@ -991,6 +997,14 @@ func _process(_delta: float) -> void:
 			_size_shift.shrink()
 		if Input.is_action_just_pressed(&"smarana_surge"):
 			_devotion.surge()
+
+
+func _update_camera_zoom(delta: float) -> void:
+	if _camera == null or _size_shift == null:
+		return
+	var base: float = LEVEL_CAMERA_SIZE.get(str(_level_id), CAMERA_SIZE) as float
+	var zoom: float = SIZE_ZOOM.get(int(_size_shift.get_size()), 1.0) as float
+	_camera.size = lerpf(_camera.size, base * zoom, clampf(delta * 3.0, 0.0, 1.0))
 
 
 func _physics_process(_delta: float) -> void:
