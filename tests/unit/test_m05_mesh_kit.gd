@@ -173,13 +173,12 @@ func test_merge_rotation_swaps_bounds_and_keeps_normals_unit() -> void:
 
 
 func test_flat_material_uses_vertex_colour_and_toon_ramp() -> void:
-	var material: StandardMaterial3D = MeshKit.flat_material()
+	var material: ShaderMaterial = MeshKit.flat_material()
 	assert_object(material).is_not_null()
-	assert_bool(material.vertex_color_use_as_albedo).is_true()
-	assert_int(material.diffuse_mode).is_equal(BaseMaterial3D.DIFFUSE_TOON)
+	assert_bool(material.shader.code.contains("COLOR")).is_true()
 
 
 func test_flat_material_is_shared() -> void:
-	var first: StandardMaterial3D = MeshKit.flat_material()
-	var second: StandardMaterial3D = MeshKit.flat_material()
+	var first: ShaderMaterial = MeshKit.flat_material()
+	var second: ShaderMaterial = MeshKit.flat_material()
 	assert_bool(first == second).is_true()

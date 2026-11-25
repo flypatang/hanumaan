@@ -5,16 +5,43 @@ extends RefCounted
 ## All solids are centred on the origin, which lets triangle winding and normals be made outward-facing.
 
 
-static var _flat_material: StandardMaterial3D = null
+const _TOON_SHADER: String = """shader_type spatial;
+render_mode diffuse_lambert, specular_disabled;
+
+const float WARM_RIM_STRENGTH = 0.35;
+const vec3 WARM_RIM = vec3(1.0, 0.82, 0.55);
+const float AMBIENT = 0.30;
+
+varying vec3 v_color;
+
+void vertex() {
+	v_color = pow(COLOR.rgb, vec3(2.2));
+}
+
+void fragment() {
+	ALBEDO = v_color;
+	ROUGHNESS = 1.0;
+	float fres = pow(1.0 - clamp(dot(normalize(NORMAL), normalize(VIEW)), 0.0, 1.0), 3.0);
+	EMISSION = v_color * AMBIENT * 0.35 + WARM_RIM * fres * WARM_RIM_STRENGTH;
+}
+
+void light() {
+	float ndl = dot(NORMAL, LIGHT);
+	float ramp = 0.28 * step(0.05, ndl) + 0.25 * step(0.40, ndl) + 0.27 * step(0.70, ndl);
+	DIFFUSE_LIGHT += LIGHT_COLOR * ATTENUATION * ramp;
+}
+"""
+
+static var _flat_material: ShaderMaterial = null
 static var _warned_degenerate: bool = false
 
 
-static func flat_material() -> StandardMaterial3D:
+static func flat_material() -> ShaderMaterial:
 	if _flat_material == null:
-		var material: StandardMaterial3D = StandardMaterial3D.new()
-		material.vertex_color_use_as_albedo = true
-		material.diffuse_mode = BaseMaterial3D.DIFFUSE_TOON
-		material.roughness = 1.0
+		var shader: Shader = Shader.new()
+		shader.code = _TOON_SHADER
+		var material: ShaderMaterial = ShaderMaterial.new()
+		material.shader = shader
 		_flat_material = material
 	return _flat_material
 
