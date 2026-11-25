@@ -30,6 +30,34 @@ const DONE_ALPHA: float = 0.5
 const BUS_NAME: String = "EventBus"
 const LOCALE_NAME: String = "Locale"
 const UI_FONT_ROLE: StringName = &"ui"
+const HINDI_PREFIX: String = "hi"
+
+## The HUD's own labels, used whenever tr() returns the key unchanged (the translation row is missing).
+## Keeps the HUD readable in both languages without depending on strings.csv.
+const FALLBACK_EN: Dictionary = {
+	"UI_HUD_VITALITY": "Vitality",
+	"UI_HUD_SMARANA": "Smarana राम",
+	"UI_HUD_SIZE": "Size",
+	"UI_HUD_SIZE_SMALL": "Small",
+	"UI_HUD_SIZE_NORMAL": "Normal",
+	"UI_HUD_SIZE_LARGE": "Large",
+	"UI_HUD_SIZE_GIANT": "Giant",
+	"UI_HUD_OBJECTIVES": "Objectives",
+	"UI_HUD_OBJ_DONE": "done",
+	"UI_HUD_ALARM": "The rakshasas are alarmed!",
+}
+const FALLBACK_HI: Dictionary = {
+	"UI_HUD_VITALITY": "जीवन-शक्ति",
+	"UI_HUD_SMARANA": "स्मरण राम",
+	"UI_HUD_SIZE": "आकार",
+	"UI_HUD_SIZE_SMALL": "छोटा",
+	"UI_HUD_SIZE_NORMAL": "सामान्य",
+	"UI_HUD_SIZE_LARGE": "विशाल",
+	"UI_HUD_SIZE_GIANT": "महाकाय",
+	"UI_HUD_OBJECTIVES": "लक्ष्य",
+	"UI_HUD_OBJ_DONE": "पूर्ण",
+	"UI_HUD_ALARM": "राक्षस सचेत हुए!",
+}
 
 var _bus: Node = null
 var _locale: Node = null
@@ -107,11 +135,11 @@ func refresh_texts() -> void:
 	_refresh_vitality()
 	_refresh_smarana()
 	_refresh_size()
-	_objectives_title.text = tr("UI_HUD_OBJECTIVES")
+	_objectives_title.text = _tr("UI_HUD_OBJECTIVES")
 	for id: StringName in _objective_ids:
 		_refresh_objective(id)
 	_refresh_boss_name()
-	_alarm_label.text = tr("UI_HUD_ALARM")
+	_alarm_label.text = _tr("UI_HUD_ALARM")
 
 
 ## Moves the alarm timer forward. The HUD calls this from _process; tests call it directly.
@@ -258,7 +286,7 @@ func _on_level_loaded(_id: StringName) -> void:
 func _on_alarm_raised(pos: Vector3) -> void:
 	_alarm_pos = pos
 	_alarm_left = ALARM_SECONDS
-	_alarm_label.text = tr("UI_HUD_ALARM")
+	_alarm_label.text = _tr("UI_HUD_ALARM")
 	_alarm_label.modulate = Color.WHITE
 	_alarm_label.visible = true
 
@@ -272,32 +300,44 @@ func _on_language_changed(_code: StringName) -> void:
 	refresh_texts()
 
 
+# --- Text lookup ----------------------------------------------------------------------------
+
+## tr() with the HUD's own fallback: when the key has no translation, the built-in table answers.
+## An unknown key comes back unchanged, so raw text (objective lines, boss names) passes through.
+func _tr(key: String) -> String:
+	var text: String = tr(key)
+	if text != key:
+		return text
+	var is_hindi: bool = TranslationServer.get_locale().begins_with(HINDI_PREFIX)
+	var table: Dictionary = FALLBACK_HI if is_hindi else FALLBACK_EN
+	return str(table.get(key, key))
+
+
 # --- Refresh helpers -------------------------------------------------------------------------
 
 func _refresh_vitality() -> void:
 	_vitality_bar.max_value = float(_vitality_max)
 	_vitality_bar.value = float(_vitality_value)
-	var values: String = tr("UI_HUD_VITALITY_VALUE") % [_vitality_value, _vitality_max]
-	_vitality_label.text = "%s  %s" % [tr("UI_HUD_VITALITY"), values]
+	_vitality_label.text = "%s  %d / %d" % [_tr("UI_HUD_VITALITY"), _vitality_value, _vitality_max]
 
 
 func _refresh_smarana() -> void:
 	_smarana_bar.value = _smarana
-	_smarana_label.text = tr("UI_HUD_SMARANA")
+	_smarana_label.text = _tr("UI_HUD_SMARANA")
 
 
 func _refresh_size() -> void:
-	_size_label.text = "%s: %s" % [tr("UI_HUD_SIZE"), tr(_size_key())]
+	_size_label.text = "%s: %s" % [_tr("UI_HUD_SIZE"), _tr(_size_key())]
 
 
 func _refresh_objective(id: StringName) -> void:
 	if not _objective_labels.has(id):
 		return
 	var label: Label = _objective_labels[id] as Label
-	var text: String = tr(_objective_texts[id] as String)
+	var text: String = _tr(_objective_texts[id] as String)
 	var done: bool = _objective_done[id] as bool
 	if done:
-		label.text = "%s (%s)" % [text, tr("UI_HUD_OBJ_DONE")]
+		label.text = "%s (%s)" % [text, _tr("UI_HUD_OBJ_DONE")]
 		label.add_theme_color_override("font_color", Color(Palette.MOON, DONE_ALPHA))
 	else:
 		label.text = text
@@ -308,7 +348,7 @@ func _refresh_boss_name() -> void:
 	if _boss_name_key == &"":
 		_boss_name_label.text = ""
 		return
-	_boss_name_label.text = tr(String(_boss_name_key))
+	_boss_name_label.text = _tr(String(_boss_name_key))
 
 
 func _size_key() -> String:
