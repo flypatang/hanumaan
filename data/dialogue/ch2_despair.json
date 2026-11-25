@@ -1,0 +1,28 @@
+{
+ "id": "ch2_despair",
+ "start": "n1",
+ "nodes": {
+  "n1": {
+   "speaker": "hanuman",
+   "text_key": "DLG_CH2_DES_001",
+   "next": "n2"
+  },
+  "n2": {
+   "speaker": "hanuman",
+   "text_key": "DLG_CH2_DES_002",
+   "next": "n3"
+  },
+  "n3": {
+   "shloka": "sk_anirveda",
+   "next": "n4"
+  },
+  "n4": {
+   "speaker": "hanuman",
+   "text_key": "DLG_CH2_DES_003",
+   "next": null,
+   "set_flags": {
+    "ch2_done": true
+   }
+  }
+ }
+}

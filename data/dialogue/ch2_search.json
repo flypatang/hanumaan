@@ -1,0 +1,29 @@
+{
+ "id": "ch2_search",
+ "start": "m1",
+ "nodes": {
+  "m1": {
+   "speaker": "hanuman",
+   "text_key": "DLG_CH2_SR_001",
+   "next": null
+  },
+  "p1": {
+   "speaker": "narrator",
+   "text_key": "DLG_CH2_SR_010",
+   "next": "p2"
+  },
+  "p2": {
+   "speaker": "hanuman",
+   "text_key": "DLG_CH2_SR_011",
+   "next": null,
+   "set_flags": {
+    "saw_mandodari": true
+   }
+  },
+  "v1": {
+   "speaker": "hanuman",
+   "text_key": "DLG_CH2_SR_020",
+   "next": null
+  }
+ }
+}

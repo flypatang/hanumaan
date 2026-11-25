@@ -1,0 +1,29 @@
+{
+ "id": "epilogue",
+ "start": "n1",
+ "nodes": {
+  "n1": {
+   "speaker": "narrator",
+   "text_key": "DLG_EPI_001",
+   "next": "n2"
+  },
+  "n2": {
+   "speaker": "hanuman",
+   "text_key": "DLG_EPI_002",
+   "next": "n3"
+  },
+  "n3": {
+   "speaker": "narrator",
+   "text_key": "DLG_EPI_003",
+   "next": "n4"
+  },
+  "n4": {
+   "speaker": "rama",
+   "text_key": "DLG_EPI_004",
+   "next": null,
+   "set_flags": {
+    "game_complete": true
+   }
+  }
+ }
+}

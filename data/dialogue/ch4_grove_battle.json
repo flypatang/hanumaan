@@ -1,0 +1,57 @@
+{
+ "id": "ch4_grove_battle",
+ "start": "n1",
+ "nodes": {
+  "n1": {
+   "speaker": "hanuman",
+   "text_key": "DLG_CH4_BT_001",
+   "next": null
+  },
+  "c1": {
+   "speaker": "narrator",
+   "text_key": "DLG_CH4_BT_010",
+   "next": "c2"
+  },
+  "c2": {
+   "shloka": "sk_jayatyatibalo",
+   "next": "c3"
+  },
+  "c3": {
+   "shloka": "sk_daso_ham",
+   "next": "c4"
+  },
+  "c4": {
+   "speaker": "hanuman",
+   "text_key": "DLG_CH4_BT_011",
+   "next": null
+  },
+  "j1": {
+   "speaker": "jambumali",
+   "text_key": "DLG_CH4_BT_020",
+   "next": null
+  },
+  "a1": {
+   "speaker": "akshaya",
+   "text_key": "DLG_CH4_BT_030",
+   "next": null
+  },
+  "a2": {
+   "speaker": "hanuman",
+   "text_key": "DLG_CH4_BT_031",
+   "next": null
+  },
+  "b1": {
+   "speaker": "narrator",
+   "text_key": "DLG_CH4_BT_040",
+   "next": "b2"
+  },
+  "b2": {
+   "speaker": "hanuman",
+   "text_key": "DLG_CH4_BT_041",
+   "next": null,
+   "set_flags": {
+    "ch4_done": true
+   }
+  }
+ }
+}

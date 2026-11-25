@@ -1,0 +1,149 @@
+{
+ "id": "ch3_grove",
+ "start": "n1",
+ "nodes": {
+  "n1": {
+   "speaker": "narrator",
+   "text_key": "DLG_CH3_GR_001",
+   "next": "n2"
+  },
+  "n2": {
+   "speaker": "hanuman",
+   "text_key": "DLG_CH3_GR_002",
+   "next": "n3"
+  },
+  "n3": {
+   "speaker": "narrator",
+   "text_key": "DLG_CH3_GR_003",
+   "next": "n4"
+  },
+  "n4": {
+   "speaker": "sita",
+   "text_key": "DLG_CH3_GR_004",
+   "next": "n5"
+  },
+  "n5": {
+   "speaker": "narrator",
+   "text_key": "DLG_CH3_GR_005",
+   "next": "n6"
+  },
+  "n6": {
+   "speaker": "trijata",
+   "text_key": "DLG_CH3_GR_006",
+   "next": "n7"
+  },
+  "n7": {
+   "speaker": "hanuman",
+   "text_key": "DLG_CH3_GR_007",
+   "next": "c1"
+  },
+  "c1": {
+   "speaker": "hanuman",
+   "text_key": "DLG_CH3_GR_C1",
+   "choices": [
+    {
+     "text_key": "CH_CH3_C1_A",
+     "next": "c2",
+     "flags": {},
+     "smarana": 15
+    },
+    {
+     "text_key": "CH_CH3_C1_B",
+     "next": "c1r",
+     "flags": {},
+     "smarana": 0
+    }
+   ]
+  },
+  "c1r": {
+   "speaker": "narrator",
+   "text_key": "DLG_CH3_GR_C1R",
+   "next": "c1"
+  },
+  "c2": {
+   "speaker": "hanuman",
+   "text_key": "DLG_CH3_GR_C2",
+   "choices": [
+    {
+     "text_key": "CH_CH3_C2_A",
+     "next": "c3",
+     "flags": {},
+     "smarana": 15
+    },
+    {
+     "text_key": "CH_CH3_C2_B",
+     "next": "c2r",
+     "flags": {},
+     "smarana": 0
+    }
+   ]
+  },
+  "c2r": {
+   "speaker": "narrator",
+   "text_key": "DLG_CH3_GR_C2R",
+   "next": "c2"
+  },
+  "c3": {
+   "speaker": "hanuman",
+   "text_key": "DLG_CH3_GR_C3",
+   "choices": [
+    {
+     "text_key": "CH_CH3_C3_A",
+     "next": "n8",
+     "flags": {},
+     "smarana": 15
+    },
+    {
+     "text_key": "CH_CH3_C3_B",
+     "next": "c3r",
+     "flags": {},
+     "smarana": 0
+    }
+   ]
+  },
+  "c3r": {
+   "speaker": "narrator",
+   "text_key": "DLG_CH3_GR_C3R",
+   "next": "c3"
+  },
+  "n8": {
+   "speaker": "sita",
+   "text_key": "DLG_CH3_GR_008",
+   "next": "n9"
+  },
+  "n9": {
+   "speaker": "hanuman",
+   "text_key": "DLG_CH3_GR_009",
+   "next": "n10",
+   "set_flags": {
+    "ring_given": true
+   }
+  },
+  "n10": {
+   "speaker": "sita",
+   "text_key": "DLG_CH3_GR_010",
+   "next": "n11"
+  },
+  "n11": {
+   "speaker": "hanuman",
+   "text_key": "DLG_CH3_GR_011",
+   "next": "n12"
+  },
+  "n12": {
+   "speaker": "sita",
+   "text_key": "DLG_CH3_GR_012",
+   "next": "n13",
+   "set_flags": {
+    "chudamani": true
+   }
+  },
+  "n13": {
+   "speaker": "hanuman",
+   "text_key": "DLG_CH3_GR_013",
+   "next": null,
+   "set_flags": {
+    "ch3_done": true
+   }
+  }
+ }
+}

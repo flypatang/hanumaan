@@ -1,0 +1,21 @@
+{
+ "id": "teaser_setu",
+ "start": "n1",
+ "nodes": {
+  "n1": {
+   "speaker": "narrator",
+   "text_key": "DLG_TSR_001",
+   "next": "n2"
+  },
+  "n2": {
+   "speaker": "nala",
+   "text_key": "DLG_TSR_002",
+   "next": "n3"
+  },
+  "n3": {
+   "speaker": "narrator",
+   "text_key": "DLG_TSR_003",
+   "next": null
+  }
+ }
+}

@@ -1,0 +1,29 @@
+{
+ "id": "ch2_lankini",
+ "start": "n1",
+ "nodes": {
+  "n1": {
+   "speaker": "narrator",
+   "text_key": "DLG_CH2_LAN_001",
+   "next": "n2"
+  },
+  "n2": {
+   "speaker": "lankini",
+   "text_key": "DLG_CH2_LAN_002",
+   "next": "n3"
+  },
+  "n3": {
+   "speaker": "hanuman",
+   "text_key": "DLG_CH2_LAN_003",
+   "next": null
+  },
+  "w1": {
+   "speaker": "lankini",
+   "text_key": "DLG_CH2_LAN_010",
+   "next": null,
+   "set_flags": {
+    "lankini_yielded": true
+   }
+  }
+ }
+}
