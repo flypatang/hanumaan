@@ -100,3 +100,30 @@ DLG_EPI_004,"""Hanuman, you have done what no other could. I have nothing to giv
 DLG_TSR_001,"Days later, on the southern shore, the whole vanara army gathers before the endless sea.","कुछ दिनों बाद, दक्षिणी तट पर पूरी वानर सेना अनंत सागर के सामने एकत्र होती है।"
 DLG_TSR_002,"""The Ocean has promised to bear what I build. Bring every stone — and write Rama's name upon each one.""","""सागर ने वचन दिया है कि जो मैं बनाऊँगा, वह उसे धारण करेगा। हर पत्थर लाओ — और हर एक पर श्रीराम का नाम लिखो।"""
 DLG_TSR_003,"Nala lays the first stone, marked ""राम"", upon the waves — and it floats. सेतु · Setu — coming next.","नल ""राम"" लिखा पहला पत्थर लहरों पर रखते हैं — और वह तैरने लगता है। सेतु · Setu — शीघ्र आ रहा है।"
+UI_MENU_TITLE,Hanumaan — Sundara Kanda,हनुमान — सुन्दरकाण्ड
+UI_MENU_BEGIN,New Game,नया खेल
+UI_MENU_SETTINGS,Settings,सेटिंग्स
+UI_MENU_QUIT,Quit,बाहर निकलें
+UI_MENU_PAUSED,Paused,रुका हुआ
+UI_MENU_RESUME,Resume,जारी रखें
+UI_MENU_QUIT_TO_TITLE,Quit to title,मुख्य स्क्रीन पर जाएँ
+UI_MENU_BACK,Back,वापस
+UI_MENU_LANGUAGE,Language,भाषा
+UI_MENU_LANG_EN,English,English
+UI_MENU_LANG_HI,हिन्दी,हिन्दी
+UI_MENU_FPS,Frame rate,फ़्रेम दर
+UI_MENU_FPS_UNLIMITED,Unlimited,असीमित
+UI_MENU_GRAPHICS,Graphics,ग्राफ़िक्स
+UI_MENU_GFX_LOW,Low,निम्न
+UI_MENU_GFX_MEDIUM,Medium,मध्यम
+UI_MENU_GFX_HIGH,High,उच्च
+UI_MENU_VSYNC,VSync,वी-सिंक
+UI_MENU_FULLSCREEN,Fullscreen,पूर्ण स्क्रीन
+UI_MENU_SHLOKA_CARDS,Shloka cards,श्लोक कार्ड
+UI_MENU_SHLOKA_ON,On,चालू
+UI_MENU_SHLOKA_SHORT,Short,संक्षिप्त
+UI_MENU_SHLOKA_OFF,Off,बंद
+UI_MENU_VOLUME_MASTER,Master volume,मुख्य ध्वनि
+UI_MENU_VOLUME_MUSIC,Music volume,संगीत ध्वनि
+UI_MENU_VOLUME_SFX,Effects volume,प्रभाव ध्वनि
+UI_MENU_CONTINUE,Continue,जारी रखें
