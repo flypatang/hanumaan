@@ -63,8 +63,10 @@ static func build_samples(track: StringName) -> PackedVector2Array:
 	return out
 
 
-## Linear crossfade from one buffer to another. t = 0 gives `from_buf`, t = 1 gives `to_buf`.
-## Shorter buffers are treated as silent past their end. The result is clamped to [-1, 1].
+## Reference buffer-level mix of two tracks: linear weights (1 - t, t) that sum to 1, so full-scale inputs
+## cannot exceed full scale. Used by the tests to check the mix; the runtime fade in play() runs on the
+## two AudioStreamPlayers' volumes instead. Shorter buffers are treated as silent past their end.
+## The result is clamped to [-1, 1] as a final safety net.
 static func crossfade(from_buf: PackedVector2Array, to_buf: PackedVector2Array, t: float) -> PackedVector2Array:
 	var clamped_t: float = clampf(t, 0.0, 1.0)
 	var length: int = maxi(from_buf.size(), to_buf.size())
@@ -113,7 +115,7 @@ func stop(fade: float = 1.0) -> void:
 		playing.volume_db = FADE_SILENT_DB
 		return
 	_tween = create_tween()
-	_tween.tween_property(playing, "volume_db", FADE_SILENT_DB, fade)
+	_tween.tween_method(_set_amplitude.bind(playing), 1.0, 0.0, fade)
 	_tween.tween_callback(playing.stop)
 
 
@@ -121,8 +123,11 @@ func current_track() -> StringName:
 	return _current
 
 
+## True only while a track is set and the active player is actually producing audio.
 func is_playing() -> bool:
-	return _current != &""
+	if _current == &"" or _players.size() != 2:
+		return false
+	return _players[_active].playing
 
 
 static func _spec_for(track: StringName) -> TrackSpec:
@@ -212,11 +217,7 @@ static func _add_percussion(out: PackedVector2Array, spec: TrackSpec) -> void:
 		return
 	var step_sec: float = 60.0 / spec.bpm / float(spec.steps_per_beat)
 	var steps: int = floori(spec.seconds / step_sec)
-	var hit_noise: PackedVector2Array = Synth.noise(
-		0.12, {"attack": 0.001, "decay": 0.1, "sustain": 0.0, "release": 0.01, "gain": 0.3, "seed": 77}, 1500.0)
-	var hit_tone: PackedVector2Array = Synth.tone(
-		160.0, 0.1, 0, {"attack": 0.002, "decay": 0.08, "sustain": 0.0, "release": 0.01, "gain": 0.35})
-	var hit: PackedVector2Array = Synth.mix([hit_noise, hit_tone])
+	var hit: PackedVector2Array = Synth.mix([_tabla_noise(), _tabla_pitch_drop()])
 	for step: int in range(0, steps, spec.perc_interval):
 		var start: int = roundi(float(step) * step_sec * SAMPLE_RATE)
 		_place(out, hit, start)
@@ -253,15 +254,48 @@ static func _normalise(buf: PackedVector2Array, peak: float) -> void:
 		buf[i] = Vector2(clampf(s.x * gain, -1.0, 1.0), clampf(s.y * gain, -1.0, 1.0))
 
 
+## Tabla-like hit: a short sine pitch drop through 220, 180 and 150 Hz (DESIGN §7).
+static func _tabla_pitch_drop() -> PackedVector2Array:
+	var env: Dictionary = {"attack": 0.002, "decay": 0.02, "sustain": 0.0, "release": 0.01, "gain": 0.35}
+	var seg_sec: float = 0.03
+	var out: PackedVector2Array = PackedVector2Array()
+	out.resize(roundi(seg_sec * 3.0 * SAMPLE_RATE))
+	var freqs: Array[float] = [220.0, 180.0, 150.0]
+	for i: int in range(freqs.size()):
+		var seg: PackedVector2Array = Synth.tone(freqs[i], seg_sec, 0, env)
+		_place(out, seg, roundi(float(i) * seg_sec * SAMPLE_RATE))
+	return out
+
+
+## Short noise burst for the tabla attack.
+static func _tabla_noise() -> PackedVector2Array:
+	return Synth.noise(
+		0.12, {"attack": 0.001, "decay": 0.1, "sustain": 0.0, "release": 0.01, "gain": 0.3, "seed": 77}, 1500.0)
+
+
+## Wraps a track buffer as a stream that loops over its whole length (8-16 s loops, DESIGN §7).
+static func make_loop_stream(buf: PackedVector2Array) -> AudioStreamWAV:
+	var stream: AudioStreamWAV = Synth.to_stream(buf)
+	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	stream.loop_begin = 0
+	stream.loop_end = buf.size()
+	return stream
+
+
 func _stream_for(track: StringName) -> AudioStreamWAV:
 	if _streams.has(track):
 		return _streams[track] as AudioStreamWAV
 	var buf: PackedVector2Array = build_samples(track)
 	if buf.is_empty():
 		return null
-	var stream: AudioStreamWAV = Synth.to_stream(buf)
+	var stream: AudioStreamWAV = make_loop_stream(buf)
 	_streams[track] = stream
 	return stream
+
+
+## Sets a player's level from a linear amplitude (0..1). Linear amplitude in the tween keeps the fade even.
+func _set_amplitude(amp: float, player: AudioStreamPlayer) -> void:
+	player.volume_db = linear_to_db(maxf(amp, 0.0001))
 
 
 func _ensure_players() -> void:
@@ -289,8 +323,8 @@ func _crossfade_players(incoming: AudioStreamPlayer, outgoing: AudioStreamPlayer
 		outgoing.volume_db = FADE_SILENT_DB
 		return
 	_tween = create_tween().set_parallel(true)
-	_tween.tween_property(incoming, "volume_db", 0.0, fade)
-	_tween.tween_property(outgoing, "volume_db", FADE_SILENT_DB, fade)
+	_tween.tween_method(_set_amplitude.bind(incoming), 0.0, 1.0, fade)
+	_tween.tween_method(_set_amplitude.bind(outgoing), 1.0, 0.0, fade)
 	_tween.chain().tween_callback(outgoing.stop)
 
 

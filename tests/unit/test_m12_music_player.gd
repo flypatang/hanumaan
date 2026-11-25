@@ -49,13 +49,83 @@ func test_built_track_peak_stays_below_one() -> void:
 	assert_float(_max_abs(buf)).is_less_equal(1.0)
 
 
+func _filled(value: float, count: int) -> PackedVector2Array:
+	var buf: PackedVector2Array = PackedVector2Array()
+	buf.resize(count)
+	for i: int in range(count):
+		buf[i] = Vector2(value, value)
+	return buf
+
+
 func test_crossfade_never_exceeds_one() -> void:
-	var from_buf: PackedVector2Array = MusicPlayer.build_samples(&"calm")
-	var to_buf: PackedVector2Array = MusicPlayer.build_samples(&"combat")
-	for step: int in range(5):
-		var t: float = float(step) / 4.0
-		var mixed: PackedVector2Array = MusicPlayer.crossfade(from_buf, to_buf, t)
+	# Full-scale inputs: the weights (1 - t, t) sum to 1, so the exact mix stays at 1.0 and never above it.
+	var full: PackedVector2Array = _filled(1.0, 4)
+	for t: float in [0.0, 0.5, 1.0]:
+		var mixed: PackedVector2Array = MusicPlayer.crossfade(full, full, t)
 		assert_float(_max_abs(mixed)).is_less_equal(1.0)
+		for i: int in range(mixed.size()):
+			assert_float(mixed[i].x).is_equal_approx(1.0, 0.0001)
+			assert_float(mixed[i].y).is_equal_approx(1.0, 0.0001)
+
+
+func test_crossfade_full_scale_opposite_signs_gives_exact_values() -> void:
+	var pos: PackedVector2Array = _filled(1.0, 4)
+	var neg: PackedVector2Array = _filled(-1.0, 4)
+	var at_0: PackedVector2Array = MusicPlayer.crossfade(pos, neg, 0.0)
+	var at_half: PackedVector2Array = MusicPlayer.crossfade(pos, neg, 0.5)
+	var at_quarter: PackedVector2Array = MusicPlayer.crossfade(pos, neg, 0.25)
+	var at_1: PackedVector2Array = MusicPlayer.crossfade(pos, neg, 1.0)
+	assert_float(at_0[0].x).is_equal_approx(1.0, 0.0001)
+	assert_float(at_half[0].x).is_equal_approx(0.0, 0.0001)
+	assert_float(at_quarter[0].x).is_equal_approx(0.5, 0.0001)
+	assert_float(at_1[0].x).is_equal_approx(-1.0, 0.0001)
+	assert_float(_max_abs(at_quarter)).is_less_equal(1.0)
+
+
+func test_every_built_track_peak_stays_below_one() -> void:
+	for track: StringName in [&"calm", &"stealth", &"combat", &"boss", &"dahan"]:
+		var buf: PackedVector2Array = MusicPlayer.build_samples(track)
+		assert_float(_max_abs(buf)).is_less_equal(1.0)
+
+
+func test_all_five_track_loops_are_between_8_and_16_seconds() -> void:
+	for track: StringName in [&"calm", &"stealth", &"combat", &"boss", &"dahan"]:
+		var buf: PackedVector2Array = MusicPlayer.build_samples(track)
+		var seconds: float = float(buf.size()) / float(RATE)
+		assert_bool(seconds >= 8.0 and seconds <= 16.0).is_true()
+
+
+func test_track_stream_loops_over_its_whole_length() -> void:
+	var music: MusicPlayer = _new_music()
+	var stream: AudioStreamWAV = music._stream_for(&"calm")
+	assert_object(stream).is_not_null()
+	assert_int(stream.loop_mode).is_equal(AudioStreamWAV.LOOP_FORWARD)
+	assert_int(stream.loop_begin).is_equal(0)
+	assert_int(stream.loop_end).is_equal(MusicPlayer.build_samples(&"calm").size())
+
+
+func test_every_track_stream_has_forward_loop() -> void:
+	var music: MusicPlayer = _new_music()
+	for track: StringName in [&"calm", &"stealth", &"combat", &"boss", &"dahan"]:
+		var stream: AudioStreamWAV = music._stream_for(track)
+		assert_object(stream).is_not_null()
+		assert_int(stream.loop_mode).is_equal(AudioStreamWAV.LOOP_FORWARD)
+		assert_int(stream.loop_end).is_equal(MusicPlayer.build_samples(track).size())
+
+
+func test_track_stream_is_cached() -> void:
+	var music: MusicPlayer = _new_music()
+	var first: AudioStreamWAV = music._stream_for(&"boss")
+	var second: AudioStreamWAV = music._stream_for(&"boss")
+	assert_object(first).is_same(second)
+
+
+func test_unknown_track_play_is_not_playing() -> void:
+	var music: MusicPlayer = _new_music()
+	add_child(music)
+	music.play(&"no_such_track", 0.0)
+	assert_bool(music.is_playing()).is_false()
+	assert_str(String(music.current_track())).is_equal("")
 
 
 func test_crossfade_endpoints_match_inputs() -> void:
