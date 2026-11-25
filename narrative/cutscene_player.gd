@@ -53,11 +53,17 @@ var _camera: Camera3D = null
 var _step_active: bool = false
 var _step_elapsed: float = 0.0
 var _step_duration: float = 0.0
-var _from_pos: Vector3 = Vector3.ZERO
-var _to_pos: Vector3 = Vector3.ZERO
+# Only the kind of the running step decides what it moves. Camera and actor keep separate from/to state, and
+# each is cleared when its step ends, so a stale move never touches the camera or an actor again.
+var _moving_camera: bool = false
+var _camera_from: Vector3 = Vector3.ZERO
+var _camera_to: Vector3 = Vector3.ZERO
 var _look_at: Vector3 = Vector3.ZERO
 var _has_look_at: bool = false
+var _moving_actor: bool = false
 var _actor: Node3D = null
+var _actor_from: Vector3 = Vector3.ZERO
+var _actor_to: Vector3 = Vector3.ZERO
 
 
 func _process(delta: float) -> void:
@@ -143,7 +149,7 @@ func stop() -> void:
 	_playing = false
 	_awaiting_ui = false
 	_step_active = false
-	_actor = null
+	_clear_move_state()
 
 
 func is_playing() -> bool:
@@ -161,16 +167,22 @@ func current_index() -> int:
 func _finish() -> void:
 	_playing = false
 	_step_active = false
-	_actor = null
+	_clear_move_state()
 	finished.emit(_id)
+
+
+func _clear_move_state() -> void:
+	_moving_camera = false
+	_moving_actor = false
+	_has_look_at = false
+	_actor = null
 
 
 func _begin_step(step: Dictionary) -> void:
 	_step_active = true
 	_step_elapsed = 0.0
 	_step_duration = maxf(_as_float(step.get("duration", 0.0)), 0.0)
-	_actor = null
-	_has_look_at = false
+	_clear_move_state()
 	var type: StringName = StringName(str(step.get("type", "")))
 	step_started.emit(_index, type)
 	match type:
@@ -194,33 +206,34 @@ func _begin_step(step: Dictionary) -> void:
 			_awaiting_ui = true
 		&"fade":
 			var color: Color = _color_for(StringName(str(step.get("color", "UI_DARK"))))
-			fade_requested.emit(color, _step_duration, bool(_as_bool(step.get("out", true))))
+			fade_requested.emit(color, _step_duration, _as_bool(step.get("out", true)))
 		_:
 			pass
 
 
 func _complete_step() -> void:
 	_step_active = false
-	_actor = null
+	_clear_move_state()
 	_index += 1
 
 
 func _apply_progress(t: float) -> void:
 	var k: float = clampf(t, 0.0, 1.0)
-	if _camera != null and is_instance_valid(_camera):
-		_camera.global_position = _from_pos.lerp(_to_pos, k)
+	if _moving_camera and _camera != null and is_instance_valid(_camera):
+		_camera.global_position = _camera_from.lerp(_camera_to, k)
 		if _has_look_at and _camera.is_inside_tree() and _camera.global_position.distance_to(_look_at) > EPS:
 			_camera.look_at(_look_at, Vector3.UP)
-	if _actor != null and is_instance_valid(_actor):
-		var pos: Vector3 = _from_pos.lerp(_to_pos, k)
-		_actor.global_position = Vector3(pos.x, _from_pos.y, pos.z)
+	if _moving_actor and _actor != null and is_instance_valid(_actor):
+		var pos: Vector3 = _actor_from.lerp(_actor_to, k)
+		_actor.global_position = Vector3(pos.x, _actor_from.y, pos.z)
 
 
 func _begin_camera_move(step: Dictionary) -> void:
 	if _camera == null:
 		return
-	_from_pos = _camera.global_position
-	_to_pos = _vec3(step.get("to", null), _from_pos)
+	_moving_camera = true
+	_camera_from = _camera.global_position
+	_camera_to = _vec3(step.get("to", null), _camera_from)
 	_has_look_at = step.has("look_at")
 	if _has_look_at:
 		_look_at = _vec3(step.get("look_at", null), Vector3.ZERO)
@@ -233,9 +246,10 @@ func _begin_actor_move(step: Dictionary) -> void:
 	if _actor == null:
 		push_warning("CutscenePlayer: unknown actor '%s' in %s" % [str(step.get("actor", "")), str(_id)])
 		return
+	_moving_actor = true
 	var target: Vector2 = _vec2(step.get("to", null), Vector2(_actor.global_position.x, _actor.global_position.z))
-	_from_pos = _actor.global_position
-	_to_pos = Vector3(target.x, _from_pos.y, target.y)
+	_actor_from = _actor.global_position
+	_actor_to = Vector3(target.x, _actor_from.y, target.y)
 	if _step_duration <= 0.0:
 		_apply_progress(1.0)
 

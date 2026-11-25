@@ -270,14 +270,16 @@ func test_m31_fade_emits_palette_color_and_direction() -> void:
 # --- frame-rate independence (DESIGN §8) -----------------------------------------------------------
 
 func test_m31_outcome_is_independent_of_frame_rate() -> void:
-	var results: Array[Vector3] = []
+	var actor_results: Array[Vector3] = []
+	var camera_results: Array[Vector3] = []
 	var orders: Array[String] = []
 	for dt: float in [1.0 / 30.0, 1.0 / 60.0]:
 		_write_fixture("fps", FULL_BODY)
 		var player: Node = _make_player()
 		var rec: Recorder = _record(player)
 		var hanuman: Node3D = _node3d(Vector3(0, 3, 0))
-		assert_int(player.call("play", _fixture_id("fps"), _actors(hanuman), _camera()) as int).is_equal(OK)
+		var cam: Camera3D = _camera()
+		assert_int(player.call("play", _fixture_id("fps"), _actors(hanuman), cam) as int).is_equal(OK)
 		var guard: int = 0
 		while (player.call("is_playing") as bool) and guard < 100000:
 			if player.call("is_awaiting_ui") as bool:
@@ -285,12 +287,104 @@ func test_m31_outcome_is_independent_of_frame_rate() -> void:
 			else:
 				player.call("tick", dt)
 			guard += 1
-		results.append(hanuman.global_position)
+		actor_results.append(hanuman.global_position)
+		camera_results.append(cam.global_position)
 		orders.append(",".join(PackedStringArray(rec.step_types.map(func(t: StringName) -> String: return str(t)))))
 		assert_int(rec.finished_count).is_equal(1)
+		# FULL_BODY ends with the camera at its camera_move target, whatever the frame rate.
+		assert_float(cam.global_position.distance_to(Vector3(10, 5, 0))).is_less(EPS)
+		assert_float(hanuman.global_position.distance_to(Vector3(4, 3, 6))).is_less(EPS)
 	assert_array(orders).has_size(2)
 	assert_str(orders[0]).is_equal(orders[1])
-	assert_float(results[0].distance_to(results[1])).is_less(EPS)
+	assert_float(actor_results[0].distance_to(actor_results[1])).is_less(EPS)
+	assert_float(camera_results[0].distance_to(camera_results[1])).is_less(EPS)
+
+
+# --- camera and actor state isolation -------------------------------------------------------------
+
+func test_m31_camera_holds_position_through_non_camera_steps() -> void:
+	_write_fixture("hold", """{"steps": [
+	  {"type": "camera_move", "to": [10, 5, 0], "duration": 1.0},
+	  {"type": "actor_move", "actor": "hanuman", "to": [4, 6], "duration": 1.0},
+	  {"type": "wait", "duration": 0.5},
+	  {"type": "fade", "color": "NIGHT_INDIGO", "duration": 0.5, "out": true},
+	  {"type": "set_flag", "k": "m31_hold", "v": true},
+	  {"type": "wait", "duration": 0.5}
+	]}""")
+	var player: Node = _make_player()
+	var rec: Recorder = _record(player)
+	var cam: Camera3D = _camera()
+	var hanuman: Node3D = _node3d(Vector3(0, 3, 0))
+	assert_int(player.call("play", _fixture_id("hold"), _actors(hanuman), cam) as int).is_equal(OK)
+	player.call("tick", 1.0)
+	assert_int(player.call("current_index") as int).is_equal(1)
+	assert_float(cam.global_position.distance_to(Vector3(10, 5, 0))).is_less(EPS)
+	# Every later step runs with the camera bound. None of them may move it.
+	var guard: int = 0
+	while (player.call("is_playing") as bool) and guard < 1000:
+		player.call("tick", 0.1)
+		assert_float(cam.global_position.distance_to(Vector3(10, 5, 0))).is_less(EPS)
+		guard += 1
+	assert_int(rec.finished_count).is_equal(1)
+	assert_float(hanuman.global_position.distance_to(Vector3(4, 3, 6))).is_less(EPS)
+
+
+func test_m31_actor_move_does_not_move_camera() -> void:
+	_write_fixture("actor_cam", """{"steps": [{"type": "actor_move", "actor": "hanuman", "to": [4, 6], "duration": 1.0}]}""")
+	var player: Node = _make_player()
+	var cam: Camera3D = _camera()
+	cam.global_position = Vector3(10, 5, 0)
+	var hanuman: Node3D = _node3d(Vector3(0, 3, 0))
+	assert_int(player.call("play", _fixture_id("actor_cam"), _actors(hanuman), cam) as int).is_equal(OK)
+	player.call("tick", 0.5)
+	assert_float(hanuman.global_position.x).is_equal_approx(2.0, EPS)
+	assert_float(cam.global_position.distance_to(Vector3(10, 5, 0))).is_less(EPS)
+	player.call("tick", 0.5)
+	assert_float(hanuman.global_position.x).is_equal_approx(4.0, EPS)
+	assert_float(cam.global_position.distance_to(Vector3(10, 5, 0))).is_less(EPS)
+
+
+func test_m31_instant_camera_move_then_wait_keeps_target() -> void:
+	_write_fixture("instant_cam", """{"steps": [
+	  {"type": "camera_move", "to": [3, 2, -4], "duration": 0.0},
+	  {"type": "wait", "duration": 0.5}
+	]}""")
+	var player: Node = _make_player()
+	var cam: Camera3D = _camera()
+	assert_int(player.call("play", _fixture_id("instant_cam"), {}, cam) as int).is_equal(OK)
+	assert_float(cam.global_position.distance_to(Vector3(3, 2, -4))).is_less(EPS)
+	player.call("tick", 0.25)
+	assert_float(cam.global_position.distance_to(Vector3(3, 2, -4))).is_less(EPS)
+	player.call("tick", 0.25)
+	assert_bool(player.call("is_playing") as bool).is_false()
+	assert_float(cam.global_position.distance_to(Vector3(3, 2, -4))).is_less(EPS)
+
+
+# --- colour tokens (fade step) ---------------------------------------------------------------------
+
+func test_m31_color_tokens_match_palette() -> void:
+	var player: Node = _make_player()
+	var expected: Dictionary = {
+		&"SAFFRON": Palette.SAFFRON,
+		&"SINDOOR": Palette.SINDOOR,
+		&"GOLD": Palette.GOLD,
+		&"HANUMAN_FUR": Palette.HANUMAN_FUR,
+		&"DEEP_OCEAN": Palette.DEEP_OCEAN,
+		&"NIGHT_INDIGO": Palette.NIGHT_INDIGO,
+		&"MOON": Palette.MOON,
+		&"GROVE_GREEN": Palette.GROVE_GREEN,
+		&"ASHOKA_RED": Palette.ASHOKA_RED,
+		&"STONE": Palette.STONE,
+		&"FIRE_CORE": Palette.FIRE_CORE,
+		&"FIRE_EDGE": Palette.FIRE_EDGE,
+		&"UI_DARK": Palette.UI_DARK,
+		&"BARK": Palette.BARK,
+		&"LEAF_DARK": Palette.LEAF_DARK,
+		&"SKY_DUSK": Palette.SKY_DUSK,
+	}
+	for token: StringName in expected.keys():
+		var color: Color = player.call("_color_for", token) as Color
+		assert_bool(color.is_equal_approx(expected[token] as Color)).is_true()
 
 
 func test_m31_stop_cancels_without_finished() -> void:
