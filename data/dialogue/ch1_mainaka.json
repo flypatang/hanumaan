@@ -1,0 +1,9 @@
+{
+  "id": "ch1_mainaka",
+  "start": "n1",
+  "nodes": {
+    "n1": { "speaker": "mainaka", "text_key": "DLG_CH1_MAI_001", "next": "n2" },
+    "n2": { "speaker": "mainaka", "text_key": "DLG_CH1_MAI_002", "next": "n3" },
+    "n3": { "speaker": "hanuman", "text_key": "DLG_CH1_MAI_003", "next": null, "set_flags": {"mainaka_honoured": true} }
+  }
+}

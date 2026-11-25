@@ -1,0 +1,9 @@
+{
+  "id": "pro_leap",
+  "start": "n1",
+  "nodes": {
+    "n1": { "speaker": "hanuman",  "text_key": "DLG_PRO_LEAP_001", "next": "n2" },
+    "n2": { "shloka": "sk_leap_vow", "next": "n3" },
+    "n3": { "speaker": "narrator", "text_key": "DLG_PRO_LEAP_002", "next": null }
+  }
+}

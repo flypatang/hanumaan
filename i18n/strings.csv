@@ -1,0 +1,32 @@
+keys,en,hi
+SPK_NARRATOR,Narrator,सूत्रधार
+SPK_HANUMAN,Hanuman,हनुमान
+SPK_JAMBAVAN,Jambavan,जाम्बवान
+SPK_ANGADA,Angada,अंगद
+SPK_MAINAKA,Mainaka,मैनाक
+SPK_SURASA,Surasa,सुरसा
+DLG_PRO_JAM_001,"On the southern shore, the vanara search party stares at the endless ocean. Beyond it lies Lanka — and somewhere within it, Sita.","दक्षिणी तट पर वानर-दल अनंत सागर को निहार रहा है। उसके पार लंका है — और कहीं उसके भीतर, सीता।"
+DLG_PRO_JAM_002,"A hundred yojanas of sea. Who among us can cross it? If we return without news of Sita, all our effort will have been for nothing.","सौ योजन का समुद्र! हम में से कौन इसे पार कर सकता है? यदि सीता का समाचार लिए बिना लौटे, तो हमारा सारा परिश्रम व्यर्थ होगा।"
+DLG_PRO_JAM_003,"Hanuman, why do you sit apart in silence? You, the son of Anjana and the Wind himself, are equal in strength to Garuda.","हनुमान, तुम चुपचाप एक ओर क्यों बैठे हो? तुम अंजना और स्वयं पवनदेव के पुत्र हो, बल में गरुड़ के समान।"
+DLG_PRO_JAM_004,"As a child, you saw the rising sun and leapt into the sky to seize it, thinking it a ripe fruit. Indra's thunderbolt struck your jaw — and so you were named Hanuman.","बचपन में तुमने उगते सूर्य को पका फल समझकर पकड़ने के लिए आकाश में छलाँग लगाई थी। इन्द्र के वज्र ने तुम्हारी ठोड़ी पर प्रहार किया — इसी से तुम्हारा नाम हनुमान पड़ा।"
+DLG_PRO_JAM_005,"The gods blessed you then: no weapon can slay you, and your strength knows no bound. Only the sages' word made you forget it — until someone reminds you.","तब देवताओं ने तुम्हें वर दिए: कोई अस्त्र तुम्हारा वध नहीं कर सकता, और तुम्हारे बल की कोई सीमा नहीं। केवल ऋषियों के वचन से तुम उसे भूल गए — जब तक कोई तुम्हें स्मरण न कराए।"
+DLG_PRO_JAM_006,"So I remind you now. Rise, son of the Wind. Grow as you once did, and leap across the sea!","तो आज मैं तुम्हें स्मरण कराता हूँ। उठो, पवनपुत्र! जैसे पहले बढ़ते थे, वैसे ही बढ़ो, और समुद्र को लाँघ जाओ!"
+DLG_PRO_JAM_007,"(Hanuman feels a long-forgotten strength stir within him.)","(हनुमान अपने भीतर लंबे समय से भूला हुआ बल जागता अनुभव करते हैं।)"
+CH_PRO_JAM_A,"""This strength is Rama's. I will cross the sea in his service.""","""यह बल श्रीराम का है। मैं उनकी सेवा में समुद्र पार करूँगा।"""
+CH_PRO_JAM_B,"""Am I truly capable of this?""","""क्या मैं सचमुच यह कर सकता हूँ?"""
+DLG_PRO_JAM_007B,"Doubt is the only ocean you cannot cross by leaping. Remember whose work this is.","संदेह ही वह सागर है जिसे छलाँग से पार नहीं किया जा सकता। स्मरण करो, यह किसका कार्य है।"
+DLG_PRO_JAM_008,"Elders, watch me. I will climb Mahendra mountain and leap from its peak. I will find Sita — or I will not return.","हे वृद्धजनों, देखिए। मैं महेन्द्र पर्वत पर चढ़कर उसके शिखर से छलाँग लगाऊँगा। मैं सीता को खोजूँगा — अन्यथा लौटूँगा नहीं।"
+DLG_PRO_JAM_009,"Grow is unlocked. Hold the Grow button to become vast — but greatness spends Smarana.","'बढ़ना' खुल गया है। विशाल होने के लिए 'बढ़ना' बटन दबाए रखें — पर विशालता स्मरण (Smarana) खर्च करती है।"
+DLG_PRO_LEAP_001,"From the peak of Mahendra, Hanuman fixes his gaze to the south and joins his palms to the Wind, to the gods, and to Rama.","महेन्द्र के शिखर से हनुमान दक्षिण की ओर दृष्टि जमाते हैं, और पवनदेव, देवताओं तथा श्रीराम को हाथ जोड़कर प्रणाम करते हैं।"
+DLG_PRO_LEAP_002,"The mountain trembles as he springs into the sky.","जैसे ही वे आकाश में उछलते हैं, पर्वत काँप उठता है।"
+DLG_CH1_MAI_001,"A golden mountain rises from the waves. ""Rest upon my peaks, son of the Wind. The Ocean himself asks me to honour you — for Rama's ancestors gave the Ocean his greatness.""","लहरों से एक स्वर्णिम पर्वत उभरता है। ""पवनपुत्र, मेरे शिखरों पर विश्राम करो। स्वयं सागर ने मुझसे तुम्हारा सत्कार करने को कहा है — क्योंकि श्रीराम के पूर्वजों ने सागर को महानता दी थी।"""
+DLG_CH1_MAI_002,"""Your father, the Wind, once saved me from Indra's wrath. Let me repay that debt.""","""तुम्हारे पिता पवनदेव ने एक बार मुझे इन्द्र के क्रोध से बचाया था। मुझे वह ऋण चुकाने दो।"""
+DLG_CH1_MAI_003,"""Your welcome is honour enough. I have promised not to pause until my task is done.""","""आपका स्वागत ही मेरे लिए पर्याप्त सम्मान है। मैंने प्रण किया है कि कार्य पूरा होने तक रुकूँगा नहीं।"""
+DLG_CH1_SUR_001,"""The gods have granted me that whoever comes my way must enter my mouth. You shall be my meal.""","""देवताओं ने मुझे वर दिया है कि जो भी मेरे मार्ग में आए, उसे मेरे मुख में प्रवेश करना होगा। तुम मेरा भोजन बनोगे।"""
+DLG_CH1_SUR_002,"""I go on Rama's errand, to find his wife Sita. Let me pass, and I will return to you once my task is done.""","""मैं श्रीराम के कार्य से, उनकी पत्नी सीता को खोजने जा रहा हूँ। मुझे जाने दो, कार्य पूरा होने पर मैं तुम्हारे पास लौट आऊँगा।"""
+DLG_CH1_SUR_003,"""None may pass me. Enter my mouth!""","""मुझे कोई पार नहीं कर सकता। मेरे मुख में प्रवेश करो!"""
+DLG_CH1_SUR_010,"""I have entered your mouth, as the gods decreed — and come out again. Mother, I bow to you.""","""देवताओं के वचन के अनुसार मैंने तुम्हारे मुख में प्रवेश कर लिया — और बाहर भी आ गया। माता, आपको प्रणाम।"""
+DLG_CH1_SUR_011,"""Go, wise one, and may you succeed. Bring Sita and Rama together again.""","""जाओ, बुद्धिमान, तुम्हें सफलता मिले। सीता और राम को फिर से मिलाओ।"""
+DLG_CH1_SIM_001,"Something seizes Hanuman's shadow on the water. He is dragged downward as if by an unseen hand.","जल पर पड़ी हनुमान की छाया को कोई पकड़ लेता है। वे ऐसे नीचे खिंचते हैं मानो किसी अदृश्य हाथ ने पकड़ा हो।"
+DLG_CH1_SIM_002,"""This must be the shadow-seizer Sugriva spoke of — Simhika!""","""यह वही छाया-ग्राहिणी है जिसके बारे में सुग्रीव ने बताया था — सिंहिका!"""
+DLG_CH1_SIM_010,"Simhika's form dissolves into the sea. Ahead, at the edge of sight, golden Lanka glows above Trikuta mountain.","सिंहिका का रूप समुद्र में विलीन हो जाता है। आगे, दृष्टि की सीमा पर, त्रिकूट पर्वत के ऊपर स्वर्णिम लंका दमक रही है।"

@@ -1,0 +1,9 @@
+{
+  "id": "ch1_simhika",
+  "start": "n1",
+  "nodes": {
+    "n1": { "speaker": "narrator", "text_key": "DLG_CH1_SIM_001", "next": "n2" },
+    "n2": { "speaker": "hanuman",  "text_key": "DLG_CH1_SIM_002", "next": null },
+    "w1": { "speaker": "narrator", "text_key": "DLG_CH1_SIM_010", "next": null, "set_flags": {"ch1_done": true} }
+  }
+}

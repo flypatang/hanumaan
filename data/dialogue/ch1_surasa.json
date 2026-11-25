@@ -1,0 +1,11 @@
+{
+  "id": "ch1_surasa",
+  "start": "n1",
+  "nodes": {
+    "n1": { "speaker": "surasa",   "text_key": "DLG_CH1_SUR_001", "next": "n2" },
+    "n2": { "speaker": "hanuman",  "text_key": "DLG_CH1_SUR_002", "next": "n3" },
+    "n3": { "speaker": "surasa",   "text_key": "DLG_CH1_SUR_003", "next": null },
+    "w1": { "speaker": "hanuman",  "text_key": "DLG_CH1_SUR_010", "next": "w2" },
+    "w2": { "speaker": "surasa",   "text_key": "DLG_CH1_SUR_011", "next": null, "set_flags": {"surasa_blessing": true, "shrink_unlocked": true} }
+  }
+}
