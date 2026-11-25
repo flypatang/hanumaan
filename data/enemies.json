@@ -1,0 +1,5 @@
+{
+  "guard_spear": {"hp": 40, "speed": 3.0, "damage": 10, "attack_range": 2.2, "windup": 0.5, "cooldown": 1.5, "vision_range": 12.0, "vision_angle_deg": 90.0, "model_variant": "spear"},
+  "guard_archer": {"hp": 30, "speed": 2.6, "damage": 8, "attack_range": 10.0, "windup": 0.6, "cooldown": 2.5, "vision_range": 16.0, "vision_angle_deg": 100.0, "model_variant": "archer"},
+  "kinkara": {"hp": 90, "speed": 2.0, "damage": 25, "attack_range": 2.8, "windup": 0.8, "cooldown": 3.0, "vision_range": 10.0, "vision_angle_deg": 120.0, "model_variant": "brute"}
+}
