@@ -201,6 +201,9 @@ and gold trim lines on architecture. It should feel like painted stone and bronz
 | `FIRE_CORE` | `#FFD166` | Fire |
 | `FIRE_EDGE` | `#EF476F` | Fire |
 | `UI_DARK` | `#14110F` | UI background |
+| `BARK` | `#6B4A2B` | Tree trunks, wood |
+| `LEAF_DARK` | `#1F5A3A` | The shadow side of foliage |
+| `SKY_DUSK` | `#2A2A44` | Dusk sky and preview backgrounds |
 
 ### 6.2 Character construction (meshes built from primitives)
 - **Hanuman** (about 1.8 m at NORMAL size): a capsule torso with a broad chest, an elongated sphere head with a
