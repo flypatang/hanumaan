@@ -114,6 +114,11 @@ on-rails leap. Walls and roofs between the camera and Hanuman fade to 25% opacit
 | Rotate camera | Z / C | Right stick flick |
 |---|---|---|
 
+**InputMap action names (binding; registered by M04 `InputSetup`):** `move_left`, `move_right`, `move_up`, `move_down`,
+`attack_light`, `attack_heavy`, `leap`, `grow`, `shrink`, `interact`, `smarana_surge`, `pause`,
+`rotate_camera_left`, `rotate_camera_right`. (The Smarana surge on a gamepad is bound to RT; the consumer also requires
+LT to be held, by checking `Input.get_joy_axis`.)
+
 ### 4.2 Stats and resources
 - **Vitality** (HP): 100 at the start, and +25 per **Vow** upgrade. Restored at Shrines and by Mainaka.
 - **Smarana** (devotion meter, 0–100): filled by landing hits (+2), protecting the innocent (+10), dialogue choices
@@ -375,7 +380,7 @@ signal `language_changed`. It saves the choice in user settings and picks the ma
 **M16c `narrative/shlokas.gd`** loads `data/shlokas.json` (§7A) with `get_shloka(id) -> Dictionary` and `all_verified() -> bool`.
 *Tests:* the schema is valid, every entry has both translations, and `all_verified()` is false while any `verified_by` is empty.
 
-**M17 `narrative/objectives.gd`** with `add(id, text)`, `complete(id)`, `is_done(id)`, and it emits through the EventBus.
+**M17 `narrative/objectives.gd`** (autoload `Objectives`) with `add(id, text)`, `complete(id)`, `is_done(id)`, and it emits through the EventBus.
 *Tests:* adding, completing and checking state behave as expected, and adding the same objective twice does nothing.
 
 ### Wave 2 — The player and enemies (depend on Waves 0–1)
