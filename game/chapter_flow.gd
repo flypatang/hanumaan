@@ -1,6 +1,6 @@
 class_name ChapterFlow
 extends Node
-## The story sequence (DESIGN §3, §9 M40), driven by data/chapters.json. For every chapter the file lists its levels,
+## The story sequence (DESIGN §3, §9 M40), driven by the CHAPTERS_JSON table. For every chapter the file lists its levels,
 ## the cutscenes to play on entry (`entry_cutscenes`), rule cutscenes (`on`), exit cutscenes (`exit_cutscenes`), the
 ## objectives (OBJ_* translation keys) and the completion condition (`complete`):
 ##   {"type": "flag", "key": k}                    a GameState flag is set
@@ -24,7 +24,153 @@ signal encounter_requested(chapter_number: int)
 signal objectives_changed
 signal all_done
 
-const DATA_PATH: String = "res://data/chapters.json"
+## Chapter table (owned by this module; kept inline so no data file outside M40 is needed).
+const CHAPTERS_JSON: String = """{
+  "chapters": [
+    {
+      "id": "prologue",
+      "entry_cutscenes": ["opening_title"],
+      "levels": [{ "id": "mahendra" }],
+      "objectives": [
+        { "id": "talk_jambavan", "key": "OBJ_PRO_TALK", "done": "dialogue:pro_jambavan" },
+        { "id": "training", "key": "OBJ_PRO_TRAIN", "done": "objective:training" },
+        { "id": "reach_peak", "key": "OBJ_PRO_LEAP", "done": "dialogue:pro_leap" }
+      ],
+      "complete": { "type": "event", "name": "dialogue:pro_leap" }
+    },
+    {
+      "id": "ch1",
+      "unlocks": ["grow"],
+      "levels": [{ "id": "ocean_leap" }],
+      "objectives": [
+        { "id": "mainaka", "key": "OBJ_CH1_MAINAKA", "done": "dialogue:ch1_mainaka" },
+        { "id": "surasa", "key": "OBJ_CH1_SURASA", "done": "flag:surasa_blessing" },
+        { "id": "simhika", "key": "OBJ_CH1_SIMHIKA", "done": "flag:ch1_done" }
+      ],
+      "complete": { "type": "flag", "key": "ch1_done" }
+    },
+    {
+      "id": "ch2",
+      "unlocks": ["grow", "shrink"],
+      "levels": [
+        {
+          "id": "lanka_gate",
+          "advance": { "type": "level_exit", "to": "lanka_streets", "requires": { "flag": "gate_open" } }
+        },
+        { "id": "lanka_streets" }
+      ],
+      "on": [
+        { "event": "boss_yielded:boss_lankini", "cutscene": "ch2_lankini_yields" }
+      ],
+      "objectives": [
+        { "id": "lankini", "key": "OBJ_CH2_LANKINI", "done": "boss_yielded:boss_lankini" },
+        { "id": "search", "key": "OBJ_CH2_SEARCH", "done": "searches:3" },
+        { "id": "vatika", "key": "OBJ_CH2_VATIKA", "done": "level:ashoka_vatika" }
+      ],
+      "complete": { "type": "level_exit", "to": "ashoka_vatika", "requires": { "searches": 3 } }
+    },
+    {
+      "id": "ch3",
+      "unlocks": ["grow", "shrink"],
+      "levels": [{ "id": "ashoka_vatika" }],
+      "objectives": [
+        { "id": "sita", "key": "OBJ_CH3_SITA", "done": "dialogue:ch3_grove" }
+      ],
+      "complete": { "type": "flag", "key": "ch3_done" }
+    },
+    {
+      "id": "ch4",
+      "unlocks": ["grow", "shrink", "surge"],
+      "entry_cutscenes": ["ch4_battle_cry"],
+      "waves": 4,
+      "levels": [
+        {
+          "id": "ashoka_vatika",
+          "opts": { "size": "normal", "skip_triggers": ["t_grove_story"], "encounter_chapter": 4 }
+        }
+      ],
+      "objectives": [
+        { "id": "grove_waves", "key": "OBJ_CH4_WAVES", "done": "waves_completed" }
+      ],
+      "complete": { "type": "waves" },
+      "exit_cutscenes": ["ch4_brahmastra"]
+    },
+    {
+      "id": "ch5",
+      "unlocks": ["grow", "shrink", "surge"],
+      "levels": [
+        { "id": "ravana_court", "advance": { "type": "event", "name": "dialogue:ch5_court" } },
+        { "id": "lanka_rooftops" }
+      ],
+      "objectives": [
+        { "id": "court", "key": "OBJ_CH5_COURT", "done": "dialogue:ch5_court" },
+        { "id": "burn", "key": "OBJ_CH5_BURN", "done": "fire_ignited" },
+        { "id": "ocean", "key": "OBJ_CH5_OCEAN", "done": "chapter_complete:ch5" }
+      ],
+      "complete": { "type": "event", "name": "chapter_complete:ch5" },
+      "exit_cutscenes": ["ch5_return"]
+    },
+    {
+      "id": "epilogue",
+      "entry_cutscenes": ["epilogue"],
+      "levels": [
+        {
+          "id": "mahendra",
+          "opts": { "size": "normal", "skip_triggers": ["t_jambavan", "t_training_done", "t_leap"] }
+        }
+      ],
+      "complete": { "type": "cutscenes_done" }
+    },
+    {
+      "id": "teaser_setu",
+      "entry_cutscenes": ["teaser_setu"],
+      "levels": [
+        {
+          "id": "mahendra",
+          "opts": {
+            "size": "normal",
+            "skip_triggers": ["t_jambavan", "t_training_done", "t_leap"],
+            "extra_npcs": [{ "id": "rama", "pos": [17.0, 13.0], "facing": 270 }]
+          }
+        }
+      ],
+      "complete": { "type": "cutscenes_done" }
+    }
+  ]
+}"""
+
+## Fallback EN/HI texts for the keys this module uses (tr() wins when the translation table has the key).
+const TEXTS: Dictionary = {
+	"OBJ_PRO_TALK": ["Speak with Jambavan", "जाम्बवान से बात करें"],
+	"OBJ_PRO_TRAIN": ["Strike the training rocks", "प्रशिक्षण-शिलाओं पर प्रहार करें"],
+	"OBJ_PRO_LEAP": ["Climb to the peak and leap", "शिखर पर चढ़कर छलाँग लगाएँ"],
+	"OBJ_CH1_MAINAKA": ["Greet Mainaka and fly on", "मैनाक का अभिवादन करें और आगे उड़ें"],
+	"OBJ_CH1_SURASA": ["Pass Surasa: grow, then shrink", "सुरसा को पार करें: बढ़ें, फिर सिकुड़ें"],
+	"OBJ_CH1_SIMHIKA": ["Defeat Simhika", "सिंहिका को परास्त करें"],
+	"OBJ_CH2_LANKINI": ["Face Lankini at the gate", "द्वार पर लंकिनी का सामना करें"],
+	"OBJ_CH2_SEARCH": ["Search Lanka: the mansions, the palace, the Pushpaka courtyard", "लंका में खोजें: भवन, राजमहल और पुष्पक-प्रांगण"],
+	"OBJ_CH2_VATIKA": ["Find the Ashoka Vatika", "अशोक वाटिका खोजें"],
+	"OBJ_CH3_SITA": ["Speak with Sita", "सीता से बात करें"],
+	"OBJ_CH4_WAVES": ["Break the grove's defenders", "वाटिका के रक्षकों को परास्त करें"],
+	"OBJ_CH5_COURT": ["Speak before Ravana", "रावण के सम्मुख वचन कहें"],
+	"OBJ_CH5_BURN": ["Spread fire to the rakshasa armouries", "राक्षसों के शस्त्रागारों में अग्नि फैलाएँ"],
+	"OBJ_CH5_OCEAN": ["Reach the ocean and cool your tail", "समुद्र तक पहुँचकर पूँछ की अग्नि शांत करें"],
+	"PUZ_SURASA_GROW": ["Grow! (E)", "बढ़ें! (E)"],
+	"PUZ_SURASA_SHRINK": ["Shrink now! (Q)", "अब सिकुड़ें! (Q)"],
+	"UI_CREDITS_1": ["Based on the Sundara Kanda of the Valmiki Ramayana", "वाल्मीकि रामायण के सुन्दरकाण्ड पर आधारित"],
+	"UI_CREDITS_2": ["Thank you for playing", "खेलने के लिए धन्यवाद"],
+	"UI_CREDITS_3": ["Press any key", "कोई भी कुंजी दबाएँ"],
+}
+
+
+## Translated text for `key`: the translation table first, then the built-in EN/HI fallback.
+static func text(key: String) -> String:
+	var translated: String = TranslationServer.translate(key)
+	if translated != key or not TEXTS.has(key):
+		return translated
+	var pair: Array = TEXTS[key] as Array
+	return str(pair[1] if TranslationServer.get_locale().begins_with("hi") else pair[0])
+
 const DEFAULT_SAVE_SLOT: int = 0
 const SHRINK_UNLOCK_FLAG: StringName = &"shrink_unlocked"
 const MAINAKA_FILE: String = "ch1_mainaka"
@@ -149,16 +295,21 @@ var _heavy_hold: float = 0.0
 
 
 func _init() -> void:
-	load_data(DATA_PATH)
+	load_text(CHAPTERS_JSON)
 
 
 # ---------------------------------------------------------------- data
 
-## Reads the chapter list. Returns OK, ERR_FILE_NOT_FOUND or ERR_PARSE_ERROR.
+## Reads the chapter list from a JSON file. Returns OK, ERR_FILE_NOT_FOUND or ERR_PARSE_ERROR.
 func load_data(path: String) -> Error:
 	if not FileAccess.file_exists(path):
 		return ERR_FILE_NOT_FOUND
-	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+	return load_text(FileAccess.get_file_as_string(path))
+
+
+## Reads the chapter list from JSON text. Returns OK or ERR_PARSE_ERROR.
+func load_text(json_text: String) -> Error:
+	var parsed: Variant = JSON.parse_string(json_text)
 	if not (parsed is Dictionary):
 		return ERR_PARSE_ERROR
 	var raw: Variant = (parsed as Dictionary).get("chapters", null)
@@ -348,7 +499,7 @@ func _build_objectives() -> void:
 	var objectives: Node = _autoload("Objectives")
 	if objectives != null:
 		for obj: Dictionary in _objectives:
-			objectives.call("add", StringName(str(obj["id"])), tr(str(obj["key"])))
+			objectives.call("add", StringName(str(obj["id"])), ChapterFlow.text(str(obj["key"])))
 
 
 func _reset_objectives_autoload() -> void:
@@ -363,7 +514,7 @@ func _announce_objectives() -> void:
 	if bus == null:
 		return
 	for obj: Dictionary in _objectives:
-		bus.emit_signal("objective_updated", StringName(str(obj["id"])), tr(str(obj["key"])), obj["complete"] as bool)
+		bus.emit_signal("objective_updated", StringName(str(obj["id"])), ChapterFlow.text(str(obj["key"])), obj["complete"] as bool)
 
 
 func _complete_objective(obj: Dictionary) -> void:
@@ -712,17 +863,17 @@ func _on_mouth_changed(level: int) -> void:
 	if _rt == null:
 		return
 	if level < SurasaPuzzle.GROWS_NEEDED:
-		_rt.show_prompt(tr("PUZ_SURASA_GROW"))
+		_rt.show_prompt(ChapterFlow.text("PUZ_SURASA_GROW"))
 
 
 func _on_window_opened() -> void:
 	if _rt != null:
-		_rt.show_prompt(tr("PUZ_SURASA_SHRINK"))
+		_rt.show_prompt(ChapterFlow.text("PUZ_SURASA_SHRINK"))
 
 
 func _on_window_failed() -> void:
 	if _rt != null:
-		_rt.show_prompt(tr("PUZ_SURASA_GROW"))
+		_rt.show_prompt(ChapterFlow.text("PUZ_SURASA_GROW"))
 
 
 func _on_puzzle_solved() -> void:

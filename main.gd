@@ -216,7 +216,7 @@ func _show_credits() -> void:
 		font = locale.call("font_for", &"ui") as Font
 	for key: String in ["UI_MENU_TITLE", "UI_CREDITS_1", "UI_CREDITS_2", "UI_CREDITS_3"]:
 		var line: Label = Label.new()
-		line.text = tr(key)
+		line.text = ChapterFlow.text(key)
 		line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		line.add_theme_font_size_override("font_size", 40 if key == "UI_MENU_TITLE" else 26)
 		line.add_theme_color_override("font_color", Palette.GOLD if key == "UI_MENU_TITLE" else Palette.MOON)

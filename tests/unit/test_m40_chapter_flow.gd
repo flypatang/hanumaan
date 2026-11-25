@@ -1,5 +1,5 @@
 extends GdUnitTestSuite
-## M40 acceptance tests: game/chapter_flow.gd and data/chapters.json (DESIGN §9 M40). The flow advances on each
+## M40 acceptance tests: game/chapter_flow.gd and its inline chapter table (DESIGN §9 M40). The flow advances on each
 ## completion condition (flag, level exit, waves, boss yielded, searches, event, cutscenes done), plays the entry,
 ## rule and exit cutscenes in order, and Continue resumes at the last chapter start.
 ## It runs against private GameState and EventBus instances and its own save slot.
@@ -76,12 +76,9 @@ func test_chapters_are_in_story_order() -> void:
 func test_data_references_only_existing_files_and_strings() -> void:
 	var flow: ChapterFlow = _make_flow()
 	var keys: Dictionary = {}
-	var file: FileAccess = FileAccess.open("res://i18n/strings.csv", FileAccess.READ)
-	file.get_csv_line()
-	while not file.eof_reached():
-		var row: PackedStringArray = file.get_csv_line()
-		if row.size() >= 3:
-			keys[row[0]] = row[1] != "" and row[2] != ""
+	for k: Variant in ChapterFlow.TEXTS.keys():
+		var pair: Array = ChapterFlow.TEXTS[k] as Array
+		keys[str(k)] = str(pair[0]) != "" and str(pair[1]) != ""
 	for i: int in range(flow.chapter_count()):
 		var chapter: Dictionary = flow.chapter_data(i)
 		for level: Variant in chapter["levels"] as Array:
