@@ -29,66 +29,120 @@ static func wall(size: Vector3, rng_seed: int, opts: Dictionary = {}) -> Node3D:
 	return _assemble(MeshKit.merge(parts), colliders, opts)
 
 
-## A house of stacked, shrinking tiers under a roof. Gold cornices sit on each tier's top edge.
+## A house with a pillared veranda, overhanging eaves per tier and gold trim lines.
 static func tier_house(size: Vector3, rng_seed: int, opts: Dictionary = {}) -> Node3D:
 	var dims: Vector3 = _positive(size)
 	var rng: RandomNumberGenerator = _rng(rng_seed)
 	var parts: Array[Dictionary] = []
-	var base_h: float = dims.y * 0.6
-	var base_top: float = -dims.y * 0.5 + base_h
-	parts.append(_part(MeshKit.box(Vector3(dims.x, base_h, dims.z), Palette.STONE), Vector3(0.0, -dims.y * 0.5 + base_h * 0.5, 0.0)))
+	var bottom: float = -dims.y * 0.5
+	var plinth_h: float = dims.y * 0.06
+	parts.append(_part(MeshKit.box(Vector3(dims.x, plinth_h, dims.z), Palette.STONE), Vector3(0.0, bottom + plinth_h * 0.5, 0.0)))
+	parts.append(_part(MeshKit.box(Vector3(dims.x + 0.02, 0.05, dims.z + 0.02), Palette.GOLD), Vector3(0.0, bottom + plinth_h, 0.0)))
+	var veranda_h: float = dims.y * 0.34
+	var body_w: float = dims.x * 0.8
+	var body_d: float = dims.z * 0.8
+	var veranda_y: float = bottom + plinth_h
+	parts.append(_part(MeshKit.box(Vector3(body_w, veranda_h, body_d), Palette.STONE), Vector3(0.0, veranda_y + veranda_h * 0.5, -dims.z * 0.1)))
+	var pillar_r: float = minf(dims.x, dims.z) * 0.04
+	var count: int = 4
+	var front_z: float = dims.z * 0.5 - pillar_r * 2.0
+	for i: int in range(count):
+		var px: float = -body_w * 0.5 + body_w * float(i) / float(count - 1)
+		parts.append(_part(MeshKit.cylinder(pillar_r, pillar_r * 1.1, veranda_h, 6, Palette.STONE), Vector3(px, veranda_y + veranda_h * 0.5, front_z)))
+		parts.append(_part(MeshKit.box(Vector3(pillar_r * 3.0, 0.06, pillar_r * 3.0), Palette.GOLD), Vector3(px, veranda_y + veranda_h, front_z)))
 	var tiers: int = rng.randi_range(2, 3)
-	var roof_h: float = dims.y - base_h
-	var tier_h: float = roof_h / float(tiers)
-	var shrink: float = rng.randf_range(0.12, 0.18)
+	var roof_base: float = veranda_y + veranda_h
+	var tier_h: float = (bottom + dims.y - roof_base) / float(tiers)
+	var shrink: float = rng.randf_range(0.14, 0.2)
 	for i: int in range(tiers):
-		var width: float = dims.x * (1.0 - shrink * float(i + 1))
-		var depth: float = dims.z * (1.0 - shrink * float(i + 1))
-		var tier_bottom: float = base_top + tier_h * float(i)
-		var tier_top: float = tier_bottom + tier_h
-		parts.append(_part(MeshKit.box(Vector3(width, tier_h, depth), Palette.STONE), Vector3(0.0, tier_bottom + tier_h * 0.5, 0.0)))
-		parts.append(_part(MeshKit.box(Vector3(width + 0.12, 0.08, depth + 0.12), Palette.GOLD), Vector3(0.0, tier_top, 0.0)))
+		var width: float = dims.x * (1.0 - shrink * float(i))
+		var depth: float = dims.z * (1.0 - shrink * float(i))
+		var y0: float = roof_base + tier_h * float(i)
+		var eave_h: float = tier_h * 0.22
+		parts.append(_part(MeshKit.box(Vector3(width, eave_h, depth), Palette.SINDOOR), Vector3(0.0, y0 + eave_h * 0.5, 0.0)))
+		parts.append(_part(MeshKit.box(Vector3(width + 0.02, 0.05, depth + 0.02), Palette.GOLD), Vector3(0.0, y0 + eave_h, 0.0)))
+		var wall_h: float = tier_h - eave_h
+		parts.append(_part(MeshKit.box(Vector3(width * 0.8, wall_h, depth * 0.8), Palette.STONE), Vector3(0.0, y0 + eave_h + wall_h * 0.5, 0.0)))
+		parts.append(_part(MeshKit.box(Vector3(width * 0.8 + 0.04, 0.04, depth * 0.8 + 0.04), Palette.GOLD), Vector3(0.0, y0 + eave_h + wall_h * 0.5, 0.0)))
 	var colliders: Array[Dictionary] = [_collider(dims, Vector3.ZERO)]
 	return _assemble(MeshKit.merge(parts), colliders, opts)
 
 
-## A round stone column with a square base and a shaft turned by a small seeded yaw.
+## A column with a stepped base, a fluted shaft, and a capital with a gold band and abacus.
 static func pillar(size: Vector3, rng_seed: int, opts: Dictionary = {}) -> Node3D:
 	var dims: Vector3 = _positive(size)
 	var rng: RandomNumberGenerator = _rng(rng_seed)
 	var parts: Array[Dictionary] = []
-	var radius: float = minf(dims.x, dims.z) * 0.5
-	var base_h: float = dims.y * 0.05
-	var shaft_h: float = dims.y - base_h * 2.0
-	var yaw: float = rng.randf_range(0.0, TAU / float(_SIDES))
-	parts.append(_part(MeshKit.box(Vector3(radius * 2.4, base_h, radius * 2.4), Palette.STONE), Vector3(0.0, -dims.y * 0.5 + base_h * 0.5, 0.0)))
-	parts.append(_part(MeshKit.cylinder(radius, radius, shaft_h, _SIDES, Palette.STONE), Vector3.ZERO, Vector3(0.0, yaw, 0.0)))
-	parts.append(_part(MeshKit.box(Vector3(radius * 2.4, base_h, radius * 2.4), Palette.STONE), Vector3(0.0, dims.y * 0.5 - base_h * 0.5, 0.0)))
+	var radius: float = minf(dims.x, dims.z) * 0.4
+	var unit: float = dims.y * 0.05
+	var yaw: float = rng.randf_range(0.0, TAU / 12.0)
+	var bottom: float = -dims.y * 0.5
+	var w: float = minf(dims.x, dims.z)
+	parts.append(_part(MeshKit.box(Vector3(w, unit, w), Palette.STONE), Vector3(0.0, bottom + unit * 0.5, 0.0)))
+	parts.append(_part(MeshKit.cylinder(radius * 1.25, radius * 1.35, unit, 12, Palette.STONE), Vector3(0.0, bottom + unit * 1.5, 0.0), Vector3(0.0, yaw, 0.0)))
+	var shaft_h: float = dims.y - unit * 5.0
+	var shaft_y: float = bottom + unit * 2.0 + shaft_h * 0.5
+	parts.append(_part(MeshKit.cylinder(radius * 0.85, radius, shaft_h, 12, Palette.STONE), Vector3(0.0, shaft_y, 0.0), Vector3(0.0, yaw, 0.0)))
+	for i: int in range(4):
+		var a: float = float(i) * TAU / 4.0 + yaw
+		parts.append(_part(MeshKit.box(Vector3(radius * 0.18, shaft_h, radius * 0.18), Palette.STONE), Vector3(cos(a) * radius * 0.95, shaft_y, sin(a) * radius * 0.95), Vector3(0.0, -a, 0.0)))
+	var top: float = bottom + unit * 2.0 + shaft_h
+	parts.append(_part(MeshKit.cylinder(radius * 0.95, radius * 0.95, unit * 0.5, 12, Palette.GOLD), Vector3(0.0, top + unit * 0.25, 0.0), Vector3(0.0, yaw, 0.0)))
+	parts.append(_part(MeshKit.cylinder(radius * 1.5, radius * 0.95, unit * 1.5, 12, Palette.STONE), Vector3(0.0, top + unit * 1.25, 0.0), Vector3(0.0, yaw, 0.0)))
+	parts.append(_part(MeshKit.box(Vector3(w, unit * 1.0, w), Palette.STONE), Vector3(0.0, dims.y * 0.5 - unit * 0.5, 0.0)))
 	var colliders: Array[Dictionary] = [_collider(dims, Vector3.ZERO)]
 	return _assemble(MeshKit.merge(parts), colliders, opts)
 
 
-## A tiered temple tower (gopuram): shrinking stone tiers, a gold cornice on each, and a gold finial on top.
+## A tall tapering temple tower of 5-7 tiers. Each tier has a gold cornice and repeated sindoor niches;
+## the crown is a barrel vault with gold kalasha finials.
 static func gopuram(size: Vector3, rng_seed: int, opts: Dictionary = {}) -> Node3D:
 	var dims: Vector3 = _positive(size)
 	var rng: RandomNumberGenerator = _rng(rng_seed)
 	var parts: Array[Dictionary] = []
 	var colliders: Array[Dictionary] = []
-	var tiers: int = rng.randi_range(3, 5)
-	var finial_h: float = dims.y * 0.12
-	var tiers_h: float = dims.y - finial_h
+	var tiers: int = rng.randi_range(5, 7)
+	var top_scale: float = 0.38
+	var finial_h: float = dims.y * 0.07
+	var crown_r: float = dims.x * top_scale * 0.4
+	var tiers_h: float = dims.y - finial_h - crown_r
 	var tier_h: float = tiers_h / float(tiers)
 	var bottom: float = -dims.y * 0.5
 	for i: int in range(tiers):
-		var t: float = float(i) / float(maxi(1, tiers - 1))
-		var width: float = dims.x * (1.0 - 0.5 * t)
-		var depth: float = dims.z * (1.0 - 0.5 * t)
-		var centre_y: float = bottom + tier_h * (float(i) + 0.5)
-		parts.append(_part(MeshKit.box(Vector3(width, tier_h, depth), Palette.STONE), Vector3(0.0, centre_y, 0.0)))
-		parts.append(_part(MeshKit.box(Vector3(width + 0.14, 0.08, depth + 0.14), Palette.GOLD), Vector3(0.0, bottom + tier_h * float(i + 1), 0.0)))
-		colliders.append(_collider(Vector3(width, tier_h, depth), Vector3(0.0, centre_y, 0.0)))
-	var finial_base: float = bottom + tiers_h
-	parts.append(_part(MeshKit.cone(dims.x * 0.15, finial_h, 6, Palette.GOLD), Vector3(0.0, finial_base + finial_h * 0.5, 0.0)))
+		var t: float = float(i) / float(tiers)
+		var t_top: float = float(i + 1) / float(tiers)
+		var width: float = dims.x * (1.0 - (1.0 - top_scale) * t) * 0.94
+		var depth: float = dims.z * (1.0 - (1.0 - top_scale) * t) * 0.94
+		var w_top: float = dims.x * (1.0 - (1.0 - top_scale) * t_top) * 0.94
+		var d_top: float = dims.z * (1.0 - (1.0 - top_scale) * t_top) * 0.94
+		var y0: float = bottom + tier_h * float(i)
+		var cornice_h: float = tier_h * 0.14
+		var body_h: float = tier_h - cornice_h
+		var body_y: float = y0 + body_h * 0.5
+		var body_w: float = (width + w_top) * 0.5
+		var body_d: float = (depth + d_top) * 0.5
+		parts.append(_part(MeshKit.box(Vector3(body_w, body_h, body_d), Palette.STONE), Vector3(0.0, body_y, 0.0)))
+		colliders.append(_collider(Vector3(width, tier_h, depth), Vector3(0.0, y0 + tier_h * 0.5, 0.0)))
+		parts.append(_part(MeshKit.box(Vector3(width + 0.12, cornice_h, depth + 0.12), Palette.GOLD), Vector3(0.0, y0 + body_h + cornice_h * 0.5, 0.0)))
+		var niches: int = maxi(2, roundi(body_w / 0.9))
+		var niche_w: float = minf(0.3, body_w / float(niches) * 0.5)
+		var niche_h: float = body_h * 0.5
+		for n: int in range(niches):
+			var f: float = (float(n) + 0.5) / float(niches) - 0.5
+			parts.append(_part(MeshKit.box(Vector3(niche_w, niche_h, 0.05), Palette.SINDOOR), Vector3(f * body_w, body_y, body_d * 0.5 + 0.01)))
+			parts.append(_part(MeshKit.box(Vector3(niche_w, niche_h, 0.05), Palette.SINDOOR), Vector3(f * body_w, body_y, -body_d * 0.5 - 0.01)))
+			parts.append(_part(MeshKit.box(Vector3(0.05, niche_h, niche_w), Palette.SINDOOR), Vector3(body_w * 0.5 + 0.01, body_y, f * body_d)))
+			parts.append(_part(MeshKit.box(Vector3(0.05, niche_h, niche_w), Palette.SINDOOR), Vector3(-body_w * 0.5 - 0.01, body_y, f * body_d)))
+	var top_w: float = dims.x * top_scale * 0.94
+	var top_d: float = dims.z * top_scale * 0.94
+	var crown_base: float = bottom + tiers_h
+	var vault_r: float = minf(crown_r, top_w * 0.5)
+	parts.append(_part(MeshKit.cylinder(vault_r, vault_r, top_d, 8, Palette.STONE), Vector3(0.0, crown_base, 0.0), Vector3(PI * 0.5, 0.0, 0.0)))
+	parts.append(_part(MeshKit.cylinder(vault_r * 0.45, vault_r * 0.45, top_d + 0.1, 6, Palette.GOLD), Vector3(0.0, crown_base + vault_r * 0.85, 0.0), Vector3(PI * 0.5, 0.0, 0.0)))
+	var fin_y: float = crown_base + vault_r + finial_h * 0.5 - 0.02
+	for fz: float in [-top_d * 0.5 + 0.1, 0.0, top_d * 0.5 - 0.1]:
+		parts.append(_part(MeshKit.sphere(finial_h * 0.28, 4, 6, Palette.GOLD), Vector3(0.0, fin_y - finial_h * 0.15, fz)))
+		parts.append(_part(MeshKit.cone(finial_h * 0.2, finial_h * 0.55, 6, Palette.GOLD), Vector3(0.0, fin_y + finial_h * 0.22, fz)))
 	return _assemble(MeshKit.merge(parts), colliders, opts)
 
 
