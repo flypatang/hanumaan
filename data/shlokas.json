@@ -1,0 +1,70 @@
+{
+  "_note": "DESIGN §7A. Texts are drafted from memory and MUST be checked against valmiki.iitk.ac.in; fill verified_by/verified_on when checked. Release export refuses while any verified_by is empty.",
+  "shlokas": [
+    {
+      "id": "sk_opening",
+      "moment": "opening_title",
+      "ref": "Sundara Kanda 5.1.1",
+      "devanagari": "ततो रावणनीतायाः सीतायाः शत्रुकर्शनः ।\nइयेष पदमन्वेष्टुं चारणाचरिते पथि ॥",
+      "iast": "tato rāvaṇanītāyāḥ sītāyāḥ śatrukarśanaḥ |\niyeṣa padam anveṣṭuṃ cāraṇācarite pathi ||",
+      "translation": {
+        "en": "Then Hanuman, subduer of foes, resolved to seek the trail of Sita, carried away by Ravana, along the sky-path where the celestial Charanas roam.",
+        "hi": "तब शत्रुओं का दमन करने वाले हनुमान ने रावण द्वारा हरी गई सीता का पता लगाने के लिए चारणों से सेवित आकाश-मार्ग पर जाने का निश्चय किया।"
+      },
+      "verified_by": "",
+      "verified_on": ""
+    },
+    {
+      "id": "sk_leap_vow",
+      "moment": "prologue_leap",
+      "ref": "Sundara Kanda 5.1.39",
+      "devanagari": "यथा राघवनिर्मुक्तः शरः श्वसनविक्रमः ।\nगच्छेत्तद्वद्गमिष्यामि लङ्कां रावणपालिताम् ॥",
+      "iast": "yathā rāghavanirmuktaḥ śaraḥ śvasanavikramaḥ |\ngacchet tadvad gamiṣyāmi laṅkāṃ rāvaṇapālitām ||",
+      "translation": {
+        "en": "As an arrow loosed by Raghava speeds with the force of the wind, so shall I go to Lanka, guarded by Ravana.",
+        "hi": "जैसे श्रीराम का छोड़ा हुआ बाण वायु के वेग से जाता है, वैसे ही मैं रावण द्वारा रक्षित लंका को जाऊँगा।"
+      },
+      "verified_by": "",
+      "verified_on": ""
+    },
+    {
+      "id": "sk_anirveda",
+      "moment": "ch2_despair_resolve",
+      "ref": "Sundara Kanda 5.12.10",
+      "devanagari": "अनिर्वेदः श्रियो मूलमनिर्वेदः परं सुखम् ।\nअनिर्वेदो हि सततं सर्वार्थेषु प्रवर्तकः ॥",
+      "iast": "anirvedaḥ śriyo mūlam anirvedaḥ paraṃ sukham |\nanirvedo hi satataṃ sarvārtheṣu pravartakaḥ ||",
+      "translation": {
+        "en": "Not losing heart is the root of success; not losing heart is the highest happiness. It is what always drives us forward in every endeavour.",
+        "hi": "निराश न होना ही सफलता का मूल है, यही परम सुख है। उत्साह ही सदा सभी कार्यों में आगे बढ़ाता है।"
+      },
+      "verified_by": "",
+      "verified_on": ""
+    },
+    {
+      "id": "sk_jayatyatibalo",
+      "moment": "ch4_battle_cry_1",
+      "ref": "Sundara Kanda 5.42.33",
+      "devanagari": "जयत्यतिबलो रामो लक्ष्मणश्च महाबलः ।\nराजा जयति सुग्रीवो राघवेणाभिपालितः ॥",
+      "iast": "jayaty atibalo rāmo lakṣmaṇaś ca mahābalaḥ |\nrājā jayati sugrīvo rāghaveṇābhipālitaḥ ||",
+      "translation": {
+        "en": "Victory to Rama of surpassing strength, and to mighty Lakshmana! Victory to King Sugriva, protected by Raghava!",
+        "hi": "अतिबलशाली श्रीराम की जय हो, महाबली लक्ष्मण की जय हो! श्रीराम द्वारा रक्षित राजा सुग्रीव की जय हो!"
+      },
+      "verified_by": "",
+      "verified_on": ""
+    },
+    {
+      "id": "sk_daso_ham",
+      "moment": "ch4_battle_cry_2",
+      "ref": "Sundara Kanda 5.42.34",
+      "devanagari": "दासोऽहं कोसलेन्द्रस्य रामस्याक्लिष्टकर्मणः ।\nहनुमाञ्छत्रुसैन्यानां निहन्ता मारुतात्मजः ॥",
+      "iast": "dāso'haṃ kosalendrasya rāmasyākliṣṭakarmaṇaḥ |\nhanumāñ chatrusainyānāṃ nihantā mārutātmajaḥ ||",
+      "translation": {
+        "en": "I am the servant of Rama, lord of Kosala, whose deeds are accomplished without strain. I am Hanuman, son of the Wind, destroyer of enemy hosts.",
+        "hi": "मैं अनायास महान कर्म करने वाले कोसलनरेश श्रीराम का दास हूँ। मैं पवनपुत्र हनुमान हूँ, शत्रु-सेनाओं का संहारक।"
+      },
+      "verified_by": "",
+      "verified_on": ""
+    }
+  ]
+}
