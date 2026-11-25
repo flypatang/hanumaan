@@ -20,9 +20,12 @@ const ALARM_SECONDS: float = 3.0
 const SMARANA_MAX: float = 100.0
 const LEFT_WIDTH: float = 340.0
 const RIGHT_WIDTH: float = 380.0
-const BOSS_WIDTH: float = 520.0
+const BOSS_WIDTH: float = 440.0
 const MARGIN: int = 16
 const BAR_HEIGHT: float = 18.0
+const LABEL_PADDING: float = 8.0
+const DEVANAGARI_LINE_FACTOR: float = 1.6
+const LEFT_SEPARATION: int = 6
 const ICON_RADII: PackedFloat32Array = [6.0, 10.0, 15.0]
 const ICON_SPACING: float = 60.0
 const ICON_LEFT: float = 16.0
@@ -128,6 +131,7 @@ func clear_objectives() -> void:
 	_objective_texts.clear()
 	_objective_done.clear()
 	_objective_labels.clear()
+	_refresh_objectives_header()
 
 
 ## Re-reads every translated string with the current language.
@@ -140,6 +144,7 @@ func refresh_texts() -> void:
 		_refresh_objective(id)
 	_refresh_boss_name()
 	_alarm_label.text = _tr("UI_HUD_ALARM")
+	_fit_all_labels()
 
 
 ## Moves the alarm timer forward. The HUD calls this from _process; tests call it directly.
@@ -197,6 +202,22 @@ func smarana_text() -> String:
 
 func smarana_label() -> Label:
 	return _smarana_label
+
+
+func smarana_bar() -> ProgressBar:
+	return _smarana_bar
+
+
+func vitality_label() -> Label:
+	return _vitality_label
+
+
+func vitality_bar() -> ProgressBar:
+	return _vitality_bar
+
+
+func objectives_header_visible() -> bool:
+	return _objectives_title.visible
 
 
 func size_icon_index() -> int:
@@ -277,6 +298,7 @@ func _on_objective_updated(id: StringName, text: String, done: bool) -> void:
 	_objective_texts[id] = text
 	_objective_done[id] = done
 	_refresh_objective(id)
+	_refresh_objectives_header()
 
 
 func _on_level_loaded(_id: StringName) -> void:
@@ -342,6 +364,31 @@ func _refresh_objective(id: StringName) -> void:
 	else:
 		label.text = text
 		label.add_theme_color_override("font_color", Palette.MOON)
+
+
+## The Objectives header is shown only while there is at least one objective to list.
+func _refresh_objectives_header() -> void:
+	_objectives_title.visible = not _objective_ids.is_empty()
+
+
+func _fit_all_labels() -> void:
+	for label: Label in [_vitality_label, _smarana_label, _size_label, _objectives_title, _boss_name_label, _alarm_label]:
+		_fit_label(label)
+	for id: StringName in _objective_ids:
+		_fit_label(_objective_labels[id] as Label)
+
+
+## Gives a label a box tall enough for its glyphs plus padding, so the bar below never covers the text.
+## Devanagari needs more height than Latin, so the box is at least DEVANAGARI_LINE_FACTOR times the font size.
+func _fit_label(label: Label) -> void:
+	if label == null:
+		return
+	var size: int = label.get_theme_font_size("font_size")
+	var font: Font = label.get_theme_font("font")
+	var line: float = float(size) * DEVANAGARI_LINE_FACTOR
+	if font != null:
+		line = maxf(line, font.get_height(size))
+	label.custom_minimum_size.y = ceilf(line + LABEL_PADDING)
 
 
 func _refresh_boss_name() -> void:
@@ -424,19 +471,20 @@ func _build_ui() -> void:
 	var left: VBoxContainer = VBoxContainer.new()
 	left.custom_minimum_size = Vector2(LEFT_WIDTH, 0.0)
 	left.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT, Control.PRESET_MODE_MINSIZE, MARGIN)
+	left.add_theme_constant_override("separation", LEFT_SEPARATION)
 	_root.add_child(left)
 
-	_vitality_label = _make_label(BODY_FONT_SIZE)
+	_vitality_label = _make_caption()
 	left.add_child(_vitality_label)
 	_vitality_bar = _make_bar(Palette.SINDOOR)
 	left.add_child(_vitality_bar)
 
-	_smarana_label = _make_label(BODY_FONT_SIZE)
+	_smarana_label = _make_caption()
 	left.add_child(_smarana_label)
 	_smarana_bar = _make_bar(Palette.SAFFRON)
 	left.add_child(_smarana_bar)
 
-	_size_label = _make_label(BODY_FONT_SIZE)
+	_size_label = _make_caption()
 	left.add_child(_size_label)
 	_size_icons = Control.new()
 	_size_icons.custom_minimum_size = Vector2(LEFT_WIDTH, 40.0)
@@ -450,6 +498,7 @@ func _build_ui() -> void:
 	right.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	_root.add_child(right)
 	_objectives_title = _make_label(TITLE_FONT_SIZE)
+	_objectives_title.visible = false
 	right.add_child(_objectives_title)
 	_objectives_box = VBoxContainer.new()
 	right.add_child(_objectives_box)
@@ -481,6 +530,15 @@ func _make_label(size: int) -> Label:
 	var font: Font = _ui_font()
 	if font != null:
 		label.add_theme_font_override("font", font)
+	_fit_label(label)
+	return label
+
+
+## A caption for a bar: its text sits on the bottom of its box, so it hugs the bar it names and the padding
+## above it separates it from the bar before.
+func _make_caption() -> Label:
+	var label: Label = _make_label(BODY_FONT_SIZE)
+	label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 	return label
 
 
