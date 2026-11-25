@@ -3,7 +3,6 @@ extends GdUnitTestSuite
 ## translations, and all_verified() is false while any verified_by is empty.
 
 const DATA_PATH: String = "res://data/shlokas.json"
-const REAL_IDS: Array[String] = ["sk_opening", "sk_leap_vow", "sk_anirveda", "sk_jayatyatibalo", "sk_daso_ham"]
 
 
 func _read_real_file() -> Dictionary:
@@ -43,7 +42,9 @@ func test_real_file_schema_is_valid() -> void:
 
 
 func test_every_real_entry_has_both_translations() -> void:
-	for id: String in REAL_IDS:
+	var ids: Array[String] = _real_ids()
+	assert_bool(ids.is_empty()).is_false()
+	for id: String in ids:
 		var entry: Dictionary = Shlokas.get_shloka(id)
 		assert_bool(entry.is_empty()).is_false()
 		var tr: Dictionary = entry["translation"] as Dictionary
@@ -59,9 +60,11 @@ func test_all_verified_is_false_for_real_file() -> void:
 # --- get_shloka ---
 
 func test_get_shloka_returns_matching_entry() -> void:
-	var entry: Dictionary = Shlokas.get_shloka("sk_opening")
-	assert_str(str(entry["moment"])).is_equal("opening_title")
-	assert_str(str(entry["ref"])).is_equal("Sundara Kanda 5.1.1")
+	var data: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(DATA_PATH)) as Dictionary
+	var first: Dictionary = (data["shlokas"] as Array)[0] as Dictionary
+	var entry: Dictionary = Shlokas.get_shloka(str(first["id"]))
+	assert_str(str(entry["moment"])).is_equal(str(first["moment"]))
+	assert_str(str(entry["ref"])).is_equal(str(first["ref"]))
 
 
 func test_get_shloka_unknown_id_returns_empty_dictionary() -> void:
@@ -132,3 +135,12 @@ func test_all_verified_false_when_schema_is_broken() -> void:
 	var entry: Dictionary = _entry("a", "Reviewer")
 	entry.erase("iast")
 	assert_bool(Shlokas._all_verified_in(_fixture([entry]))).is_false()
+
+
+## Ids read from the real data file, so this suite works unchanged in every game that shares M16c.
+func _real_ids() -> Array[String]:
+	var data: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(DATA_PATH)) as Dictionary
+	var ids: Array[String] = []
+	for entry: Variant in data.get("shlokas", []) as Array:
+		ids.append(str((entry as Dictionary).get("id", "")))
+	return ids

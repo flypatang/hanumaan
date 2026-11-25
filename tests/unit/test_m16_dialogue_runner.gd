@@ -313,6 +313,8 @@ func test_shloka_step_emits_id_and_waits_for_advance() -> void:
 # ---- The real dialogue files ----------------------------------------------
 
 func test_pro_jambavan_walkthrough_reaches_end() -> void:
+	if not FileAccess.file_exists("res://data/dialogue/pro_jambavan.json"):
+		return  # Hanumaan content; this suite is shared with other games.
 	var state: Node = _make_state()
 	var runner: Node = _make_runner(state, REAL_DIR)
 	var rec: Recorder = _record(runner)
@@ -336,6 +338,8 @@ func test_pro_jambavan_walkthrough_reaches_end() -> void:
 
 
 func test_pro_jambavan_retry_branch_loops_back_to_choice() -> void:
+	if not FileAccess.file_exists("res://data/dialogue/pro_jambavan.json"):
+		return  # Hanumaan content; this suite is shared with other games.
 	var state: Node = _make_state()
 	var runner: Node = _make_runner(state, REAL_DIR)
 	var rec: Recorder = _record(runner)
