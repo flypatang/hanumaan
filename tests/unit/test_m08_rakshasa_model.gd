@@ -3,7 +3,7 @@ extends GdUnitTestSuite
 ## rigid parts on BoneAttachment3D (no skinning), palette colours only, and the shared pose names.
 
 const VARIANT_NAMES: Array[StringName] = [&"spear", &"archer", &"brute", &"lankini"]
-const POSE_NAMES: Array[StringName] = [&"idle", &"walk", &"attack"]
+const POSE_NAMES: Array[StringName] = [&"idle", &"walk_a", &"walk_b", &"attack_wind", &"attack_strike", &"walk", &"attack"]
 const BONE_NAMES: Array[String] = [
 	"root", "hips", "spine", "chest", "head",
 	"upper_arm_l", "lower_arm_l", "upper_arm_r", "lower_arm_r",
@@ -178,7 +178,7 @@ func test_weapons_follow_variant() -> void:
 	assert_int(_count_on_bone(_build(&"spear"), "weapon_socket")).is_greater(0)
 	assert_int(_count_on_bone(_build(&"archer"), "weapon_socket")).is_greater(0)
 	assert_int(_count_on_bone(_build(&"brute"), "weapon_socket")).is_greater(0)
-	assert_int(_count_on_bone(_build(&"lankini"), "weapon_socket")).is_equal(0)
+	assert_int(_count_on_bone(_build(&"lankini"), "weapon_socket")).is_greater(0)
 
 
 func test_pose_names_are_set_and_change_the_skeleton() -> void:
@@ -187,7 +187,7 @@ func test_pose_names_are_set_and_change_the_skeleton() -> void:
 	var arm: int = skel.find_bone("upper_arm_r")
 	RakshasaModel.set_pose(root, &"idle")
 	var idle_rot: Quaternion = skel.get_bone_pose_rotation(arm)
-	RakshasaModel.set_pose(root, &"attack")
+	RakshasaModel.set_pose(root, &"attack_strike")
 	var attack_rot: Quaternion = skel.get_bone_pose_rotation(arm)
 	assert_bool(idle_rot.is_equal_approx(attack_rot)).is_false()
 	for pose: StringName in POSE_NAMES:
@@ -198,7 +198,7 @@ func test_pose_names_are_set_and_change_the_skeleton() -> void:
 func test_walk_pose_swings_the_legs_opposite() -> void:
 	var root: Node3D = _build(&"archer")
 	var skel: Skeleton3D = _skeleton(root)
-	RakshasaModel.set_pose(root, &"walk")
+	RakshasaModel.set_pose(root, &"walk_a")
 	var left: Quaternion = skel.get_bone_pose_rotation(skel.find_bone("upper_leg_l"))
 	var right: Quaternion = skel.get_bone_pose_rotation(skel.find_bone("upper_leg_r"))
 	assert_bool(left.is_equal_approx(right)).is_false()
