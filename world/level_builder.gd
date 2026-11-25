@@ -117,10 +117,77 @@ static func _tile_colour(tile_type: String) -> Color:
 			return Palette.STONE
 
 
+## Roof height of a tile: its surface, or the top of the solid block for walls.
+static func _roof_of(tile: Dictionary) -> float:
+	var top: float = (tile["step"] as int) * STEP_HEIGHT
+	if str(tile["type"]) == "wall":
+		return top + WALL_EXTRA_HEIGHT
+	return top
+
+
+## Deterministic per-tile value factor in [0.96, 1.04], seeded by the tile's x and z.
+static func _jitter_factor(cell: Vector2i) -> float:
+	var h: int = posmod(cell.x * 374761393 + cell.y * 668265263, 1000003)
+	h = posmod(h * h + cell.x * 31 + cell.y * 17, 1000003)
+	var unit: float = float(h) / 1000002.0
+	return 1.0 + (unit * 2.0 - 1.0) * 0.04
+
+
+static func _jittered(colour: Color, cell: Vector2i) -> Color:
+	var factor: float = _jitter_factor(cell)
+	return Color(clampf(colour.r * factor, 0.0, 1.0), clampf(colour.g * factor, 0.0, 1.0), clampf(colour.b * factor, 0.0, 1.0), colour.a)
+
+
+## Adds one flat quad with the given outward normal. Godot draws clockwise triangles (seen from outside) as front
+## faces, so the emitted winding is the one whose right-hand cross product points against `normal`.
+static func _quad(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, d: Vector3, normal: Vector3, colour: Color) -> void:
+	var flip: bool = (b - a).cross(c - a).dot(normal) > 0.0
+	var corners: Array[Vector3] = [a, b, c, a, c, d]
+	if flip:
+		corners = [a, c, b, a, d, c]
+	for corner: Vector3 in corners:
+		st.set_normal(normal)
+		st.set_color(colour)
+		st.add_vertex(corner)
+
+
+## Emits one tile into its type's surface: a flat top at the roof height, plus a side face toward every
+## neighbour whose roof is lower (or a void neighbour, which counts as height 0). Higher or equal neighbours
+## hide the face, so no faces are drawn between tiles at the same height.
+static func _emit_tile_surface(st: SurfaceTool, tile: Dictionary, by_cell: Dictionary) -> void:
+	var cell: Vector2i = tile["cell"] as Vector2i
+	var roof: float = _roof_of(tile)
+	var colour: Color = _jittered(_tile_colour(str(tile["type"])), cell)
+	var x0: float = float(cell.x) * TILE_SIZE
+	var x1: float = x0 + TILE_SIZE
+	var z0: float = float(cell.y) * TILE_SIZE
+	var z1: float = z0 + TILE_SIZE
+	_quad(st, Vector3(x0, roof, z0), Vector3(x0, roof, z1), Vector3(x1, roof, z1), Vector3(x1, roof, z0), Vector3.UP, colour)
+	for dir: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+		var low: float = 0.0
+		var neighbour_cell: Vector2i = cell + dir
+		if by_cell.has(neighbour_cell):
+			low = _roof_of(by_cell[neighbour_cell] as Dictionary)
+		if roof <= low:
+			continue
+		if dir.x == 1:
+			_quad(st, Vector3(x1, low, z0), Vector3(x1, low, z1), Vector3(x1, roof, z1), Vector3(x1, roof, z0), Vector3.RIGHT, colour)
+		elif dir.x == -1:
+			_quad(st, Vector3(x0, low, z1), Vector3(x0, low, z0), Vector3(x0, roof, z0), Vector3(x0, roof, z1), Vector3.LEFT, colour)
+		elif dir.y == 1:
+			_quad(st, Vector3(x1, low, z1), Vector3(x0, low, z1), Vector3(x0, roof, z1), Vector3(x1, roof, z1), Vector3.BACK, colour)
+		else:
+			_quad(st, Vector3(x0, low, z0), Vector3(x1, low, z0), Vector3(x1, roof, z0), Vector3(x0, roof, z0), Vector3.FORWARD, colour)
+
+
+## One continuous flat-top mesh per tile type (cliff faces only where the ground drops), plus per-tile colliders.
 static func _build_tiles(tiles: Array[Dictionary]) -> Node3D:
 	var group: Node3D = Node3D.new()
 	group.name = "Tiles"
-	var parts_by_type: Dictionary = {}
+	var by_cell: Dictionary = {}
+	for tile: Dictionary in tiles:
+		by_cell[tile["cell"] as Vector2i] = tile
+	var surfaces: Dictionary = {}
 	var floor_body: StaticBody3D = StaticBody3D.new()
 	floor_body.name = "Floor"
 	for tile: Dictionary in tiles:
@@ -132,15 +199,14 @@ static func _build_tiles(tiles: Array[Dictionary]) -> Node3D:
 		var size: Vector3 = Vector3(TILE_SIZE, SLAB_DEPTH, TILE_SIZE)
 		var centre_y: float = top - SLAB_DEPTH * 0.5
 		if tile_type == "wall":
-			var height: float = top + WALL_EXTRA_HEIGHT
+			var height: float = _roof_of(tile)
 			size = Vector3(TILE_SIZE, height, TILE_SIZE)
 			centre_y = height * 0.5
-		var mesh: ArrayMesh = MeshKit.box(size, _tile_colour(tile_type))
-		if not parts_by_type.has(tile_type):
-			var empty: Array[Dictionary] = []
-			parts_by_type[tile_type] = empty
-		var parts: Array[Dictionary] = parts_by_type[tile_type] as Array[Dictionary]
-		parts.append({"mesh": mesh, "transform": Transform3D(Basis.IDENTITY, Vector3(centre_x, centre_y, centre_z))})
+		if not surfaces.has(tile_type):
+			var st: SurfaceTool = SurfaceTool.new()
+			st.begin(Mesh.PRIMITIVE_TRIANGLES)
+			surfaces[tile_type] = st
+		_emit_tile_surface(surfaces[tile_type] as SurfaceTool, tile, by_cell)
 		var shape_node: CollisionShape3D = CollisionShape3D.new()
 		shape_node.name = "Tile_%d_%d" % [cell.x, cell.y]
 		var box: BoxShape3D = BoxShape3D.new()
@@ -149,12 +215,11 @@ static func _build_tiles(tiles: Array[Dictionary]) -> Node3D:
 		shape_node.position = Vector3(centre_x, centre_y, centre_z)
 		floor_body.add_child(shape_node)
 	for tile_type: String in TILE_TYPES:
-		if not parts_by_type.has(tile_type):
+		if not surfaces.has(tile_type):
 			continue
-		var merged: ArrayMesh = MeshKit.merge(parts_by_type[tile_type] as Array[Dictionary])
 		var mesh_node: MeshInstance3D = MeshInstance3D.new()
 		mesh_node.name = "Tiles_%s" % tile_type
-		mesh_node.mesh = merged
+		mesh_node.mesh = (surfaces[tile_type] as SurfaceTool).commit()
 		mesh_node.material_override = MeshKit.flat_material()
 		group.add_child(mesh_node)
 	group.add_child(floor_body)
