@@ -99,6 +99,8 @@ static func _body(root: Node3D, o: Dictionary) -> void:
 	var torso: Color = o.get("torso", skin) as Color
 	var trim: Color = o.get("trim", Palette.GOLD) as Color
 	var stoop: float = (o.get("stoop", 0.0) as float)
+	var bend: float = (o.get("bend", 0.0) as float)
+	var bs: float = sin(bend)
 	for sx: float in [-1.0, 1.0]:
 		_add(root, MeshKit.cylinder(0.05 * h * w, 0.04 * h * w, 0.46 * h, 6, skin), Vector3(sx * 0.07 * h * w, 0.25 * h, 0.0))
 		_add(root, MeshKit.box(Vector3(0.07 * h, 0.035 * h, 0.12 * h), skin), Vector3(sx * 0.07 * h * w, 0.018 * h, -0.025 * h))
@@ -116,11 +118,16 @@ static func _body(root: Node3D, o: Dictionary) -> void:
 		var ax: float = sx3 * 0.2 * h * w
 		_add(root, MeshKit.sphere(0.05 * h, 5, 7, torso), Vector3(ax, 0.745 * h, -stoop * 0.5 * h))
 		_add(root, MeshKit.cylinder(0.034 * h, 0.03 * h, 0.2 * h, 6, skin), Vector3(ax, 0.64 * h, -stoop * 0.3 * h))
-		_add(root, MeshKit.cylinder(0.03 * h, 0.026 * h, 0.18 * h, 6, skin), Vector3(ax, 0.46 * h, -stoop * 0.15 * h))
-		_add(root, MeshKit.sphere(0.03 * h, 5, 6, skin), Vector3(ax, 0.355 * h, -stoop * 0.1 * h))
+		_add(root, MeshKit.cylinder(0.03 * h, 0.026 * h, 0.18 * h, 6, skin), Vector3(ax, 0.46 * h, -stoop * 0.15 * h - 0.09 * h * bs), Vector3(bend, 0.0, 0.0))
+		_add(root, MeshKit.sphere(0.03 * h, 5, 6, skin), Vector3(ax, 0.355 * h, -stoop * 0.1 * h - 0.195 * h * bs))
 		if (o.get("armlets", false) as bool):
 			_add(root, MeshKit.cylinder(0.045 * h, 0.045 * h, 0.04 * h, 8, Palette.GOLD), Vector3(ax, 0.69 * h, -stoop * 0.3 * h))
-			_add(root, MeshKit.cylinder(0.036 * h, 0.036 * h, 0.025 * h, 8, Palette.GOLD), Vector3(ax, 0.4 * h, -stoop * 0.12 * h))
+			_add(root, MeshKit.cylinder(0.036 * h, 0.036 * h, 0.025 * h, 8, Palette.GOLD), Vector3(ax, 0.4 * h, -stoop * 0.12 * h - 0.15 * h * bs), Vector3(bend, 0.0, 0.0))
+
+
+static func _named(mi: MeshInstance3D, part_name: String) -> MeshInstance3D:
+	mi.name = part_name
+	return mi
 
 
 static func _crown(root: Node3D, y: float, r: float, points: int, tall: float, col: Color, z: float = 0.0, x: float = 0.0) -> void:
@@ -218,10 +225,13 @@ static func _sita(root: Node3D) -> void:
 	# Head slightly bowed, covered by the draped sari; a gentle face beneath it.
 	_add(root, MeshKit.sphere(0.075 * s, 6, 8, HUMAN_SKIN), Vector3(0.0, 0.785 * s, -0.045 * s))
 	_add(root, MeshKit.sphere(0.095 * s, 6, 8, SARI_SOILED), Vector3(0.0, 0.8 * s, -0.01 * s), Vector3.ZERO, Vector3(1.0, 1.0, 0.95))
-	_add(root, MeshKit.box(Vector3(0.14 * s, 0.025 * s, 0.1 * s), HUMAN_SKIN), Vector3(0.0, 0.76 * s, -0.095 * s))
+	# No protruding nose (depiction rule): the face is a smooth oval with a sindoor bindi and the pallu framing it.
+	_named(_add(root, MeshKit.box(Vector3(0.012 * s, 0.016 * s, 0.006 * s), Palette.SINDOOR), Vector3(0.0, 0.822 * s, -0.12 * s)), "Sita_Bindi")
+	_add(root, MeshKit.box(Vector3(0.17 * s, 0.03 * s, 0.1 * s), SARI_SOILED), Vector3(0.0, 0.855 * s, -0.07 * s))
 	_add(root, MeshKit.cylinder(0.08 * s, 0.16 * s, 0.34 * s, 8, SARI_SOILED), Vector3(0.0, 0.62 * s, 0.1 * s), Vector3(0.18, 0.0, 0.0))
 	for sx: float in [-1.0, 1.0]:
-		_add(root, MeshKit.box(Vector3(0.014 * s, 0.01 * s, 0.01 * s), Palette.NIGHT_INDIGO), Vector3(sx * 0.03 * s, 0.775 * s, -0.115 * s))
+		_named(_add(root, MeshKit.box(Vector3(0.012 * s, 0.008 * s, 0.005 * s), Palette.NIGHT_INDIGO), Vector3(sx * 0.028 * s, 0.795 * s, -0.12 * s)), "Sita_Eye")
+		_add(root, MeshKit.box(Vector3(0.03 * s, 0.13 * s, 0.07 * s), SARI_SOILED), Vector3(sx * 0.085 * s, 0.785 * s, -0.07 * s), Vector3(0.0, sx * 0.4, 0.0))
 		_add(root, MeshKit.sphere(0.04 * s, 5, 6, SARI_SOILED), Vector3(sx * 0.17 * s, 0.62 * s, 0.0))
 		_add(root, MeshKit.cylinder(0.03 * s, 0.027 * s, 0.22 * s, 6, SARI_SOILED), Vector3(sx * 0.17 * s, 0.5 * s, -0.04 * s), Vector3(-0.35, 0.0, -sx * 0.2))
 	# Folded hands (anjali) resting in front of the chest.
@@ -350,18 +360,26 @@ static func _courtier(root: Node3D) -> void:
 
 static func _rama(root: Node3D) -> void:
 	var h: float = 2.0
-	_body(root, {"H": h, "w": 1.0, "skin": RAMA_SKIN, "cloth": DHOTI_YELLOW, "torso": RAMA_SKIN, "trim": Palette.GOLD, "armlets": true})
+	var bend: float = 0.35
+	_body(root, {"H": h, "w": 1.0, "skin": RAMA_SKIN, "cloth": DHOTI_YELLOW, "torso": RAMA_SKIN, "trim": Palette.GOLD, "armlets": true, "bend": bend})
 	var r: float = 0.075 * h
-	# Hair in a tall jata topknot, a plain gold circlet, a garland and a quiver: serene and unadorned.
+	# Dark hair under a tall gold kirita crown; a garland; a quiver on the back and the bow in the left hand.
 	_add(root, MeshKit.sphere(r * 1.05, 6, 8, Palette.NIGHT_INDIGO), Vector3(0.0, 0.875 * h, 0.012 * h))
-	_add(root, MeshKit.sphere(0.055 * h, 5, 7, Palette.NIGHT_INDIGO), Vector3(0.0, 0.95 * h, 0.0))
-	_add(root, MeshKit.cylinder(r * 0.98, r * 0.98, 0.014 * h, 8, Palette.GOLD), Vector3(0.0, 0.905 * h, 0.0))
+	_named(_add(root, MeshKit.cylinder(r * 1.0, r * 1.08, 0.05 * h, 8, Palette.GOLD), Vector3(0.0, 0.925 * h, 0.0)), "Rama_Crown")
+	_named(_add(root, MeshKit.cone(r * 0.85, 0.16 * h, 8, Palette.GOLD), Vector3(0.0, 1.03 * h, 0.0)), "Rama_Crown_Peak")
+	for i: int in 6:
+		var a: float = TAU * float(i) / 6.0
+		_named(_add(root, MeshKit.cone(r * 0.2, 0.07 * h, 5, Palette.GOLD), Vector3(sin(a) * r * 0.95, 0.975 * h, cos(a) * r * 0.95)), "Rama_Crown_Point")
 	_add(root, MeshKit.box(Vector3(0.008 * h, 0.012 * h, 0.006 * h), Palette.SINDOOR), Vector3(0.0, 0.885 * h, -0.074 * h))
 	_add(root, MeshKit.cylinder(0.172 * h, 0.172 * h, 0.03 * h, 8, Palette.ASHOKA_RED), Vector3(0.0, 0.73 * h, 0.0))
 	_add(root, MeshKit.cylinder(0.13 * h, 0.13 * h, 0.03 * h, 8, Palette.GOLD), Vector3(0.0, 0.5 * h, 0.0))
-	_add(root, MeshKit.cylinder(0.04 * h, 0.035 * h, 0.3 * h, 6, Palette.BARK), Vector3(0.1 * h, 0.7 * h, 0.17 * h), Vector3(0.0, 0.0, -0.25))
-	# Bow held low in the left hand, its tips gilded.
-	_bow(root, Vector3(0.2 * h, 0.4 * h, 0.0), 0.75 * h, Palette.BARK, Palette.GOLD)
+	# Quiver across the back, its arrows fletched in gold.
+	_named(_add(root, MeshKit.cylinder(0.04 * h, 0.035 * h, 0.34 * h, 6, Palette.BARK), Vector3(0.07 * h, 0.7 * h, 0.2 * h), Vector3(0.0, 0.0, -0.3)), "Rama_Quiver")
+	_add(root, MeshKit.cylinder(0.042 * h, 0.042 * h, 0.03 * h, 6, Palette.GOLD), Vector3(0.1 * h, 0.84 * h, 0.2 * h), Vector3(0.0, 0.0, -0.3))
+	for k: int in 3:
+		_add(root, MeshKit.cone(0.012 * h, 0.05 * h, 4, Palette.GOLD), Vector3((0.115 + 0.012 * float(k)) * h, (0.89 + 0.01 * float(k)) * h, 0.2 * h), Vector3(0.0, 0.0, -0.3))
+	# Tall bow in the left hand (-X), gilded wood and tips; the hand rests at its grip.
+	_bow(root, Vector3(-0.2 * h, 0.45 * h, -0.195 * h * sin(bend) - 0.04 * h), 1.0 * h, GOLD_DARK, Palette.GOLD)
 
 
 # ---------------------------------------------------------------- set pieces
