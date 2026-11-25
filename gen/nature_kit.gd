@@ -36,57 +36,77 @@ void fragment() {
 """
 
 
-## Ashoka: a dense green canopy of rounded clusters, studded with ASHOKA_RED blossom clusters.
+## Ashoka: tall and narrow. A bark trunk with branches running into stacked faceted leaf blobs, drooping
+## foliage hanging from them, and dense ASHOKA_RED blossom clusters.
 static func ashoka_tree(rng_seed: int, height: float = 6.0) -> MeshInstance3D:
 	var rng: RandomNumberGenerator = _rng(rng_seed)
 	var parts: Array[Dictionary] = []
-	parts.append(_part(MeshKit.cylinder(height * 0.035, height * 0.06, height * 0.6, 8, Palette.STONE),
-		Vector3(0.0, height * 0.3, 0.0)))
+	var trunk_top: float = height * 0.72
+	parts.append(_part(MeshKit.cylinder(height * 0.02, height * 0.045, trunk_top, 7, Palette.BARK),
+		Vector3(0.0, trunk_top * 0.5, 0.0)))
 	var centres: Array[Vector3] = []
 	var radii: Array[float] = []
-	for i: int in range(6):
+	for i: int in range(7):
 		var angle: float = rng.randf_range(0.0, TAU)
-		var dist: float = rng.randf_range(0.0, height * 0.18)
-		var centre: Vector3 = Vector3(cos(angle) * dist, height * (0.6 + rng.randf_range(-0.08, 0.08)),
-			sin(angle) * dist)
-		var radius: float = height * rng.randf_range(0.22, 0.3)
+		var dist: float = rng.randf_range(0.02, 0.1) * height
+		var y: float = height * (0.5 + 0.075 * float(i)) + rng.randf_range(-0.02, 0.02) * height
+		var centre: Vector3 = Vector3(cos(angle) * dist, y, sin(angle) * dist)
+		var radius: float = height * rng.randf_range(0.1, 0.14) * (1.0 - 0.025 * float(i))
+		var colour: Color = Palette.GROVE_GREEN if i % 2 == 0 else Palette.LEAF_DARK
 		centres.append(centre)
 		radii.append(radius)
-		parts.append(_part(MeshKit.sphere(radius, 6, 9, Palette.GROVE_GREEN), centre))
-	for i: int in range(10):
-		var k: int = rng.randi() % centres.size()
-		var dir: Vector3 = Vector3(rng.randf_range(-1.0, 1.0), rng.randf_range(-0.2, 1.0), rng.randf_range(-1.0, 1.0))
-		if dir.length_squared() < 0.01:
-			dir = Vector3.UP
-		var pos: Vector3 = centres[k] + dir.normalized() * radii[k] * 0.95
-		parts.append(_part(MeshKit.sphere(height * 0.05, 4, 5, Palette.ASHOKA_RED), pos))
+		parts.append(_part_scaled(MeshKit.sphere(radius, 4, 7, colour), centre, Vector3(1.0, 1.15, 1.0)))
+		var start: Vector3 = Vector3(0.0, minf(centre.y - radius * 0.5, trunk_top), 0.0)
+		parts.append(_limb(start, centre, height * 0.012, height * 0.02, Palette.BARK))
+		# Drooping fronds hang below the blob.
+		for k: int in range(2):
+			var a2: float = rng.randf_range(0.0, TAU)
+			var base: Vector3 = centre + Vector3(cos(a2), -0.4, sin(a2)) * radius * 0.7
+			parts.append({
+				"mesh": MeshKit.cone(radius * 0.4, radius * 1.5, 5, Palette.LEAF_DARK if k == 0 else Palette.GROVE_GREEN),
+				"transform": Transform3D(Basis(Vector3.RIGHT, PI), base + Vector3(0.0, radius * 0.2, 0.0)),
+			})
+	for i: int in range(centres.size()):
+		var cluster: int = 3 if i % 2 == 0 else 2
+		for j: int in range(cluster + 1):
+			var dir: Vector3 = Vector3(rng.randf_range(-1.0, 1.0), rng.randf_range(-0.5, 0.9), rng.randf_range(-1.0, 1.0))
+			if dir.length_squared() < 0.01:
+				dir = Vector3.UP
+			var pos: Vector3 = centres[i] + dir.normalized() * radii[i] * 1.0
+			parts.append(_part(MeshKit.sphere(height * rng.randf_range(0.035, 0.05), 3, 5, Palette.ASHOKA_RED), pos))
 	return _wrap(MeshKit.merge(parts), "AshokaTree")
 
 
-## Shimshapa: a taller trunk with three spreading limbs and a flattened, pale-green crown. No blossoms.
+## Shimshapa: a thick bark trunk forking into limbs that run into a broad, dense, mixed-green crown. No blossoms.
 static func shimshapa_tree(rng_seed: int, height: float = 7.0) -> MeshInstance3D:
 	var rng: RandomNumberGenerator = _rng(rng_seed)
 	var parts: Array[Dictionary] = []
-	parts.append(_part(MeshKit.cylinder(height * 0.03, height * 0.05, height * 0.5, 8, Palette.STONE),
-		Vector3(0.0, height * 0.25, 0.0)))
-	var base: Vector3 = Vector3(0.0, height * 0.45, 0.0)
-	var limb_len: float = height * 0.35
+	var fork: float = height * 0.42
+	parts.append(_part(MeshKit.cylinder(height * 0.04, height * 0.075, fork, 8, Palette.BARK),
+		Vector3(0.0, fork * 0.5, 0.0)))
 	var start_angle: float = rng.randf_range(0.0, TAU)
-	for i: int in range(3):
-		var yaw: float = start_angle + TAU * float(i) / 3.0
-		var outward: Vector3 = Vector3(cos(yaw), 0.0, sin(yaw))
-		var axis: Vector3 = Vector3.UP.cross(outward).normalized()
-		var tilt: Vector3 = Vector3.UP.rotated(axis, 0.6)
-		var branch_centre: Vector3 = base + tilt * limb_len * 0.5
-		parts.append({
-			"mesh": MeshKit.cylinder(height * 0.012, height * 0.018, limb_len, 6, Palette.STONE),
-			"transform": Transform3D(Basis(axis, 0.6), branch_centre),
-		})
-		var tip: Vector3 = base + tilt * limb_len
-		parts.append(_part_scaled(MeshKit.sphere(height * rng.randf_range(0.16, 0.2), 6, 9, Palette.GROVE_GREEN),
-			tip, Vector3(1.1, 0.7, 1.1)))
-	parts.append(_part_scaled(MeshKit.sphere(height * 0.22, 6, 9, Palette.GROVE_GREEN),
-		Vector3(0.0, height * 0.7, 0.0), Vector3(1.2, 0.75, 1.2)))
+	var tips: Array[Vector3] = []
+	var limbs: int = 5
+	for i: int in range(limbs):
+		var yaw: float = start_angle + TAU * float(i) / float(limbs)
+		var reach: float = height * rng.randf_range(0.26, 0.34)
+		var tip: Vector3 = Vector3(cos(yaw) * reach, height * rng.randf_range(0.6, 0.7), sin(yaw) * reach)
+		tips.append(tip)
+		parts.append(_limb(Vector3(0.0, fork * 0.92, 0.0), tip, height * 0.018, height * 0.036, Palette.BARK))
+	var top: Vector3 = Vector3(0.0, height * 0.8, 0.0)
+	parts.append(_limb(Vector3(0.0, fork * 0.92, 0.0), top, height * 0.016, height * 0.03, Palette.BARK))
+	var blobs: int = 0
+	for tip: Vector3 in tips:
+		for k: int in range(2):
+			var off: Vector3 = Vector3(rng.randf_range(-1.0, 1.0), rng.randf_range(-0.3, 0.5), rng.randf_range(-1.0, 1.0)) * height * 0.07
+			var pos: Vector3 = tip + off if k == 0 else tip * 1.18 + off
+			var colour: Color = Palette.GROVE_GREEN if (blobs % 2 == 0) else Palette.LEAF_DARK
+			parts.append(_part_scaled(MeshKit.sphere(height * rng.randf_range(0.14, 0.18), 4, 7, colour),
+				pos, Vector3(1.15, 0.8, 1.15)))
+			blobs += 1
+	parts.append(_part_scaled(MeshKit.sphere(height * 0.2, 4, 7, Palette.GROVE_GREEN), top, Vector3(1.2, 0.8, 1.2)))
+	parts.append(_part_scaled(MeshKit.sphere(height * 0.16, 4, 7, Palette.LEAF_DARK),
+		Vector3(0.0, height * 0.62, 0.0), Vector3(1.4, 0.7, 1.4)))
 	return _wrap(MeshKit.merge(parts), "ShimshapaTree")
 
 
@@ -159,6 +179,21 @@ static func _part_scaled(mesh: ArrayMesh, pos: Vector3, scale: Vector3) -> Dicti
 	return {"mesh": mesh, "transform": Transform3D(Basis.IDENTITY.scaled(scale), pos)}
 
 
+## A tapered cylinder running from `from` to `to` (r_top at `to`, r_bottom at `from`).
+static func _limb(from: Vector3, to: Vector3, r_top: float, r_bottom: float, colour: Color) -> Dictionary:
+	var dir: Vector3 = to - from
+	var length: float = maxf(dir.length(), 0.001)
+	var n: Vector3 = dir / length
+	var axis: Vector3 = Vector3.UP.cross(n)
+	var basis: Basis = Basis.IDENTITY
+	if axis.length_squared() > 1e-8:
+		basis = Basis(axis.normalized(), Vector3.UP.angle_to(n))
+	return {
+		"mesh": MeshKit.cylinder(r_top, r_bottom, length, 5, colour),
+		"transform": Transform3D(basis, (from + to) * 0.5),
+	}
+
+
 static func _wrap(mesh: ArrayMesh, node_name: String) -> MeshInstance3D:
 	var mi: MeshInstance3D = MeshInstance3D.new()
 	mi.name = node_name
@@ -195,7 +230,8 @@ static func _lumpy(size: Vector3, rng: RandomNumberGenerator, color: Color, ring
 			var c: Vector3 = lower[jn]
 			var d: Vector3 = lower[j]
 			var shade: float = rng.randf_range(0.88, 1.05)
-			var colour: Color = Color(color.r * shade, color.g * shade, color.b * shade, 1.0)
+			var base_c: Color = color.lerp(Palette.BARK, 0.55) if rng.randf() < 0.3 else color
+			var colour: Color = Color(base_c.r * shade, base_c.g * shade, base_c.b * shade, 1.0)
 			_emit_outward(st, a, b, c, colour)
 			_emit_outward(st, a, c, d, colour)
 	return st.commit()
