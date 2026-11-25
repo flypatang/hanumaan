@@ -366,10 +366,10 @@ static func _rama(root: Node3D) -> void:
 	# Dark hair under a tall gold kirita crown; a garland; a quiver on the back and the bow in the left hand.
 	_add(root, MeshKit.sphere(r * 1.05, 6, 8, Palette.NIGHT_INDIGO), Vector3(0.0, 0.875 * h, 0.012 * h))
 	_named(_add(root, MeshKit.cylinder(r * 1.0, r * 1.08, 0.05 * h, 8, Palette.GOLD), Vector3(0.0, 0.925 * h, 0.0)), "Rama_Crown")
-	_named(_add(root, MeshKit.cone(r * 0.85, 0.16 * h, 8, Palette.GOLD), Vector3(0.0, 1.03 * h, 0.0)), "Rama_Crown_Peak")
+	_named(_add(root, MeshKit.cone(r * 0.85, 0.1 * h, 8, Palette.GOLD), Vector3(0.0, 0.97 * h, 0.0)), "Rama_Crown_Peak")
 	for i: int in 6:
 		var a: float = TAU * float(i) / 6.0
-		_named(_add(root, MeshKit.cone(r * 0.2, 0.07 * h, 5, Palette.GOLD), Vector3(sin(a) * r * 0.95, 0.975 * h, cos(a) * r * 0.95)), "Rama_Crown_Point")
+		_named(_add(root, MeshKit.cone(r * 0.2, 0.06 * h, 5, Palette.GOLD), Vector3(sin(a) * r * 0.95, 0.95 * h, cos(a) * r * 0.95)), "Rama_Crown_Point")
 	_add(root, MeshKit.box(Vector3(0.008 * h, 0.012 * h, 0.006 * h), Palette.SINDOOR), Vector3(0.0, 0.885 * h, -0.074 * h))
 	_add(root, MeshKit.cylinder(0.172 * h, 0.172 * h, 0.03 * h, 8, Palette.ASHOKA_RED), Vector3(0.0, 0.73 * h, 0.0))
 	_add(root, MeshKit.cylinder(0.13 * h, 0.13 * h, 0.03 * h, 8, Palette.GOLD), Vector3(0.0, 0.5 * h, 0.0))
