@@ -275,7 +275,8 @@ func _place_rider() -> void:
 	rider.position = rider_position()
 	var t: Vector3 = rail_tangent(distance)
 	if absf(t.dot(Vector3.UP)) < 0.99:
-		rider.look_at(rider.position + t, Vector3.UP)
+		# Orient via the basis so this also works before the rider is inside the scene tree (unit tests, setup).
+		rider.basis = Basis.looking_at(t, Vector3.UP)
 
 
 func _build_scenery() -> void:
