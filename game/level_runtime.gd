@@ -1031,7 +1031,7 @@ func _footsteps(delta: float) -> void:
 		return
 	_step_time = 0.0
 	var pos: Vector3 = _player.global_position
-	var cell: Vector2i = Vector2i(floori(pos.x / 2.0), floori(pos.z / 2.0))
+	var cell: Vector2i = Vector2i(floori(pos.x / LevelBuilder.TILE_SIZE), floori(pos.z / LevelBuilder.TILE_SIZE))
 	var tile_type: String = "ground"
 	if _tiles.has(cell):
 		tile_type = str((_tiles[cell] as Dictionary)["type"])

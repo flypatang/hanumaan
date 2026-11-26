@@ -87,6 +87,12 @@ func is_burnt(prop: Node3D) -> bool:
 	return entry != null and entry.state == State.BURNT
 
 
+## The positional fire_loop player of a burning prop, or null (no Sound autoload, not burning).
+func loop_player(prop: Node3D) -> Node:
+	var entry: _Entry = _find(prop)
+	return entry.loop if entry != null else null
+
+
 func _find(prop: Node3D) -> _Entry:
 	for entry: _Entry in _entries:
 		if entry.prop == prop:

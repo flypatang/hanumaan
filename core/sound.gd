@@ -228,8 +228,10 @@ func _pick(id: StringName, info: Dictionary) -> String:
 
 func _stream_for(id: StringName, info: Dictionary) -> AudioStream:
 	var path: String = _pick(id, info)
-	if _streams.has(path):
-		return _streams[path] as AudioStream
+	# Cache per (path, loop): the same file can be a one-shot for one id and a loop for another.
+	var key: String = path + ("#loop" if (info["loop"] as bool) else "")
+	if _streams.has(key):
+		return _streams[key] as AudioStream
 	var stream: AudioStream = null
 	if ResourceLoader.exists(path):
 		stream = load(path) as AudioStream
@@ -238,7 +240,7 @@ func _stream_for(id: StringName, info: Dictionary) -> AudioStream:
 		if ogg != null:
 			ogg.loop = true
 			stream = ogg
-	_streams[path] = stream
+	_streams[key] = stream
 	return stream
 
 

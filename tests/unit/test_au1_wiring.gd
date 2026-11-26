@@ -146,17 +146,33 @@ func test_freed_burning_prop_releases_fire_loop() -> void:
 	prop.set_meta("flammable", true)
 	add_child(prop)
 	fire.register(prop)
-	var before: int = s.get_child_count()
 	assert_bool(fire.ignite(prop)).is_true()
-	var loop: Node = null
-	for c: Node in s.get_children():
-		if c is AudioStreamPlayer3D and (c as AudioStreamPlayer3D).stream != null and (c as AudioStreamPlayer3D).stream.get("loop") == true:
-			loop = c
+	var loop: AudioStreamPlayer3D = fire.loop_player(prop) as AudioStreamPlayer3D
 	assert_object(loop).is_not_null()
+	assert_bool(loop.get_parent() == s).is_true()
+	var ogg: AudioStreamOggVorbis = loop.stream as AudioStreamOggVorbis
+	assert_object(ogg).is_not_null()
+	assert_bool(ogg.loop).is_true()
 	prop.free()
 	await get_tree().process_frame
-	assert_bool(not is_instance_valid(loop) or loop.is_queued_for_deletion()).is_true()
-	assert_int(s.get_child_count()).is_less_equal(before + 1)
+	assert_bool(is_instance_valid(loop)).is_false()
+
+
+func test_fire_loop_stream_loops_even_after_one_shot_of_same_file() -> void:
+	var s: SoundPlayer = _sound()
+	# fire_ignite and fire_loop share files; the one-shot must not poison the loop's cached stream.
+	for i: int in 6:
+		s.play(&"fire_ignite", Vector3.ZERO)
+	var prop: Node3D = auto_free(Node3D.new()) as Node3D
+	add_child(prop)
+	for i: int in 4:
+		var p: AudioStreamPlayer3D = SoundPlayer.cue_at(prop, &"fire_loop") as AudioStreamPlayer3D
+		assert_object(p).is_not_null()
+		assert_bool((p.stream as AudioStreamOggVorbis).loop).is_true()
+		SoundPlayer.stop_loop(p)
+		assert_bool(p.get_parent() == null).is_true()
+		await get_tree().process_frame
+		assert_bool(is_instance_valid(p)).is_false()
 
 
 func test_hurtbox_heavy_light_split_and_invulnerable_skip() -> void:
