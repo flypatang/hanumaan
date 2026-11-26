@@ -1,6 +1,7 @@
 extends GdUnitTestSuite
 ## Acceptance tests for M08 gen/rakshasa_model.gd (DESIGN §9): four variants, silhouettes that differ,
-## rigid parts on BoneAttachment3D (no skinning), palette colours only, and the shared pose names.
+## rigid parts on BoneAttachment3D (no skinning), palette base colours, and the shared pose names.
+## Updated for art direction v2 (B2): one multi-surface "Part" per bone, shades derived from the palette.
 
 const VARIANT_NAMES: Array[StringName] = [&"spear", &"archer", &"brute", &"lankini"]
 const POSE_NAMES: Array[StringName] = [&"idle", &"walk_a", &"walk_b", &"attack_wind", &"attack_strike", &"walk", &"attack"]
@@ -70,16 +71,35 @@ func _colours(root: Node3D) -> Array[Color]:
 	_collect_meshes(root, meshes)
 	var seen: Array[Color] = []
 	for mi: MeshInstance3D in meshes:
-		var arrays: Array = (mi.mesh as Mesh).surface_get_arrays(0)
-		var cols: PackedColorArray = arrays[Mesh.ARRAY_COLOR] as PackedColorArray
-		for c: Color in cols:
-			var known: bool = false
-			for s: Color in seen:
-				if s.is_equal_approx(c):
-					known = true
-			if not known:
-				seen.append(c)
+		for surface: int in range((mi.mesh as Mesh).get_surface_count()):
+			var arrays: Array = (mi.mesh as Mesh).surface_get_arrays(surface)
+			var cols: PackedColorArray = arrays[Mesh.ARRAY_COLOR] as PackedColorArray
+			for c: Color in cols:
+				var rgb: Color = Color(c.r, c.g, c.b)
+				var known: bool = false
+				for s: Color in seen:
+					if s.is_equal_approx(rgb):
+						known = true
+				if not known:
+					seen.append(rgb)
 	return seen
+
+
+func _has(colours: Array[Color], wanted: Color) -> bool:
+	for c: Color in colours:
+		if c.is_equal_approx(wanted):
+			return true
+	return false
+
+
+## Bounding box of the part on `bone`, in the bone's own space.
+func _bone_box(root: Node3D, bone: String) -> AABB:
+	var atts: Array[BoneAttachment3D] = []
+	_collect_attachments(root, atts)
+	for att: BoneAttachment3D in atts:
+		if att.bone_name == bone:
+			return ((att.get_child(0) as MeshInstance3D).mesh as Mesh).get_aabb()
+	return AABB()
 
 
 func _count_on_bone(root: Node3D, bone: String) -> int:
@@ -144,34 +164,31 @@ func test_every_mesh_is_rigid_on_a_bone_attachment_without_skinning() -> void:
 			assert_object(mi.skin).is_null()
 
 
-func test_colours_come_from_palette() -> void:
-	var allowed: Array[Color] = [Palette.RAKSHASA_SKIN, Palette.RAKSHASA_ARMOR, Palette.GOLD]
+func test_base_colours_come_from_palette() -> void:
+	## v2 shades the palette (darker feet, lighter chests, bronze), but every variant still shows the palette's
+	## rakshasa skin, armour crimson or gold plate, and gold trim, and never a foreign hue such as green.
 	for variant: StringName in VARIANT_NAMES:
-		for c: Color in _colours(_build(variant)):
-			var ok: bool = false
-			for a: Color in allowed:
-				if a.is_equal_approx(c):
-					ok = true
-			assert_bool(ok).is_true()
+		var colours: Array[Color] = _colours(_build(variant))
+		assert_bool(_has(colours, Palette.RAKSHASA_SKIN)).is_true()
+		assert_bool(_has(colours, Palette.GOLD)).is_true()
+		for c: Color in colours:
+			assert_bool(c.g > c.r and c.g > c.b).is_false()
+	assert_bool(_has(_colours(_build(&"spear")), Palette.RAKSHASA_ARMOR)).is_true()
 
 
 func test_skin_colour_is_used_and_lankini_has_gold_accents() -> void:
-	var skin_seen: bool = false
-	for c: Color in _colours(_build(&"brute")):
-		if c.is_equal_approx(Palette.RAKSHASA_SKIN):
-			skin_seen = true
-	assert_bool(skin_seen).is_true()
-	var gold_seen: bool = false
-	for c: Color in _colours(_build(&"lankini")):
-		if c.is_equal_approx(Palette.GOLD):
-			gold_seen = true
-	assert_bool(gold_seen).is_true()
+	assert_bool(_has(_colours(_build(&"brute")), Palette.RAKSHASA_SKIN)).is_true()
+	assert_bool(_has(_colours(_build(&"lankini")), Palette.GOLD)).is_true()
 
 
 func test_horns_are_attached_to_the_head() -> void:
 	for variant: StringName in VARIANT_NAMES:
-		## head sphere plus two horn cones
-		assert_int(_count_on_bone(_build(variant), "head")).is_greater_equal(3)
+		var root: Node3D = _build(variant)
+		assert_int(_count_on_bone(root, "head")).is_equal(1)
+		## The skull is about 0.35 m tall; horns (and crowns) carry the head part well above and beside it.
+		var box: AABB = _bone_box(root, "head")
+		assert_float(box.size.y).is_greater(0.5)
+		assert_float(box.size.x).is_greater(0.42)
 
 
 func test_weapons_follow_variant() -> void:
