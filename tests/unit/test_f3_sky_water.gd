@@ -156,6 +156,14 @@ func test_ocean_without_depth_effects_is_a_separate_cheaper_shader() -> void:
 	var cheap: MeshInstance3D = auto_free(WaterKit.ocean(Vector2(20.0, 20.0), &"day", 1.0, false)) as MeshInstance3D
 	var again: MeshInstance3D = auto_free(WaterKit.ocean(Vector2(8.0, 8.0), &"night", 1.0, false)) as MeshInstance3D
 	assert_bool(_ocean_material(cheap).shader.code.contains("#define DEPTH_EFFECTS")).is_false()
+	# Any write to ALPHA would put the material in the transparent pass: the Low variant must stay opaque.
+	var cheap_code: String = _ocean_material(cheap).shader.code
+	assert_bool(cheap_code.contains("ALPHA =")).is_false()
+	assert_bool(cheap_code.contains("ALPHA")).is_false()
+	assert_bool(_ocean_material(rich).shader.code.contains("ALPHA = alpha;")).is_true()
+	for code: String in [cheap_code, _ocean_material(rich).shader.code]:
+		assert_bool(code.contains("/*@")).is_false()
+		assert_int(code.count("render_mode")).is_equal(1)
 	assert_object(_ocean_material(cheap).shader).is_not_same(_ocean_material(rich).shader)
 	assert_object(_ocean_material(cheap).shader).is_same(_ocean_material(again).shader)
 
@@ -236,3 +244,81 @@ func test_nature_kit_ocean_plane_still_works() -> void:
 	assert_object(old).is_not_null()
 	assert_object(old.mesh as PlaneMesh).is_not_null()
 	assert_object(old.material_override as ShaderMaterial).is_not_null()
+
+
+func test_ocean_waves_are_computed_in_local_space() -> void:
+	# No world_vertex_coords: VERTEX in vertex() is ocean-local, as wave_offset() documents.
+	for depth_effects: bool in [true, false]:
+		var code: String = WaterKit.shader_code(depth_effects)
+		assert_bool(code.contains("world_vertex_coords")).is_false()
+		assert_bool(code.contains("MODEL_MATRIX * vec4(VERTEX, 1.0)")).is_true()
+
+
+func test_surface_height_follows_a_moved_ocean() -> void:
+	var ocean: MeshInstance3D = auto_free(WaterKit.ocean(Vector2(40.0, 40.0), &"day", 2.0)) as MeshInstance3D
+	ocean.position = Vector3(120.0, -3.0, -75.0)
+	# Unrotated and unscaled, as the kit requires.
+	assert_bool(ocean.transform.basis.is_equal_approx(Basis.IDENTITY)).is_true()
+	for i: int in range(20):
+		var local: Vector2 = Vector2(float(i) * 1.3 - 9.0, float(i) * -0.7 + 4.0)
+		var world: Vector3 = Vector3(120.0 + local.x, 50.0, -75.0 + local.y)
+		var expected: float = -3.0 + WaterKit.wave_height(local, 1.75, 2.0)
+		assert_float(WaterKit.surface_height_at(ocean, world, 1.75)).is_equal_approx(expected, 0.0001)
+	# The same world point on an ocean at the origin has a different phase: the waves travel with the node.
+	var at_origin: MeshInstance3D = auto_free(WaterKit.ocean(Vector2(40.0, 40.0), &"day", 2.0)) as MeshInstance3D
+	var probe: Vector3 = Vector3(123.0, 0.0, -71.0)
+	assert_bool(absf((WaterKit.surface_height_at(ocean, probe, 1.75) + 3.0)
+			- WaterKit.surface_height_at(at_origin, probe, 1.75)) > 0.001).is_true()
+
+
+func test_surface_height_uses_the_global_position_in_the_tree() -> void:
+	var parent: Node3D = auto_free(Node3D.new()) as Node3D
+	parent.position = Vector3(10.0, 2.0, 5.0)
+	var ocean: MeshInstance3D = WaterKit.ocean(Vector2(20.0, 20.0), &"day")
+	ocean.position = Vector3(4.0, 0.5, -1.0)
+	parent.add_child(ocean)
+	add_child(parent)
+	var expected: float = 2.5 + WaterKit.wave_height(Vector2(1.0, 2.0), 0.4)
+	assert_float(WaterKit.surface_height_at(ocean, Vector3(15.0, 0.0, 6.0), 0.4)).is_equal_approx(expected, 0.0001)
+
+
+func test_inferno_keeps_a_faint_moon_behind_the_smoke() -> void:
+	# Intended: Lanka burns at night, so the disc is a dim moon, never a daytime sun.
+	assert_float(_f(_sky_param(&"inferno", "moon_amount"))).is_equal_approx(1.0, 0.001)
+	assert_bool(_f(_sky_param(&"inferno", "sun_energy")) < _f(_sky_param(&"night", "sun_energy"))).is_true()
+	assert_bool(_f(_sky_param(&"inferno", "sun_halo")) < _f(_sky_param(&"night", "sun_halo"))).is_true()
+
+
+func test_every_sky_mood_and_ocean_variant_survives_a_frame_in_the_tree() -> void:
+	var root: Node3D = auto_free(Node3D.new()) as Node3D
+	add_child(root)
+	var world: WorldEnvironment = WorldEnvironment.new()
+	var environment: Environment = Environment.new()
+	environment.background_mode = Environment.BG_SKY
+	world.environment = environment
+	root.add_child(world)
+	var sun: DirectionalLight3D = DirectionalLight3D.new()
+	sun.rotation_degrees = Vector3(-35.0, 40.0, 0.0)
+	root.add_child(sun)
+	var camera: Camera3D = Camera3D.new()
+	camera.position = Vector3(0.0, 6.0, 12.0)
+	root.add_child(camera)
+	for mood: StringName in ALL_MOODS:
+		environment.sky = SkyKit.make_sky(mood)
+		var oceans: Array[MeshInstance3D] = []
+		for depth_effects: bool in [true, false]:
+			var ocean: MeshInstance3D = WaterKit.ocean(Vector2(30.0, 30.0), mood, 1.0, depth_effects)
+			ocean.position = Vector3(7.0, 0.0, -3.0) if depth_effects else Vector3(-40.0, 0.0, 0.0)
+			root.add_child(ocean)
+			oceans.append(ocean)
+		var foam: MeshInstance3D = WaterKit.shoreline_foam(10.0, 2.0, mood)
+		root.add_child(foam)
+		await get_tree().process_frame
+		assert_object((environment.sky.sky_material as ShaderMaterial).shader).is_not_null()
+		for ocean: MeshInstance3D in oceans:
+			assert_bool(ocean.is_inside_tree()).is_true()
+			assert_object(_ocean_material(ocean).shader).is_not_null()
+			assert_bool(ocean.get_aabb().size.x > 29.0).is_true()
+			ocean.queue_free()
+		foam.queue_free()
+		await get_tree().process_frame

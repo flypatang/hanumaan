@@ -4,8 +4,11 @@ extends RefCounted
 ## mood (SkyKit), a depth tint from shallow turquoise to Palette.DEEP_OCEAN, foam on crests and where the water
 ## meets geometry, and sun or moon sparkles. Lighting comes from the scene's DirectionalLight3D.
 ##
-## ocean() returns a ready MeshInstance3D; place its origin at sea level. wave_offset() mirrors the shader on
-## the CPU so that boats, rocks or Hanuman's shadow can follow the surface.
+## ocean() returns a ready MeshInstance3D; place its origin at sea level. The wave phase is computed in the
+## ocean's LOCAL space, so the node may be moved anywhere (the waves travel with it), but it must stay unrotated
+## and unscaled: the shader and the CPU mirror both assume local axes parallel to the world's, in metres.
+## wave_offset() mirrors the shader on the CPU so that boats, rocks or Hanuman's shadow can follow the surface;
+## surface_height_at() does the world-to-local conversion for an ocean node.
 
 ## Each wave: x, y = travel direction (normalised in use), z = steepness (0..1, the sum stays below 1 so crests
 ## never loop), w = wavelength in metres. Scaled by the `wave_scale` argument of ocean().
@@ -22,8 +25,13 @@ const TARGET_CELL_SIZE: float = 0.75
 const OCEAN_NAME: String = "Ocean"
 const FOAM_NAME: String = "ShorelineFoam"
 
+## Placeholders in SHADER_CODE, filled in by shader() for each variant.
+const DEPTH_DEFINE_TOKEN: String = "/*@DEPTH_DEFINE@*/"
+const ALPHA_WRITE_TOKEN: String = "/*@ALPHA_WRITE@*/"
+
 const SHADER_CODE: String = """shader_type spatial;
-render_mode world_vertex_coords, cull_back, specular_disabled;
+/*@DEPTH_DEFINE@*/
+render_mode cull_back, specular_disabled;
 
 #ifdef DEPTH_EFFECTS
 uniform sampler2D depth_texture : hint_depth_texture, repeat_disable, filter_nearest;
@@ -98,6 +106,8 @@ float mesh_weight(vec4 wave) {
 }
 
 void vertex() {
+	// Ocean-local rest position (the node is unrotated and unscaled, see WaterKit), so that the waves keep the
+	// same phase as WaterKit.wave_offset() wherever the ocean is placed.
 	base_xz = VERTEX.xz;
 	vec3 t = vec3(1.0, 0.0, 0.0);
 	vec3 b = vec3(0.0, 0.0, 1.0);
@@ -107,7 +117,7 @@ void vertex() {
 	offset += gerstner(wave_d, base_xz, TIME, mesh_weight(wave_d), t, b);
 	VERTEX += offset;
 	NORMAL = normalize(cross(b, t));
-	world_position = VERTEX;
+	world_position = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 }
 
 void fragment() {
@@ -154,8 +164,8 @@ void fragment() {
 	body = mix(body, shallow_colour, smoothstep(0.55, 0.9, patches) * 0.18);
 
 	float foam = 0.0;
-	float alpha = 1.0;
 #ifdef DEPTH_EFFECTS
+	float alpha = 1.0;
 	float depth_raw = texture(depth_texture, SCREEN_UV).r;
 	vec4 scene_view = INV_PROJECTION_MATRIX * vec4(SCREEN_UV * 2.0 - 1.0, depth_raw, 1.0);
 	scene_view.xyz /= scene_view.w;
@@ -192,7 +202,8 @@ void fragment() {
 	ROUGHNESS = mix(0.12, 0.9, foam);
 	SPECULAR = 0.0;
 	METALLIC = 0.0;
-	ALPHA = alpha;
+	// Only the depth-effects variant writes the alpha: any write would move the material to the transparent pass.
+	/*@ALPHA_WRITE@*/
 	NORMAL = normalize((VIEW_MATRIX * vec4(n, 0.0)).xyz);
 
 	shade_normal = n;
@@ -276,12 +287,22 @@ static var _shaders: Dictionary[bool, Shader] = {}
 static var _foam_shader: Shader = null
 
 
+## Source of the ocean shader for a variant: SHADER_CODE with its placeholders filled in. Without depth effects
+## the code neither reads the depth buffer nor writes the alpha, so the surface stays in the opaque pass.
+static func shader_code(depth_effects: bool = true) -> String:
+	var code: String = SHADER_CODE
+	code = code.replace(DEPTH_DEFINE_TOKEN, "#define DEPTH_EFFECTS" if depth_effects else "")
+	code = code.replace(ALPHA_WRITE_TOKEN, "ALPHA = alpha;" if depth_effects else "")
+	return code
+
+
 ## The ocean shader. With `depth_effects` it reads the depth buffer for the shallow tint, soft shore edge and
-## shoreline foam (and is drawn in the transparent pass); without, it is a cheaper opaque surface for Low.
+## shoreline foam (and is drawn in the transparent pass); without, it is a cheaper opaque surface for Low
+## (depth-tested and depth-written like any solid mesh).
 static func shader(depth_effects: bool = true) -> Shader:
 	if not _shaders.has(depth_effects):
 		var s: Shader = Shader.new()
-		s.code = SHADER_CODE.replace("render_mode", "#define DEPTH_EFFECTS\nrender_mode") if depth_effects else SHADER_CODE
+		s.code = shader_code(depth_effects)
 		_shaders[depth_effects] = s
 	return _shaders[depth_effects]
 
@@ -334,7 +355,8 @@ static func mood_params(mood: StringName) -> Dictionary[String, Variant]:
 	return p
 
 
-## An animated ocean surface `size` metres wide (x, z), centred on its origin at sea level.
+## An animated ocean surface `size` metres wide (x, z), centred on its origin at sea level. Move it freely, but
+## keep it unrotated and unscaled (the waves are computed in its local space).
 ## `wave_scale` enlarges the waves (1 suits the gameplay camera; 2-4 reads better from high in the air).
 ## `depth_effects = false` gives the cheaper opaque variant for the Low graphics preset.
 static func ocean(size: Vector2, mood: StringName, wave_scale: float = 1.0, depth_effects: bool = true) -> MeshInstance3D:
@@ -406,8 +428,11 @@ static func max_wave_height(wave_scale: float = 1.0) -> float:
 	return total
 
 
-## CPU mirror of the shader's waves: the offset of the surface point that rests at `rest_xz` (ocean-local metres)
-## at `time` seconds (the shader uses the engine's shader TIME). y is the height above sea level.
+## CPU mirror of the shader's waves: the offset of the surface point that rests at `rest_xz` (ocean-LOCAL metres,
+## i.e. relative to the ocean node's origin) at `time` seconds (the shader uses the engine's shader TIME). y is the
+## height above sea level. This is the full-detail surface that the per-pixel shading shows. The mesh itself fades
+## out waves shorter than a few grid cells (mesh_weight() in the shader) so its geometry can sit up to a few
+## centimetres from this value.
 static func wave_offset(rest_xz: Vector2, time: float, wave_scale: float = 1.0) -> Vector3:
 	var offset: Vector3 = Vector3.ZERO
 	for wave: Vector4 in WAVES:
@@ -423,3 +448,11 @@ static func wave_offset(rest_xz: Vector2, time: float, wave_scale: float = 1.0) 
 ## Height of the water above sea level at `rest_xz` (ignores the small sideways drift of Gerstner waves).
 static func wave_height(rest_xz: Vector2, time: float, wave_scale: float = 1.0) -> float:
 	return wave_offset(rest_xz, time, wave_scale).y
+
+
+## World-space y of the water surface of `ocean` (made by ocean(), unrotated and unscaled) at the world position
+## `world_position`, at `time` seconds. Converts to the ocean's local space and uses its own wave scale.
+static func surface_height_at(ocean: Node3D, world_position: Vector3, time: float) -> float:
+	var origin: Vector3 = ocean.global_position if ocean.is_inside_tree() else ocean.position
+	var scale: float = ocean.get_meta(&"wave_scale", 1.0) as float
+	return origin.y + wave_height(Vector2(world_position.x - origin.x, world_position.z - origin.z), time, scale)

@@ -229,6 +229,8 @@ static func mood_params(mood: StringName) -> Dictionary[String, Variant]:
 				"sky_energy": 1.0,
 			}
 		&"inferno":
+			# Lanka burns at night: moon_amount stays 1 on purpose, so the light source reads as a faint moon
+			# behind the smoke (low sun_energy and halo) and never as a daytime sun.
 			p = {
 				"zenith_colour": Color("#1C0F14"), "horizon_colour": Color("#C2481A"),
 				"ground_colour": Color("#2A0E0A"), "gradient_curve": 0.85,
