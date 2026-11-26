@@ -58,9 +58,9 @@ func _tap_key(code: Key) -> void:
 	_key(code, false)
 
 
-func _mouse(pressed: bool) -> void:
+func _mouse(pressed: bool, button: MouseButton = MOUSE_BUTTON_LEFT) -> void:
 	var ev: InputEventMouseButton = InputEventMouseButton.new()
-	ev.button_index = MOUSE_BUTTON_LEFT
+	ev.button_index = button
 	ev.pressed = pressed
 	Input.parse_input_event(ev)
 	Input.flush_buffered_events()
@@ -221,16 +221,15 @@ func test_the_mahendra_tutorial_advances_on_real_input() -> void:
 	_click()
 	assert_str(_step_names(director)).is_equal("heavy")
 
-	# 4. heavy attack: a held press
+	# 4. heavy attack: its own button (right mouse button)
 	director.tick(0.5)
-	assert_str(director.card_text()).is_equal("Hold to swing a heavy blow")
+	assert_str(director.card_text()).is_equal("Swing a heavy blow")
+	assert_str(director.card_glyph_text()).is_not_equal(KeyGlyph.text_for(&"attack_light"))
 	director.tick(0.2)
 	assert_str(_step_names(director)).is_equal("heavy")
-	_mouse(true)
-	director.tick(0.3)
-	assert_str(_step_names(director)).is_equal("heavy")
-	director.tick(0.3)
-	_mouse(false)
+	_mouse(true, MOUSE_BUTTON_RIGHT)
+	director.tick(0.1)
+	_mouse(false, MOUSE_BUTTON_RIGHT)
 	assert_str(_step_names(director)).is_equal("dodge")
 
 	# 5. dodge
@@ -543,7 +542,7 @@ func test_no_card_ever_shows_an_action_that_is_not_unlocked() -> void:
 		func() -> void: director.notify_event(TutorialDirector.TALK_FILE),
 		func() -> void: _click(),
 		func() -> void: _click(); _click(),
-		func() -> void: _mouse(true); director.tick(0.3); director.tick(0.3); _mouse(false),
+		func() -> void: _mouse(true, MOUSE_BUTTON_RIGHT); director.tick(0.1); _mouse(false, MOUSE_BUTTON_RIGHT),
 		func() -> void: _tap_key(KEY_SPACE),
 	]
 	for step: Callable in script:

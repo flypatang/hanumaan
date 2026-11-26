@@ -89,9 +89,9 @@ func test_movement_keys_and_left_stick() -> void:
 
 func test_combat_bindings() -> void:
 	assert_bool(_has_mouse(&"attack_light", MOUSE_BUTTON_LEFT)).is_true()
-	assert_bool(_has_mouse(&"attack_heavy", MOUSE_BUTTON_LEFT)).is_true()
+	assert_bool(_has_mouse(&"attack_heavy", MOUSE_BUTTON_RIGHT)).is_true()
 	assert_bool(_has_joy_button(&"attack_light", JOY_BUTTON_X)).is_true()
-	assert_bool(_has_joy_button(&"attack_heavy", JOY_BUTTON_X)).is_true()
+	assert_bool(_has_joy_button(&"attack_heavy", JOY_BUTTON_B)).is_true()
 
 
 func test_abilities_and_interaction_bindings() -> void:

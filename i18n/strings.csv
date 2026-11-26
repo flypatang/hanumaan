@@ -155,7 +155,7 @@ TUT_TALK_GO,Walk up to Jambavan,जाम्बवान के पास जा
 TUT_TALK,Talk to Jambavan,जाम्बवान से बात करो
 TUT_LIGHT,Strike the training rocks,प्रशिक्षण-शिलाओं पर प्रहार करो
 TUT_CHAIN,Strike three times in a row (%d/3),लगातार तीन प्रहार करो (%d/3)
-TUT_HEAVY,Hold to swing a heavy blow,भारी प्रहार के लिए दबाए रखो
+TUT_HEAVY,Swing a heavy blow,भारी प्रहार करो
 TUT_DODGE,Leap aside to dodge,छलाँग लगाकर बचो
 TUT_GROW,Grow to a mighty size,विशाल रूप धारण करो
 TUT_PEAK,Climb to the peak and leap,शिखर पर चढ़कर छलाँग लगाओ

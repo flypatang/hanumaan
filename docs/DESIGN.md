@@ -99,7 +99,7 @@ On-rails flight over the ocean. You steer within a corridor and dodge.
 |---|---|---|
 | Move | WASD | Left stick |
 | Light attack (gada) | LMB | X / □ |
-| Heavy attack (charged) | Hold LMB | Hold X / □ |
+| Heavy attack | RMB | B / ○ |
 | Leap (dodge or jump) | Space | A / ✕ |
 | Grow / Shrink (toggle cycle) | E / Q | RB / LB |
 | Interact | F | Y / △ |

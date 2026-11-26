@@ -34,7 +34,7 @@ const WATCHED_ACTIONS: Array[StringName] = [&"move_left", &"move_right", &"move_
 const TALK_TARGET_RANGE: float = 3.0
 const CHAIN_NEEDED: int = 3
 const CHAIN_GAP: float = 1.0
-const HEAVY_HOLD_SECONDS: float = 0.45
+const HEAVY_HOLD_SECONDS: float = 0.0  # heavy has its own button (RMB / B) since 2026-11-27: one press counts
 const STUCK_SECONDS: float = 20.0
 const HINT_SECONDS: float = 8.0
 const MAX_STUCK_HINTS: int = 3
@@ -277,14 +277,14 @@ func _register_press(action: StringName) -> void:
 		_mark(&"dodge")
 
 
-## The heavy attack is a held press: it counts once the button has been held long enough at the heavy step.
+## The heavy attack is its own button (RMB / gamepad B): pressing it at the heavy step counts.
 func _track_heavy(delta: float) -> void:
 	if current_step() != &"heavy" or not InputMap.has_action(&"attack_heavy"):
 		_heavy_hold = 0.0
 		return
 	if Input.is_action_pressed(&"attack_heavy"):
 		_heavy_hold += delta
-		if _heavy_hold >= HEAVY_HOLD_SECONDS:
+		if _heavy_hold > HEAVY_HOLD_SECONDS:
 			_mark(&"heavy")
 	else:
 		_heavy_hold = 0.0

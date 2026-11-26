@@ -19,7 +19,7 @@ static func register_all() -> void:
 	_bind_action(&"move_down", _STICK_DEADZONE, _events_key_and_axis(KEY_S, JOY_AXIS_LEFT_Y, 1.0))
 
 	_bind_action(&"attack_light", _DEFAULT_DEADZONE, _events_mouse_and_joy_button(MOUSE_BUTTON_LEFT, JOY_BUTTON_X))
-	_bind_action(&"attack_heavy", _DEFAULT_DEADZONE, _events_mouse_and_joy_button(MOUSE_BUTTON_LEFT, JOY_BUTTON_X))
+	_bind_action(&"attack_heavy", _DEFAULT_DEADZONE, _events_mouse_and_joy_button(MOUSE_BUTTON_RIGHT, JOY_BUTTON_B))  # own button: LMB+X made heavy unreachable (2026-11-27)
 
 	_bind_action(&"leap", _DEFAULT_DEADZONE, _events_key_and_joy_button(KEY_SPACE, JOY_BUTTON_A))
 	_bind_action(&"grow", _DEFAULT_DEADZONE, _events_key_and_joy_button(KEY_E, JOY_BUTTON_RIGHT_SHOULDER))
