@@ -213,6 +213,7 @@ func request_leap() -> void:
 	_face(_dodge_dir)
 	_dodge_cooldown_ticks = _ticks(DODGE_COOLDOWN)
 	_health.invulnerable = true
+	SoundPlayer.cue(self, &"dodge_whoosh")
 	_enter(State.DODGE)
 
 
@@ -239,6 +240,7 @@ func take_damage(amount: int, source: Node = null) -> void:
 	_health.damage(amount, source)
 	var lost: int = before - _health.value
 	if lost > 0:
+		SoundPlayer.cue(self, &"player_hurt")
 		_emit_bus(&"player_damaged", [lost, source])
 
 
@@ -282,6 +284,7 @@ func _tick() -> void:
 			if _state_ticks >= _ticks(HEAVY_WINDUP):
 				_heavy_hitbox.damage = roundi(float(HEAVY_DAMAGE) * damage_multiplier)
 				_heavy_hitbox.activate(10.0)
+				SoundPlayer.cue(self, &"gada_swing_heavy")
 				_enter(State.HEAVY_STRIKE)
 				_set_pose(&"attack_strike")
 		State.HEAVY_STRIKE:
@@ -357,6 +360,7 @@ func _start_light() -> void:
 	_buffered_light = false
 	_light_hitbox.damage = roundi(float(LIGHT_DAMAGE[_swing_index]) * damage_multiplier)
 	_light_hitbox.activate(10.0)
+	SoundPlayer.cue(self, &"gada_swing_light")
 	_enter(State.LIGHT)
 	_set_pose(&"attack_strike" if _swing_index % 2 == 0 else &"attack_wind")
 
@@ -421,6 +425,7 @@ func _on_hit_taken(dmg: int, knockback: Vector3, source: Node) -> void:
 	if _health.invulnerable:
 		return
 	_knock = knockback
+	SoundPlayer.cue(self, &"player_hurt")
 	_emit_bus(&"player_damaged", [roundi(float(dmg) * damage_taken_multiplier), source])
 
 

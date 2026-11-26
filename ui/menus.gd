@@ -357,9 +357,25 @@ func _add_button(parent: Control, button_name: String, key: String, handler: Cal
 	button.name = button_name
 	button.custom_minimum_size = Vector2(0.0, 44.0)
 	parent.add_child(button)
+	button.pressed.connect(_play_ui.bind(_button_sound(button_name)))
+	button.mouse_entered.connect(_play_ui.bind(&"ui_hover"))
 	button.pressed.connect(handler)
 	_localize(button, key)
 	return button
+
+
+func _button_sound(button_name: String) -> StringName:
+	match button_name:
+		"BackButton":
+			return &"ui_back"
+		"BeginButton", "ResumeButton":
+			return &"ui_confirm"
+		_:
+			return &"ui_click"
+
+
+func _play_ui(id: StringName) -> void:
+	SoundPlayer.cue(self, id)
 
 
 func _make_row(column: VBoxContainer, label_name: String, key: String) -> HBoxContainer:

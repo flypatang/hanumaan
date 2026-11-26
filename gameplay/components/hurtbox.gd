@@ -52,8 +52,18 @@ func try_hit(hitbox: Hitbox) -> bool:
 	var health: Health = _resolve_health()
 	if health != null:
 		health.damage(hitbox.damage, source)
+	_play_hit_sound(hitbox, health)
 	hit_taken.emit(hitbox.damage, _knockback_from(hitbox), source)
 	return true
+
+
+## Impact sound for a landed hit (positional); enemies also grunt. The player's own hurt sound lives in Player.
+func _play_hit_sound(hitbox: Hitbox, health: Health) -> void:
+	if health != null and health.invulnerable:
+		return
+	SoundPlayer.cue_at(self, &"impact_heavy" if hitbox.damage >= SoundPlayer.HEAVY_HIT_DAMAGE else &"impact_light")
+	if team == &"enemy":
+		SoundPlayer.cue_at(self, &"enemy_hurt")
 
 
 func _resolve_health() -> Health:

@@ -130,6 +130,7 @@ func surge() -> bool:
 			elif e.hp <= SURGE_DISSOLVE_HP:
 				e.apply_hit(maxi(e.hp, 1), dir, true)
 		_spawn_wave(owner_node)
+	SoundPlayer.cue(self, &"surge")
 	surge_fired.emit()
 	return true
 
@@ -175,6 +176,7 @@ func begin_exhausted() -> void:
 		if m != null:
 			m.set_pose(&"meditate")
 	_make_fade()
+	SoundPlayer.cue(self, &"exhausted")
 	_emit(&"player_exhausted", [])
 	exhausted_started.emit()
 
@@ -203,6 +205,7 @@ func _recover() -> void:
 			m.set_pose(&"idle")
 	_set_value(0.0)
 	_fade_out_t = 0.0
+	SoundPlayer.cue(self, &"recovered")
 	_emit(&"player_recovered", [])
 	recovered.emit()
 

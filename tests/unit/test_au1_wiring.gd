@@ -1,0 +1,138 @@
+extends GdUnitTestSuite
+## AU1: the gameplay files play their sounds (through the /root/Sound autoload's history hook).
+
+
+func _sound() -> SoundPlayer:
+	var s: SoundPlayer = get_tree().root.get_node_or_null("Sound") as SoundPlayer
+	assert_object(s).is_not_null()
+	s.clear_history()
+	return s
+
+
+func _player() -> Player:
+	var p: Player = auto_free(Player.new()) as Player
+	p.read_input = false
+	p.event_bus = auto_free((load("res://core/event_bus.gd") as GDScript).new()) as Node
+	add_child(p)
+	return p
+
+
+func _target() -> Hurtbox:
+	var holder: Node3D = auto_free(Node3D.new()) as Node3D
+	var health: Health = Health.new()
+	health.name = "Health"
+	health.max_value = 500
+	holder.add_child(health)
+	var hurt: Hurtbox = Hurtbox.new()
+	hurt.team = &"enemy"
+	hurt.health_path = NodePath("../Health")
+	holder.add_child(hurt)
+	add_child(holder)
+	return hurt
+
+
+func _run(p: Player, ticks: int) -> void:
+	for i: int in ticks:
+		p._physics_process(1.0 / 60.0)
+
+
+func test_autoload_registered() -> void:
+	assert_object(get_tree().root.get_node_or_null("Sound")).is_not_null()
+
+
+func test_scripted_fight_emits_swing_and_impact() -> void:
+	var s: SoundPlayer = _sound()
+	var p: Player = _player()
+	var target: Hurtbox = _target()
+	p.request_light_attack()
+	_run(p, 1)
+	assert_bool(target.try_hit(p.get_light_hitbox())).is_true()
+	var ids: Array[StringName] = s.recent_ids()
+	assert_bool(ids.has(&"gada_swing_light")).is_true()
+	assert_bool(ids.has(&"impact_light")).is_true()
+	assert_bool(ids.has(&"enemy_hurt")).is_true()
+
+
+func test_heavy_attack_and_heavy_impact() -> void:
+	var s: SoundPlayer = _sound()
+	var p: Player = _player()
+	var target: Hurtbox = _target()
+	p.request_heavy_attack()
+	_run(p, 40)
+	assert_bool(s.recent_ids().has(&"gada_swing_heavy")).is_true()
+	assert_bool(target.try_hit(p.get_heavy_hitbox())).is_true()
+	assert_bool(s.recent_ids().has(&"impact_heavy")).is_true()
+
+
+func test_dodge_and_player_hurt() -> void:
+	var s: SoundPlayer = _sound()
+	var p: Player = _player()
+	p.request_leap()
+	assert_bool(s.recent_ids().has(&"dodge_whoosh")).is_true()
+	var q: Player = _player()
+	s.clear_history()
+	q.take_damage(5, null)
+	assert_bool(s.recent_ids().has(&"player_hurt")).is_true()
+
+
+func test_size_shift_plays_grow_and_shrink() -> void:
+	var s: SoundPlayer = _sound()
+	var ss: SizeShift = auto_free(SizeShift.new()) as SizeShift
+	ss.event_bus = auto_free((load("res://core/event_bus.gd") as GDScript).new()) as Node
+	add_child(ss)
+	ss.force_size(SizeShift.SIZE.NORMAL)
+	s.clear_history()
+	ss._change_size(SizeShift.SIZE.LARGE)
+	assert_bool(s.recent_ids().has(&"size_grow")).is_true()
+	ss._change_size(SizeShift.SIZE.SMALL)
+	assert_bool(s.recent_ids().has(&"size_shrink")).is_true()
+
+
+func test_shrine_plays_bell() -> void:
+	var s: SoundPlayer = _sound()
+	var shrine: Shrine = auto_free(Shrine.new()) as Shrine
+	add_child(shrine)
+	s.clear_history()
+	shrine.interact(auto_free(Node.new()) as Node)
+	assert_bool(s.recent_ids().has(&"shrine_meditate")).is_true()
+
+
+func test_fire_plays_ignite_and_loop() -> void:
+	var s: SoundPlayer = _sound()
+	var fire: FireSystem = auto_free(FireSystem.new()) as FireSystem
+	add_child(fire)
+	var prop: Node3D = auto_free(Node3D.new()) as Node3D
+	prop.set_meta("flammable", true)
+	add_child(prop)
+	fire.register(prop)
+	s.clear_history()
+	assert_bool(fire.ignite(prop)).is_true()
+	assert_bool(s.recent_ids().has(&"fire_ignite")).is_true()
+	assert_bool(s.recent_ids().has(&"fire_loop")).is_true()
+
+
+func test_devotion_surge_exhausted_recovered() -> void:
+	var s: SoundPlayer = _sound()
+	var d: Devotion = auto_free(Devotion.new()) as Devotion
+	d.event_bus = auto_free((load("res://core/event_bus.gd") as GDScript).new()) as Node
+	add_child(d)
+	s.clear_history()
+	d.begin_exhausted()
+	assert_bool(s.recent_ids().has(&"exhausted")).is_true()
+	d._recover()
+	assert_bool(s.recent_ids().has(&"recovered")).is_true()
+
+
+func test_menu_buttons_click() -> void:
+	var s: SoundPlayer = _sound()
+	var menu: Menus = auto_free(Menus.new()) as Menus
+	add_child(menu)
+	s.clear_history()
+	var back: Button = menu.find_child("BackButton", true, false) as Button
+	assert_object(back).is_not_null()
+	back.pressed.emit()
+	assert_bool(s.recent_ids().has(&"ui_back")).is_true()
+	s.clear_history()
+	var begin: Button = menu.find_child("BeginButton", true, false) as Button
+	begin.pressed.emit()
+	assert_bool(s.recent_ids().has(&"ui_confirm")).is_true()

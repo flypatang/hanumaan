@@ -124,6 +124,7 @@ func tick(delta: float) -> void:
 func _change_size(next: SIZE) -> void:
 	if next == _size:
 		return
+	SoundPlayer.cue(self, &"size_grow" if next > _size else &"size_shrink")
 	_size = next
 	_tween_from = _visual
 	_tween_elapsed = 0.0

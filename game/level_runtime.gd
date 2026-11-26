@@ -94,6 +94,7 @@ var _cutscene_dialogue: bool = false
 var _spawn_position: Vector3 = Vector3.ZERO
 var _tiles: Dictionary = {}
 var _fade_tween: Tween = null
+var _step_time: float = 0.0
 
 
 # ---------------------------------------------------------------- accessors
@@ -393,6 +394,8 @@ func _on_cutscene_shloka(id: StringName) -> void:
 	_shloka_card.show_shloka(id)
 	if not _shloka_card.is_open():
 		_cutscene.continue_after_ui()
+	else:
+		SoundPlayer.cue(self, &"shloka_open")
 
 
 func _on_cutscene_card_closed(_id: StringName) -> void:
@@ -1009,9 +1012,30 @@ func _update_camera_zoom(delta: float) -> void:
 	_camera.size = lerpf(_camera.size, base * zoom, clampf(delta * 3.0, 0.0, 1.0))
 
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
+	_footsteps(delta)
 	if _tail_fire and _player != null and _fire != null:
 		burn_near(_player.global_position)
+
+
+## Plays a footstep every FOOTSTEP_INTERVAL seconds while the player walks, by the tile under the player.
+func _footsteps(delta: float) -> void:
+	if _player == null or not is_instance_valid(_player) or _leap != null:
+		return
+	var flat: Vector2 = Vector2(_player.velocity.x, _player.velocity.z)
+	if flat.length() < 0.5 or absf(_player.velocity.y) > 0.5 or _player.is_dodging():
+		_step_time = SoundPlayer.FOOTSTEP_INTERVAL
+		return
+	_step_time += delta
+	if _step_time < SoundPlayer.FOOTSTEP_INTERVAL:
+		return
+	_step_time = 0.0
+	var pos: Vector3 = _player.global_position
+	var cell: Vector2i = Vector2i(floori(pos.x / 2.0), floori(pos.z / 2.0))
+	var tile_type: String = "ground"
+	if _tiles.has(cell):
+		tile_type = str((_tiles[cell] as Dictionary)["type"])
+	SoundPlayer.cue(self, SoundPlayer.footstep_id_for(tile_type))
 
 
 ## The burning tail sets alight every flammable prop within reach of `where`. Returns how many caught.

@@ -261,6 +261,7 @@ func _enter(s: State) -> void:
 			_lost_time = 0.0
 		State.DISSOLVE:
 			velocity = Vector3.ZERO
+			SoundPlayer.cue_at(self, &"enemy_dissolve")
 			hitbox.deactivate()
 			telegraph.visible = false
 			hurtbox.monitoring = false

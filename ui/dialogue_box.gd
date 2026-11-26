@@ -370,6 +370,7 @@ func _remove_entry() -> void:
 func _advance_runner() -> void:
 	_choices_dirty = true
 	_line_seen = false
+	SoundPlayer.cue(self, &"dialogue_advance")
 	_runner.advance()
 	_sync()
 
@@ -389,6 +390,7 @@ func _on_line_shown(speaker: StringName, text: String) -> void:
 
 func _on_shloka_shown(shloka_id: StringName) -> void:
 	_card_open = true
+	SoundPlayer.cue(self, &"shloka_open")
 	_panel.visible = false
 	_clear_choices()
 	shloka_started.emit(shloka_id)
@@ -419,6 +421,7 @@ func _on_choice_pressed(index: int) -> void:
 	_clear_choices()
 	_choices_dirty = true
 	_line_seen = false
+	SoundPlayer.cue(self, &"choice_select")
 	choice_selected.emit(index)
 	_runner.choose(index)
 	_sync()

@@ -14,6 +14,7 @@ InputSetup="*res://core/input_setup.gd"
 EventBus="*res://core/event_bus.gd"
 GameState="*res://core/game_state.gd"
 Locale="*res://core/locale.gd"
+Sound="*res://core/sound.gd"
 Music="*res://gen/music_player.gd"
 Objectives="*res://narrative/objectives.gd"
 

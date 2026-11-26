@@ -28,6 +28,7 @@ class _Entry:
 	var burn_time: float = 0.0
 	var spread_done: bool = false
 	var flames: GPUParticles3D = null
+	var loop: Node = null
 
 
 var _entries: Array[_Entry] = []
@@ -98,6 +99,8 @@ func _start_burning(entry: _Entry) -> void:
 	entry.burn_time = 0.0
 	entry.flames = _make_flames()
 	entry.prop.add_child(entry.flames)
+	SoundPlayer.cue_at(entry.prop, &"fire_ignite")
+	entry.loop = SoundPlayer.cue_at(entry.prop, &"fire_loop")
 	var bus: Node = _event_bus()
 	if bus != null:
 		bus.emit_signal("fire_ignited", StringName(entry.prop.name))
@@ -116,6 +119,8 @@ func _burn_out(entry: _Entry) -> void:
 	entry.state = State.BURNT
 	if entry.flames != null:
 		entry.flames.emitting = false
+	SoundPlayer.stop_loop(entry.loop)
+	entry.loop = null
 	_char_meshes(entry.prop)
 
 

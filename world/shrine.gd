@@ -51,6 +51,7 @@ func interact(player: Node) -> void:
 	_refill_smarana(player)
 	if state != null:
 		state.call("save_game", SAVE_SLOT)
+	SoundPlayer.cue_at(self, &"shrine_meditate")
 	meditated.emit()
 
 
