@@ -55,11 +55,13 @@ func test_tiles_are_merged_one_mesh_per_type() -> void:
 	# Tiny level uses ground, water, stone_floor, grass, sand and wall: six material groups.
 	var root: Node3D = LevelBuilder.build(_load_tiny())
 	auto_free(root)
+	# (B6 adds the animated water surface "Water_<step>" next to them; it is not a tile mesh.)
 	var mesh_count: int = 0
 	for child: Node in _child(root, "Tiles").get_children():
-		if child is MeshInstance3D:
+		if child is MeshInstance3D and str(child.name).begins_with("Tiles_"):
 			mesh_count += 1
 	assert_int(mesh_count).is_equal(6)
+	assert_object(_child(root, "Tiles").get_node_or_null("Water_0") as MeshInstance3D).is_not_null()
 
 
 func test_navmesh_is_not_empty_for_tiny_level() -> void:

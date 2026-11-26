@@ -448,17 +448,17 @@ static func _tune_for_level(level_id: StringName, spec: Mood) -> void:
 	if not _WARM_INTERIOR_LEVELS.has(level_id):
 		return
 	# Ravana's court: a lamp-lit golden hall. Warmer bounce, less sky haze, a firelight key and a richer bloom.
-	spec.ambient_color = Color(0.46, 0.3, 0.5)
+	spec.ambient_color = Color(0.4, 0.32, 0.56)
 	spec.ambient_energy = 0.3
 	spec.contrast = 1.12
-	spec.key_color = Color(1.0, 0.72, 0.42)
+	spec.key_color = Color(1.0, 0.8, 0.56)
 	spec.key_energy = 0.68
 	spec.key_rotation = Vector3(-58.0, -30.0, 0.0)
 	spec.fill_color = Color(0.5, 0.42, 0.78)
 	spec.fill_energy = 0.14
 	spec.rim_color = Color(1.0, 0.62, 0.3)
 	spec.rim_energy = 0.3
-	spec.fog_color = Color(0.62, 0.34, 0.22)
+	spec.fog_color = Color(0.5, 0.33, 0.24)
 	spec.fog_density = 0.0003
 	spec.fog_height_density = 0.005
 	spec.volumetric_density = 0.003
@@ -467,7 +467,7 @@ static func _tune_for_level(level_id: StringName, spec: Mood) -> void:
 	spec.volumetric_emission_energy = 0.03
 	spec.glow_intensity = 0.9
 	spec.glow_threshold = 1.05
-	spec.saturation = 1.18
+	spec.saturation = 1.06
 
 
 # ---------------------------------------------------------------- the moods
@@ -575,9 +575,9 @@ static func _dusk() -> Mood:
 	m.cloud_shade = Color(0.36, 0.24, 0.5)
 	m.cloud_cover = 0.52
 	m.stars = 0.25
-	m.ambient_color = Color(0.42, 0.34, 0.72)
-	m.ambient_energy = 0.3
-	m.key_color = Color(1.0, 0.64, 0.38)
+	m.ambient_color = Color(0.36, 0.36, 0.74)
+	m.ambient_energy = 0.32
+	m.key_color = Color(1.0, 0.74, 0.5)
 	m.key_energy = 1.0
 	m.key_rotation = Vector3(-26.0, -48.0, 0.0)
 	m.key_angular_size = 2.2
@@ -587,8 +587,8 @@ static func _dusk() -> Mood:
 	m.rim_color = Color(1.0, 0.5, 0.4)
 	m.rim_energy = 0.28
 	m.rim_rotation = Vector3(-24.0, 140.0, 0.0)
-	m.fog_color = Color(0.82, 0.42, 0.4)
-	m.fog_density = 0.00054
+	m.fog_color = Color(0.7, 0.42, 0.42)
+	m.fog_density = 0.0003
 	m.fog_sun_scatter = 0.4
 	m.fog_height = -3.0
 	m.fog_height_density = 0.0225
@@ -599,13 +599,14 @@ static func _dusk() -> Mood:
 	m.glow_intensity = 0.9
 	m.glow_threshold = 1.05
 	m.glow_bloom = 0.03
-	m.saturation = 1.15
+	m.saturation = 1.06
 	m.contrast = 1.08
 	m.ssao_intensity = 2.3
 	return m
 
 
-## Moonlit Lanka: silver-blue moon, indigo air, warm lamps and gold left to glow. Readable, never black.
+## Moonlit Lanka: silver-blue moon, indigo air, a faint warm bounce from the lamps so stone is not a single blue,
+## and gold left to glow. Readable, never black.
 static func _night() -> Mood:
 	var m: Mood = Mood.new()
 	m.sky_top = Color(0.02, 0.03, 0.1)
@@ -620,14 +621,14 @@ static func _night() -> Mood:
 	m.cloud_shade = Color(0.07, 0.08, 0.2)
 	m.cloud_cover = 0.4
 	m.stars = 1.6
-	m.ambient_color = Color(0.14, 0.2, 0.62)
+	m.ambient_color = Color(0.2, 0.25, 0.54)
 	m.ambient_energy = 0.34
-	m.key_color = Color(0.42, 0.58, 1.0)
-	m.key_energy = 0.46
+	m.key_color = Color(0.56, 0.68, 1.0)
+	m.key_energy = 0.5
 	m.key_rotation = Vector3(-52.0, -30.0, 0.0)
 	m.key_angular_size = 1.6
 	m.shadow_opacity = 0.9
-	m.fill_color = Color(0.2, 0.22, 0.7)
+	m.fill_color = Color(0.72, 0.5, 0.4)
 	m.fill_energy = 0.1
 	m.fill_rotation = Vector3(-38.0, 85.0, 0.0)
 	m.rim_color = Color(0.4, 0.7, 1.0)
@@ -646,59 +647,65 @@ static func _night() -> Mood:
 	m.glow_intensity = 1.0
 	m.glow_threshold = 0.95
 	m.glow_bloom = 0.04
-	m.saturation = 1.2
+	m.saturation = 1.08
 	m.contrast = 1.1
 	m.brightness = 1.02
 	m.ssao_intensity = 1.8
 	return m
 
 
-## Lanka burning: firelight from below the smoke, ember-red haze, hot bloom, violet-black shadows.
+## Lanka burning, seen at night: a black smoky sky with an orange glow on the horizon, a low fire-coloured key
+## raking in from the side, a cool moonlit fill from above so stone keeps its own colour, and a red-orange rim
+## that shines UP from the fires below. The haze is thin and dark: the iso camera looks through a constant depth
+## of it, so a bright or dense fog would wash the whole frame red.
 static func _inferno() -> Mood:
 	var m: Mood = Mood.new()
-	m.sky_top = Color(0.06, 0.02, 0.06)
-	m.sky_horizon = Color(0.75, 0.22, 0.08)
-	m.sky_ground = Color(0.05, 0.012, 0.02)
-	m.sky_energy = 1.0
-	m.disc_color = Color(1.0, 0.45, 0.2)
+	m.sky_top = Color(0.02, 0.016, 0.03)
+	m.sky_horizon = Color(0.62, 0.24, 0.06)
+	m.sky_ground = Color(0.03, 0.014, 0.012)
+	m.sky_energy = 0.8
+	m.disc_color = Color(1.0, 0.5, 0.2)
 	m.disc_size = 0.04
-	m.disc_energy = 1.5
-	m.halo = 0.8
-	m.cloud_color = Color(0.9, 0.36, 0.14)
-	m.cloud_shade = Color(0.1, 0.04, 0.07)
-	m.cloud_cover = 0.72
-	m.stars = 0.2
-	m.ambient_color = Color(0.34, 0.13, 0.42)
+	m.disc_energy = 0.6
+	m.halo = 0.15
+	m.cloud_color = Color(0.5, 0.2, 0.08)
+	m.cloud_shade = Color(0.03, 0.022, 0.03)
+	m.cloud_cover = 0.8
+	m.stars = 0.1
+	m.ambient_color = Color(0.2, 0.2, 0.4)
 	m.ambient_energy = 0.3
-	m.key_color = Color(1.0, 0.46, 0.18)
-	m.key_energy = 0.95
-	m.key_rotation = Vector3(-34.0, -42.0, 0.0)
-	m.key_angular_size = 3.0
-	m.fill_color = Color(0.3, 0.22, 0.8)
-	m.fill_energy = 0.2
-	m.fill_rotation = Vector3(-45.0, 75.0, 0.0)
-	m.rim_color = Color(1.0, 0.34, 0.2)
-	m.rim_energy = 0.35
-	m.rim_rotation = Vector3(-20.0, 145.0, 0.0)
-	m.fog_color = Color(0.6, 0.16, 0.08)
-	m.fog_density = 0.0005
-	m.fog_sun_scatter = 0.3
+	m.key_color = Color(1.0, 0.64, 0.38)
+	m.key_energy = 0.85
+	m.key_rotation = Vector3(-31.0, -42.0, 0.0)
+	m.key_angular_size = 1.0
+	m.shadow_opacity = 0.95
+	m.fill_color = Color(0.45, 0.56, 0.92)
+	m.fill_energy = 0.3
+	m.fill_rotation = Vector3(-62.0, 80.0, 0.0)
+	m.rim_color = Color(1.0, 0.36, 0.14)
+	m.rim_energy = 0.32
+	m.rim_rotation = Vector3(16.0, 145.0, 0.0)
+	m.fog_color = Color(0.2, 0.085, 0.05)
+	m.fog_energy = 0.8
+	m.fog_density = 0.00016
+	m.fog_sun_scatter = 0.1
 	m.fog_height = -3.0
-	m.fog_height_density = 0.025
-	m.fog_sky_affect = 0.1
-	m.volumetric_density = 0.0025
-	m.volumetric_albedo = Color(1.0, 0.6, 0.4)
-	m.volumetric_emission = Color(0.9, 0.28, 0.08)
-	m.volumetric_emission_energy = 0.02
-	m.volumetric_anisotropy = 0.65
-	m.shaft_energy = 2.0
-	m.glow_intensity = 1.25
-	m.glow_strength = 1.1
-	m.glow_threshold = 0.95
-	m.glow_bloom = 0.06
-	m.saturation = 1.2
-	m.contrast = 1.12
-	m.ssao_intensity = 2.2
+	m.fog_height_density = 0.008
+	m.fog_sky_affect = 0.05
+	m.volumetric_density = 0.0009
+	m.volumetric_albedo = Color(0.7, 0.5, 0.4)
+	m.volumetric_emission = Color(0.6, 0.2, 0.06)
+	m.volumetric_emission_energy = 0.006
+	m.volumetric_anisotropy = 0.6
+	m.shaft_energy = 1.2
+	m.glow_intensity = 1.0
+	m.glow_strength = 1.0
+	m.glow_threshold = 1.0
+	m.glow_bloom = 0.03
+	m.saturation = 1.06
+	m.contrast = 1.14
+	m.brightness = 1.0
+	m.ssao_intensity = 2.4
 	return m
 
 

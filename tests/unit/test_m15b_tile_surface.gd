@@ -1,12 +1,15 @@
 extends GdUnitTestSuite
-## Acceptance tests for the M15b visual fix to world/level_builder.gd (DESIGN §9 M15b).
-## Tiles render as one continuous flat top per tile type, with side faces only where a neighbour is lower or
-## missing, solid merged blocks for walls, and a small deterministic colour jitter. Colliders and navmesh are unchanged.
+## Acceptance tests for the tile surfaces of world/level_builder.gd (DESIGN §9 M15b, reworked by B6 for
+## docs/ART.md "Geometry"). Tiles render as one continuous top per tile type, with side faces only where a
+## neighbour is lower or missing, and solid merged blocks for walls. Colliders and navmesh are unchanged.
+## B6 changed the numbers: tops are subdivided and gently uneven, faces are bevelled stone or rocky cliffs.
 
 const UP: Vector3 = Vector3(0.0, 1.0, 0.0)
 const EAST: Vector3 = Vector3(1.0, 0.0, 0.0)
 const WEST: Vector3 = Vector3(-1.0, 0.0, 0.0)
-const DOWN: Vector3 = Vector3(0.0, -1.0, 0.0)
+## A vertex belongs to a top when its normal points at least this much upwards; to a face when it leans past it.
+const TOP_DOT: float = 0.9
+const FACE_DOT: float = 0.75
 
 
 func _level(tiles: Array) -> Dictionary:
@@ -37,22 +40,13 @@ func _colours(mesh_node: MeshInstance3D) -> PackedColorArray:
 	return arrays[Mesh.ARRAY_COLOR] as PackedColorArray
 
 
-func _count_normal(mesh_node: MeshInstance3D, wanted: Vector3) -> int:
-	var count: int = 0
-	var norms: PackedVector3Array = _normals(mesh_node)
-	for n: Vector3 in norms:
-		if n.dot(wanted) > 0.999:
-			count += 1
-	return count
-
-
-## Counts vertices with normal `wanted` lying on the plane x = plane_x.
-func _count_normal_at_x(mesh_node: MeshInstance3D, wanted: Vector3, plane_x: float) -> int:
+## Counts the vertices of faces looking toward `wanted` that lie within `reach` of the plane x = plane_x.
+func _count_facing_near_x(mesh_node: MeshInstance3D, wanted: Vector3, plane_x: float, reach: float) -> int:
 	var count: int = 0
 	var verts: PackedVector3Array = _verts(mesh_node)
 	var norms: PackedVector3Array = _normals(mesh_node)
 	for i: int in range(verts.size()):
-		if norms[i].dot(wanted) > 0.999 and absf(verts[i].x - plane_x) < 0.001:
+		if norms[i].dot(wanted) > FACE_DOT and absf(verts[i].x - plane_x) <= reach:
 			count += 1
 	return count
 
@@ -62,41 +56,51 @@ func _side_vertices(mesh_node: MeshInstance3D) -> PackedVector3Array:
 	var verts: PackedVector3Array = _verts(mesh_node)
 	var norms: PackedVector3Array = _normals(mesh_node)
 	for i: int in range(verts.size()):
-		if not norms[i].dot(UP) > 0.999:
+		if absf(norms[i].y) < 0.5:
 			out.append(verts[i])
 	return out
 
 
 func test_flat_field_is_one_continuous_top() -> void:
 	var tiles: Array = []
-	for x: int in range(3):
-		for z: int in range(3):
+	for x: int in range(1, 4):
+		for z: int in range(1, 4):
 			tiles.append(_tile(x, z, "ground", 0))
 	var root: Node3D = LevelBuilder.build(_level(tiles))
 	auto_free(root)
 	var mesh_node: MeshInstance3D = _type_mesh(root, "ground")
 	assert_object(mesh_node).is_not_null()
-	# Nine flat top quads, two triangles each, three vertices per triangle, and no side faces at all.
-	assert_int(_verts(mesh_node).size()).is_equal(54)
-	assert_int(_count_normal(mesh_node, UP)).is_equal(54)
+	# Nine tops, each a grid of TOP_SUBDIVISIONS squared cells of two triangles, and no side faces at all.
+	var cells: int = LevelBuilder.TOP_SUBDIVISIONS * LevelBuilder.TOP_SUBDIVISIONS
+	assert_int(_verts(mesh_node).size()).is_equal(9 * cells * 6)
+	assert_int(_side_vertices(mesh_node).size()).is_equal(0)
+	for n: Vector3 in _normals(mesh_node):
+		assert_bool(n.dot(UP) > TOP_DOT).is_true()
 	assert_int(mesh_node.mesh.get_surface_count()).is_equal(1)
 
 
 func test_every_triangle_is_front_facing_for_godot() -> void:
 	# Godot draws clockwise triangles (seen from outside) as front faces, so each triangle's right-hand cross
-	# product must point against its stored normal. Otherwise the tiles render inside-out.
-	var tiles: Array = [_tile(0, 0, "ground", 2), _tile(1, 0, "ground", 0), _tile(0, 1, "wall", 0), _tile(1, 1, "grass", 1)]
+	# product must point against its stored normals. Otherwise the tiles render inside-out.
+	var tiles: Array = [
+		_tile(0, 0, "ground", 2), _tile(1, 0, "ground", 0), _tile(0, 1, "wall", 0), _tile(1, 1, "grass", 1),
+		_tile(2, 0, "stone_floor", 3), _tile(2, 1, "water", 0), _tile(2, 2, "sand", 0),
+	]
 	var root: Node3D = LevelBuilder.build(_level(tiles))
 	auto_free(root)
-	for tile_type: String in ["ground", "wall", "grass"]:
+	for tile_type: String in ["ground", "wall", "grass", "stone_floor", "water", "sand"]:
 		var mesh_node: MeshInstance3D = _type_mesh(root, tile_type)
 		var verts: PackedVector3Array = _verts(mesh_node)
 		var norms: PackedVector3Array = _normals(mesh_node)
+		assert_int(verts.size() % 3).is_equal(0)
+		var wrong: int = 0
 		var i: int = 0
 		while i + 2 < verts.size():
 			var geometric: Vector3 = (verts[i + 1] - verts[i]).cross(verts[i + 2] - verts[i])
-			assert_bool(geometric.dot(norms[i]) < 0.0).is_true()
+			if geometric.dot(norms[i] + norms[i + 1] + norms[i + 2]) >= 0.0:
+				wrong += 1
 			i += 3
+		assert_int(wrong).is_equal(0)
 
 
 func test_no_side_faces_between_equal_neighbours() -> void:
@@ -104,22 +108,21 @@ func test_no_side_faces_between_equal_neighbours() -> void:
 	var root: Node3D = LevelBuilder.build(_level(tiles))
 	auto_free(root)
 	var mesh_node: MeshInstance3D = _type_mesh(root, "ground")
-	# Shared boundary at x = 2 must produce no faces. Six exposed sides remain: 36 vertices. Tops: 12.
-	assert_int(_count_normal_at_x(mesh_node, EAST, 2.0)).is_equal(0)
-	assert_int(_count_normal_at_x(mesh_node, WEST, 2.0)).is_equal(0)
-	assert_int(_count_normal(mesh_node, UP)).is_equal(12)
-	assert_int(_verts(mesh_node).size()).is_equal(48)
+	# The shared boundary at x = 2 must produce no faces; the outer ends at x = 0 and x = 4 do.
+	assert_int(_count_facing_near_x(mesh_node, EAST, 2.0, 0.5)).is_equal(0)
+	assert_int(_count_facing_near_x(mesh_node, WEST, 2.0, 0.5)).is_equal(0)
+	assert_int(_count_facing_near_x(mesh_node, EAST, 4.0, 0.5)).is_greater(0)
+	assert_int(_count_facing_near_x(mesh_node, WEST, 0.0, 0.5)).is_greater(0)
 
 
 func test_lone_tile_cliffs_down_to_ground_level() -> void:
-	# A single tile at step 4 (top y = 2.0) with void all round: four cliff quads falling to y = 0.
+	# A single tile at step 4 (top y = 2.0) with void all round: four cliff faces falling to y = 0.
 	var tiles: Array = [_tile(0, 0, "ground", 4)]
 	var root: Node3D = LevelBuilder.build(_level(tiles))
 	auto_free(root)
 	var mesh_node: MeshInstance3D = _type_mesh(root, "ground")
-	assert_int(_verts(mesh_node).size()).is_equal(30)
 	var sides: PackedVector3Array = _side_vertices(mesh_node)
-	assert_int(sides.size()).is_equal(24)
+	assert_int(sides.size()).is_greater(4 * 6 - 1)
 	var low: float = 1000.0
 	var high: float = -1000.0
 	for v: Vector3 in sides:
@@ -127,6 +130,12 @@ func test_lone_tile_cliffs_down_to_ground_level() -> void:
 		high = maxf(high, v.y)
 	assert_float(low).is_equal_approx(0.0, 0.001)
 	assert_float(high).is_equal_approx(2.0, 0.001)
+	for dir: Vector3 in [EAST, WEST, Vector3(0.0, 0.0, 1.0), Vector3(0.0, 0.0, -1.0)]:
+		var facing: int = 0
+		for n: Vector3 in _normals(mesh_node):
+			if n.dot(dir) > FACE_DOT:
+				facing += 1
+		assert_int(facing).is_greater(0)
 
 
 func test_step_up_produces_cliff_face_over_the_height_difference() -> void:
@@ -136,13 +145,18 @@ func test_step_up_produces_cliff_face_over_the_height_difference() -> void:
 	var root: Node3D = LevelBuilder.build(_level(tiles))
 	auto_free(root)
 	var mesh_node: MeshInstance3D = _type_mesh(root, "ground")
-	assert_int(_count_normal_at_x(mesh_node, EAST, 2.0)).is_equal(6)
-	assert_int(_count_normal_at_x(mesh_node, WEST, 2.0)).is_equal(0)
+	assert_int(_count_facing_near_x(mesh_node, EAST, 2.0, 0.3)).is_greater(5)
+	assert_int(_count_facing_near_x(mesh_node, WEST, 2.0, 0.3)).is_equal(0)
 	var verts: PackedVector3Array = _verts(mesh_node)
 	var norms: PackedVector3Array = _normals(mesh_node)
+	var low: float = 1000.0
+	var high: float = -1000.0
 	for i: int in range(verts.size()):
-		if norms[i].dot(EAST) > 0.999 and absf(verts[i].x - 2.0) < 0.001:
-			assert_bool(verts[i].y >= -0.001 and verts[i].y <= 1.001).is_true()
+		if norms[i].dot(EAST) > FACE_DOT and absf(verts[i].x - 2.0) < 0.3:
+			low = minf(low, verts[i].y)
+			high = maxf(high, verts[i].y)
+	assert_float(low).is_equal_approx(0.0, 0.001)
+	assert_float(high).is_equal_approx(1.0, 0.001)
 
 
 func test_top_faces_sit_at_the_tile_height() -> void:
@@ -152,9 +166,13 @@ func test_top_faces_sit_at_the_tile_height() -> void:
 	var mesh_node: MeshInstance3D = _type_mesh(root, "grass")
 	var verts: PackedVector3Array = _verts(mesh_node)
 	var norms: PackedVector3Array = _normals(mesh_node)
+	var tops: int = 0
 	for i: int in range(verts.size()):
-		if norms[i].dot(UP) > 0.999:
-			assert_float(verts[i].y).is_equal_approx(1.5, 0.001)
+		if norms[i].dot(UP) > TOP_DOT:
+			tops += 1
+			# Visual height noise only: never more than HEIGHT_AMPLITUDE away from the collider's top.
+			assert_float(verts[i].y).is_equal_approx(1.5, LevelBuilder.HEIGHT_AMPLITUDE + 0.001)
+	assert_int(tops).is_greater(0)
 
 
 func test_wall_is_a_solid_block_with_no_bottom() -> void:
@@ -162,14 +180,23 @@ func test_wall_is_a_solid_block_with_no_bottom() -> void:
 	var root: Node3D = LevelBuilder.build(_level(tiles))
 	auto_free(root)
 	var mesh_node: MeshInstance3D = _type_mesh(root, "wall")
-	# Roof plus four sides: five quads, 30 vertices. No downward face.
-	assert_int(_verts(mesh_node).size()).is_equal(30)
-	assert_int(_count_normal(mesh_node, DOWN)).is_equal(0)
 	var verts: PackedVector3Array = _verts(mesh_node)
+	var norms: PackedVector3Array = _normals(mesh_node)
 	var top: float = -1000.0
-	for v: Vector3 in verts:
-		top = maxf(top, v.y)
+	var bottom: float = 1000.0
+	for i: int in range(verts.size()):
+		top = maxf(top, verts[i].y)
+		bottom = minf(bottom, verts[i].y)
+		# Nothing looks down at ground level: the block has no bottom face.
+		assert_bool(norms[i].y < -0.5 and verts[i].y < 0.2).is_false()
 	assert_float(top).is_equal_approx(2.0, 0.001)
+	assert_float(bottom).is_equal_approx(0.0, 0.001)
+	for dir: Vector3 in [EAST, WEST, Vector3(0.0, 0.0, 1.0), Vector3(0.0, 0.0, -1.0), UP]:
+		var facing: int = 0
+		for n: Vector3 in norms:
+			if n.dot(dir) > 0.999:
+				facing += 1
+		assert_int(facing).is_greater(0)
 
 
 func test_adjacent_walls_share_no_faces() -> void:
@@ -177,10 +204,9 @@ func test_adjacent_walls_share_no_faces() -> void:
 	var root: Node3D = LevelBuilder.build(_level(tiles))
 	auto_free(root)
 	var mesh_node: MeshInstance3D = _type_mesh(root, "wall")
-	# Two roofs (12 vertices) and six exposed sides (36 vertices).
-	assert_int(_verts(mesh_node).size()).is_equal(48)
-	assert_int(_count_normal_at_x(mesh_node, EAST, 2.0)).is_equal(0)
-	assert_int(_count_normal_at_x(mesh_node, WEST, 2.0)).is_equal(0)
+	assert_int(_count_facing_near_x(mesh_node, EAST, 2.0, 0.5)).is_equal(0)
+	assert_int(_count_facing_near_x(mesh_node, WEST, 2.0, 0.5)).is_equal(0)
+	assert_int(_count_facing_near_x(mesh_node, EAST, 4.0, 0.5)).is_greater(0)
 
 
 func test_wall_beside_ground_shows_its_exposed_face() -> void:
@@ -190,12 +216,12 @@ func test_wall_beside_ground_shows_its_exposed_face() -> void:
 	var wall_node: MeshInstance3D = _type_mesh(root, "wall")
 	var ground_node: MeshInstance3D = _type_mesh(root, "ground")
 	# The wall's east face runs from the ground top (0) up to its roof (2), so it is drawn.
-	assert_int(_count_normal_at_x(wall_node, EAST, 2.0)).is_equal(6)
+	assert_int(_count_facing_near_x(wall_node, EAST, 2.0, 0.3)).is_greater(5)
 	# The ground's west face would be buried in the wall, so it is not drawn.
-	assert_int(_count_normal_at_x(ground_node, WEST, 2.0)).is_equal(0)
+	assert_int(_count_facing_near_x(ground_node, WEST, 2.0, 0.5)).is_equal(0)
 
 
-func test_colour_jitter_is_small_and_varies_across_tiles() -> void:
+func test_colour_variation_is_gentle_and_varies_across_tiles() -> void:
 	var tiles: Array = []
 	for x: int in range(8):
 		for z: int in range(8):
@@ -203,18 +229,21 @@ func test_colour_jitter_is_small_and_varies_across_tiles() -> void:
 	var root: Node3D = LevelBuilder.build(_level(tiles))
 	auto_free(root)
 	var mesh_node: MeshInstance3D = _type_mesh(root, "ground")
-	var base: Color = Palette.BARK
 	var cols: PackedColorArray = _colours(mesh_node)
+	var low: float = 10.0
+	var high: float = 0.0
 	var distinct: Dictionary = {}
 	for c: Color in cols:
-		var ratio: float = c.r / base.r
-		# +-4% jitter; the tolerance allows for the 8-bit colour quantisation of vertex colours.
-		assert_bool(ratio >= 0.94 and ratio <= 1.06).is_true()
-		distinct[c.r] = true
-	assert_int(distinct.size()).is_greater(1)
+		low = minf(low, c.v)
+		high = maxf(high, c.v)
+		distinct[snappedf(c.v, 0.01)] = true
+	# Painted variation, not noise: a visible spread, but well inside one colour family.
+	assert_bool(high / low < 1.6).is_true()
+	assert_bool(high / low > 1.03).is_true()
+	assert_int(distinct.size()).is_greater(3)
 
 
-func test_colour_jitter_is_deterministic() -> void:
+func test_colours_are_deterministic() -> void:
 	var tiles: Array = [_tile(0, 0, "sand", 0), _tile(1, 0, "sand", 0), _tile(0, 1, "sand", 0)]
 	var first: Node3D = LevelBuilder.build(_level(tiles))
 	var second: Node3D = LevelBuilder.build(_level(tiles))
