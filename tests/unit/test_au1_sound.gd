@@ -89,3 +89,16 @@ func test_cue_without_autoload_node_does_not_crash() -> void:
 	assert_object(SoundPlayer.cue(null, &"ui_click")).is_null()
 	var n: Node = auto_free(Node.new()) as Node
 	assert_object(SoundPlayer.cue(n, &"ui_click")).is_null()
+
+
+func test_music_trim_does_not_stack_across_instances() -> void:
+	var idx: int = AudioServer.get_bus_index("Music")
+	var count_before: int = AudioServer.get_bus_effect_count(idx)
+	var a: SoundPlayer = SoundPlayer.new()
+	add_child(a)
+	var b: SoundPlayer = SoundPlayer.new()
+	add_child(b)
+	assert_int(AudioServer.get_bus_effect_count(idx)).is_less_equal(count_before + 1)
+	b.free()
+	a.free()
+	assert_int(AudioServer.get_bus_effect_count(idx)).is_equal(count_before)

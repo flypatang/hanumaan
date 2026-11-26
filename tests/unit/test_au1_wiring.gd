@@ -136,3 +136,83 @@ func test_menu_buttons_click() -> void:
 	var begin: Button = menu.find_child("BeginButton", true, false) as Button
 	begin.pressed.emit()
 	assert_bool(s.recent_ids().has(&"ui_confirm")).is_true()
+
+
+func test_freed_burning_prop_releases_fire_loop() -> void:
+	var s: SoundPlayer = _sound()
+	var fire: FireSystem = auto_free(FireSystem.new()) as FireSystem
+	add_child(fire)
+	var prop: Node3D = Node3D.new()
+	prop.set_meta("flammable", true)
+	add_child(prop)
+	fire.register(prop)
+	var before: int = s.get_child_count()
+	assert_bool(fire.ignite(prop)).is_true()
+	var loop: Node = null
+	for c: Node in s.get_children():
+		if c is AudioStreamPlayer3D and (c as AudioStreamPlayer3D).stream != null and (c as AudioStreamPlayer3D).stream.get("loop") == true:
+			loop = c
+	assert_object(loop).is_not_null()
+	prop.free()
+	await get_tree().process_frame
+	assert_bool(is_instance_valid(loop)).is_false()
+	assert_int(s.get_child_count()).is_less_equal(before + 1)
+
+
+func test_hurtbox_heavy_light_split_and_invulnerable_skip() -> void:
+	var s: SoundPlayer = _sound()
+	var target: Hurtbox = _target()
+	var hb: Hitbox = auto_free(Hitbox.new()) as Hitbox
+	hb.team = &"player"
+	add_child(hb)
+	hb.damage = SoundPlayer.HEAVY_HIT_DAMAGE
+	hb.activate(0.5)
+	assert_bool(target.try_hit(hb)).is_true()
+	assert_bool(s.recent_ids().has(&"impact_heavy")).is_true()
+	s.clear_history()
+	hb.damage = SoundPlayer.HEAVY_HIT_DAMAGE - 1
+	hb.activate(0.5)
+	assert_bool(target.try_hit(hb)).is_true()
+	assert_bool(s.recent_ids().has(&"impact_light")).is_true()
+	assert_bool(s.recent_ids().has(&"impact_heavy")).is_false()
+	s.clear_history()
+	(target.get_node("../Health") as Health).invulnerable = true
+	hb.activate(0.5)
+	target.try_hit(hb)
+	assert_bool(s.recent_ids().has(&"impact_light")).is_false()
+
+
+func test_player_hurt_cued_once_per_damage() -> void:
+	var s: SoundPlayer = _sound()
+	var p: Player = _player()
+	p.take_damage(5)
+	var n: int = 0
+	for id: StringName in s.recent_ids():
+		if id == &"player_hurt":
+			n += 1
+	assert_int(n).is_equal(1)
+
+
+func test_footsteps_id_and_interval() -> void:
+	var s: SoundPlayer = _sound()
+	var rt: LevelRuntime = auto_free(LevelRuntime.new()) as LevelRuntime
+	add_child(rt)
+	var p: Player = _player()
+	p.velocity = Vector3(3.0, 0.0, 0.0)
+	rt._player = p
+	rt._tiles = {Vector2i(0, 0): {"type": "grass", "step": 0}}
+	p.global_position = Vector3(0.5, 0.0, 0.5)
+	rt._step_time = 0.0
+	rt._footsteps(SoundPlayer.FOOTSTEP_INTERVAL * 0.5)
+	assert_bool(s.recent_ids().has(&"footstep_grass")).is_false()
+	rt._footsteps(SoundPlayer.FOOTSTEP_INTERVAL * 0.6)
+	assert_bool(s.recent_ids().has(&"footstep_grass")).is_true()
+
+
+func test_dissolve_and_shloka_cues() -> void:
+	var s: SoundPlayer = _sound()
+	var box: DialogueBox = auto_free(DialogueBox.new()) as DialogueBox
+	add_child(box)
+	s.clear_history()
+	box._on_shloka_shown(&"x")
+	assert_bool(s.recent_ids().has(&"shloka_open")).is_true()

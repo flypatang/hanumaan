@@ -36,6 +36,7 @@ var _streams: Dictionary = {}
 var _last_pick: Dictionary = {}
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 var _amp: AudioEffectAmplify = null
+var _owns_amp: bool = false
 var _duck_tween: Tween = null
 var _bus_node: Node = null
 
@@ -282,9 +283,30 @@ func _trim_music() -> void:
 	var index: int = AudioServer.get_bus_index(BUS_MUSIC)
 	if index < 0:
 		return
+	# Reuse an amplify already on the bus so repeated instances never stack effects.
+	for i: int in AudioServer.get_bus_effect_count(index):
+		var existing: AudioEffectAmplify = AudioServer.get_bus_effect(index, i) as AudioEffectAmplify
+		if existing != null:
+			_amp = existing
+			return
 	_amp = AudioEffectAmplify.new()
 	_amp.volume_db = MUSIC_TRIM_DB
 	AudioServer.add_bus_effect(index, _amp)
+	_owns_amp = true
+
+
+func _exit_tree() -> void:
+	if _duck_tween != null and _duck_tween.is_valid():
+		_duck_tween.kill()
+	if not _owns_amp or _amp == null:
+		return
+	var index: int = AudioServer.get_bus_index(BUS_MUSIC)
+	if index >= 0:
+		for i: int in AudioServer.get_bus_effect_count(index):
+			if AudioServer.get_bus_effect(index, i) == _amp:
+				AudioServer.remove_bus_effect(index, i)
+				break
+	_owns_amp = false
 
 
 func _duck(target_db: float) -> void:

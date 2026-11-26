@@ -101,9 +101,23 @@ func _start_burning(entry: _Entry) -> void:
 	entry.prop.add_child(entry.flames)
 	SoundPlayer.cue_at(entry.prop, &"fire_ignite")
 	entry.loop = SoundPlayer.cue_at(entry.prop, &"fire_loop")
+	if entry.loop != null and not entry.prop.tree_exiting.is_connected(_on_prop_exiting.bind(entry)):
+		entry.prop.tree_exiting.connect(_on_prop_exiting.bind(entry))
 	var bus: Node = _event_bus()
 	if bus != null:
 		bus.emit_signal("fire_ignited", StringName(entry.prop.name))
+
+
+## The prop left the tree while burning (chapter change, restart): its loop must not outlive it.
+func _on_prop_exiting(entry: _Entry) -> void:
+	SoundPlayer.stop_loop(entry.loop)
+	entry.loop = null
+
+
+func _exit_tree() -> void:
+	for entry: _Entry in _entries:
+		SoundPlayer.stop_loop(entry.loop)
+		entry.loop = null
 
 
 func _spread_from(source: _Entry) -> void:

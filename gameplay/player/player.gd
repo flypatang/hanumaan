@@ -240,7 +240,6 @@ func take_damage(amount: int, source: Node = null) -> void:
 	_health.damage(amount, source)
 	var lost: int = before - _health.value
 	if lost > 0:
-		SoundPlayer.cue(self, &"player_hurt")
 		_emit_bus(&"player_damaged", [lost, source])
 
 
@@ -425,11 +424,12 @@ func _on_hit_taken(dmg: int, knockback: Vector3, source: Node) -> void:
 	if _health.invulnerable:
 		return
 	_knock = knockback
-	SoundPlayer.cue(self, &"player_hurt")
 	_emit_bus(&"player_damaged", [roundi(float(dmg) * damage_taken_multiplier), source])
 
 
 func _emit_bus(signal_name: StringName, args: Array) -> void:
+	if signal_name == &"player_damaged":
+		SoundPlayer.cue(self, &"player_hurt")  # the single place the player's hurt sound is cued
 	var bus: Node = event_bus
 	if bus == null:
 		bus = get_node_or_null("/root/EventBus")
