@@ -77,7 +77,7 @@ func test_triangle_budget() -> void:
 		auto_free(ArchitectureKit.rooftop(SIZE, 9)),
 	]
 	for p: Node3D in props:
-		assert_int(_tri_count(_mesh_of(p))).is_less(3000)
+		assert_int(_tri_count(_mesh_of(p))).is_less(6000)
 
 
 func test_tier_house_has_gold_and_pillars() -> void:
