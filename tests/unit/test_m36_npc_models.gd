@@ -1,5 +1,6 @@
 extends GdUnitTestSuite
-## M36 acceptance tests for gen/npc_models.gd.
+## M36 acceptance tests for gen/npc_models.gd (helpers updated for the B3 art pass: parts may sit under pivot
+## nodes, colours may be shaded blends and the divine aura shell is not part of a figure's height).
 
 const IDS: Array[StringName] = [
 	&"jambavan", &"angada", &"vanara", &"sita", &"trijata", &"rakshasi", &"ravana",
@@ -28,9 +29,11 @@ func _height(root: Node3D) -> float:
 	var lo: float = BIG
 	var hi: float = -BIG
 	for mi: MeshInstance3D in list:
+		if String(mi.name).ends_with("Aura"):
+			continue
 		var box: AABB = (mi.mesh as Mesh).get_aabb()
 		for i: int in 8:
-			var p: Vector3 = mi.global_transform * box.get_endpoint(i) if mi.is_inside_tree() else _local_xf(mi, root) * box.get_endpoint(i)
+			var p: Vector3 = _local_xf(mi, root) * box.get_endpoint(i)
 			lo = minf(lo, p.y)
 			hi = maxf(hi, p.y)
 	return hi - lo
@@ -71,7 +74,7 @@ func test_ravana_wears_gold_crowns() -> void:
 	var cols: Array[Color] = _colors(n)
 	var found: bool = false
 	for c: Color in cols:
-		if c.is_equal_approx(Palette.GOLD):
+		if _near(c, Palette.GOLD):
 			found = true
 	assert_bool(found).is_true()
 
@@ -80,7 +83,7 @@ func test_angada_has_gold_armlets() -> void:
 	var cols: Array[Color] = _colors(auto_free(NpcModels.build(&"angada")) as Node3D)
 	var found: bool = false
 	for c: Color in cols:
-		if c.is_equal_approx(Palette.GOLD):
+		if _near(c, Palette.GOLD):
 			found = true
 	assert_bool(found).is_true()
 
@@ -89,7 +92,7 @@ func test_rama_skin_tone() -> void:
 	var cols: Array[Color] = _colors(auto_free(NpcModels.build(&"rama")) as Node3D)
 	var found: bool = false
 	for c: Color in cols:
-		if c.is_equal_approx(Color("#2E4A7A")):
+		if _near(c, Color("#2E4A7A")):
 			found = true
 	assert_bool(found).is_true()
 
@@ -97,19 +100,46 @@ func test_rama_skin_tone() -> void:
 func test_vanara_seed_variants_differ() -> void:
 	var a: Array[Color] = _colors(auto_free(NpcModels.build(&"vanara_0")) as Node3D)
 	var b: Array[Color] = _colors(auto_free(NpcModels.build(&"vanara_1")) as Node3D)
-	assert_bool(a != b).is_true()
+	var same: bool = a.size() == b.size()
+	if same:
+		for c: Color in a:
+			var hit: bool = false
+			for d: Color in b:
+				if _near(c, d):
+					hit = true
+					break
+			if not hit:
+				same = false
+				break
+	assert_bool(same).is_false()
 
 
+## B3: vertex colours may be shaded, so each one must be a documented colour or a blend of two documented colours
+## (alpha is the wind weight and is ignored).
 func test_only_documented_colours() -> void:
 	var allowed: Array[Color] = NpcModels.allowed_colors()
 	for id: StringName in IDS:
 		for c: Color in _colors(auto_free(NpcModels.build(id)) as Node3D):
-			var ok: bool = false
-			for a: Color in allowed:
-				if a.is_equal_approx(c):
-					ok = true
-					break
-			assert_bool(ok).override_failure_message("%s uses undocumented colour %s" % [id, c.to_html()]).is_true()
+			assert_bool(_is_blend(c, allowed)).override_failure_message("%s uses undocumented colour %s" % [id, c.to_html()]).is_true()
+
+
+func _near(a: Color, b: Color) -> bool:
+	return Vector3(a.r, a.g, a.b).distance_to(Vector3(b.r, b.g, b.b)) < 0.006
+
+
+func _is_blend(c: Color, allowed: Array[Color]) -> bool:
+	var v: Vector3 = Vector3(c.r, c.g, c.b)
+	for i: int in allowed.size():
+		var a: Vector3 = Vector3(allowed[i].r, allowed[i].g, allowed[i].b)
+		if a.distance_to(v) < 0.012:
+			return true
+		for j: int in range(i + 1, allowed.size()):
+			var b: Vector3 = Vector3(allowed[j].r, allowed[j].g, allowed[j].b)
+			var ab: Vector3 = b - a
+			var t: float = clampf((v - a).dot(ab) / maxf(ab.length_squared(), 1e-9), 0.0, 1.0)
+			if (a + ab * t).distance_to(v) < 0.012:
+				return true
+	return false
 
 
 func test_unknown_id_falls_back() -> void:
@@ -123,8 +153,9 @@ func test_set_pose_idle_is_safe() -> void:
 	assert_object(n).is_not_null()
 
 
+## Unique vertex colours (rgb only, quantised to 8 bits).
 func _colors(root: Node3D) -> Array[Color]:
-	var out: Array[Color] = []
+	var seen: Dictionary = {}
 	var list: Array[MeshInstance3D] = []
 	_meshes(root, list)
 	for mi: MeshInstance3D in list:
@@ -133,11 +164,8 @@ func _colors(root: Node3D) -> Array[Color]:
 			var arrs: Array = m.surface_get_arrays(s)
 			var cs: PackedColorArray = arrs[Mesh.ARRAY_COLOR] as PackedColorArray
 			for c: Color in cs:
-				var seen: bool = false
-				for o: Color in out:
-					if o.is_equal_approx(c):
-						seen = true
-						break
-				if not seen:
-					out.append(c)
+				seen[Color(c.r, c.g, c.b, 1.0).to_rgba32()] = true
+	var out: Array[Color] = []
+	for key: Variant in seen:
+		out.append(Color.hex(key as int))
 	return out
