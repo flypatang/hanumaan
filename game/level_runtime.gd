@@ -25,10 +25,10 @@ const PLAYER_GROUP: StringName = &"player"
 const OCCLUDER_GROUP: StringName = &"occluder"
 const START_SMARANA: float = 60.0
 const SPAWN_LIFT: float = 0.1
-const CAMERA_SIZE: float = 10.0
+const CAMERA_SIZE: float = 7.5  # closer framing so the v2 Hanuman reads (owner review 2026-11-26)
 ## Per-level base framing (ortho size) and a zoom factor per Hanuman size, so a cat-sized Hanuman is never a speck
 ## and a giant one stays in frame (director review 2026-11-26).
-const LEVEL_CAMERA_SIZE: Dictionary = {"lanka_streets": 12.0, "lanka_rooftops": 16.0, "ashoka_vatika": 12.0}
+const LEVEL_CAMERA_SIZE: Dictionary = {"lanka_streets": 9.5, "lanka_rooftops": 12.5, "ashoka_vatika": 9.5}
 const SIZE_ZOOM: Dictionary = {0: 0.7, 1: 1.0, 2: 1.6, 3: 2.6}
 const NIGHT_LEVELS: Array[String] = ["ashoka_vatika", "ravana_court"]
 const WALKABLE: Array[String] = ["ground", "stone_floor", "grass", "sand"]
