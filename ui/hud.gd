@@ -33,6 +33,16 @@ const DONE_ALPHA: float = 0.5
 const BUS_NAME: String = "EventBus"
 const LOCALE_NAME: String = "Locale"
 const UI_FONT_ROLE: StringName = &"ui"
+## The ability bar (DESIGN §4.1a point 4): id, action whose glyph is shown, name key, and the unlock it needs (empty: always).
+const ABILITIES: Array[Dictionary] = [
+	{"id": &"dodge", "action": &"leap", "name": "CTRL_BAR_DODGE", "unlock": &""},
+	{"id": &"grow", "action": &"grow", "name": "CTRL_BAR_GROW", "unlock": &"grow"},
+	{"id": &"shrink", "action": &"shrink", "name": "CTRL_BAR_SHRINK", "unlock": &"shrink"},
+	{"id": &"surge", "action": &"smarana_surge", "name": "CTRL_BAR_SURGE", "unlock": &"surge"},
+]
+const GROW_MIN_SMARANA: float = 6.0
+const GROW_SCALE: float = 2.5
+const GREYED: Color = Color(0.55, 0.55, 0.6, 0.5)
 const HINDI_PREFIX: String = "hi"
 
 ## The HUD's own labels, used whenever tr() returns the key unchanged (the translation row is missing).
@@ -92,6 +102,12 @@ var _boss_panel: VBoxContainer = null
 var _boss_name_label: Label = null
 var _boss_bar: ProgressBar = null
 var _alarm_label: Label = null
+var _ability_box: HBoxContainer = null
+var _ability_chips: Dictionary = {}
+var _ability_state: Node = null
+var _ability_player: Player = null
+var _ability_size: SizeShift = null
+var _ability_devotion: Devotion = null
 
 
 func _init() -> void:
@@ -107,6 +123,7 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	advance(delta)
+	refresh_abilities()
 
 
 ## Chooses the EventBus and Locale this HUD listens to. A null locale means the Locale autoload.
@@ -119,6 +136,131 @@ func connect_to(bus: Node, locale: Node = null) -> void:
 	_locale = locale if locale != null else _autoload(LOCALE_NAME)
 	_set_bus_wiring(true)
 	_wire(_locale, &"language_changed", _on_language_changed, true)
+
+
+## Gives the ability bar what it needs to know which powers are unlocked and usable. Any argument may be null:
+## `state` is a GameState node (null reads the autoload), `player` gives the dodge cooldown, `size_shift` the size and the
+## ceiling, `devotion` the surge. Without them an unlocked power counts as usable.
+func bind_abilities(state: Node, player: Player, size_shift: SizeShift, devotion: Devotion) -> void:
+	_ability_state = state
+	_ability_player = player
+	_ability_size = size_shift
+	_ability_devotion = devotion
+	refresh_abilities()
+
+
+## The abilities on the bar right now: {id, action, name, usable}. Only unlocked abilities appear.
+func ability_entries() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	var state: Node = _ability_state if _ability_state != null else _autoload("GameState")
+	for def: Dictionary in ABILITIES:
+		var needed: StringName = def["unlock"] as StringName
+		if needed != &"" and not (state != null and state.call("is_unlocked", needed) as bool):
+			continue
+		var id: StringName = def["id"] as StringName
+		out.append({
+			"id": id, "action": def["action"], "name": _tr(str(def["name"])), "usable": _ability_usable(id),
+		})
+	return out
+
+
+## The text on the glyph of ability `id`, or "" when it is not on the bar.
+func ability_glyph_text(id: StringName) -> String:
+	if not _ability_chips.has(id):
+		return ""
+	var chip: Dictionary = _ability_chips[id] as Dictionary
+	var panel: PanelContainer = chip["panel"] as PanelContainer
+	return (chip["glyph"] as KeyGlyph).shown_text() if panel.visible else ""
+
+
+func ability_shown(id: StringName) -> bool:
+	if not _ability_chips.has(id):
+		return false
+	return ((_ability_chips[id] as Dictionary)["panel"] as PanelContainer).visible
+
+
+## True when the chip is drawn greyed out (the ability exists but cannot be used right now).
+func ability_greyed(id: StringName) -> bool:
+	if not _ability_chips.has(id):
+		return false
+	return ((_ability_chips[id] as Dictionary)["panel"] as PanelContainer).modulate.is_equal_approx(GREYED)
+
+
+## Shows, hides and greys the chips to match ability_entries().
+func refresh_abilities() -> void:
+	var shown: Array[StringName] = []
+	for entry: Dictionary in ability_entries():
+		var id: StringName = entry["id"] as StringName
+		shown.append(id)
+		var chip: Dictionary = _ability_chip(id)
+		var panel: PanelContainer = chip["panel"] as PanelContainer
+		panel.visible = true
+		(chip["glyph"] as KeyGlyph).set_action(entry["action"] as StringName)
+		(chip["label"] as Label).text = entry["name"] as String
+		panel.modulate = Color.WHITE if (entry["usable"] as bool) else GREYED
+	for id: StringName in _ability_chips.keys():
+		if not shown.has(id):
+			((_ability_chips[id] as Dictionary)["panel"] as PanelContainer).visible = false
+
+
+func _ability_usable(id: StringName) -> bool:
+	match id:
+		&"dodge":
+			return _ability_player == null or not is_instance_valid(_ability_player) or _ability_player.can_dodge()
+		&"grow":
+			if _current_size() >= SIZE_LARGE:
+				return false
+			if _smarana < GROW_MIN_SMARANA:
+				return false
+			if _ability_size != null and _ability_size.has_method("_ceiling_blocked"):
+				return not (_ability_size.call("_ceiling_blocked", GROW_SCALE) as bool)
+			return true
+		&"shrink":
+			return _current_size() > SIZE_SMALL
+		&"surge":
+			if _ability_devotion != null and is_instance_valid(_ability_devotion):
+				return _ability_devotion.can_surge()
+			return _smarana >= SMARANA_MAX
+	return true
+
+
+func _current_size() -> int:
+	if _ability_size != null and is_instance_valid(_ability_size):
+		return int(_ability_size.get_size())
+	return _size
+
+
+func _ability_chip(id: StringName) -> Dictionary:
+	if _ability_chips.has(id):
+		return _ability_chips[id] as Dictionary
+	var panel: PanelContainer = PanelContainer.new()
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var box: StyleBoxFlat = StyleBoxFlat.new()
+	box.bg_color = Color(Palette.UI_DARK, 0.72)
+	box.border_color = Color(Palette.GOLD, 0.7)
+	box.set_border_width_all(1)
+	box.set_corner_radius_all(12)
+	box.content_margin_left = 6.0
+	box.content_margin_right = 12.0
+	box.content_margin_top = 4.0
+	box.content_margin_bottom = 4.0
+	panel.add_theme_stylebox_override("panel", box)
+	var row: HBoxContainer = HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(row)
+	var glyph: KeyGlyph = KeyGlyph.new()
+	glyph.set_compact(true)
+	row.add_child(glyph)
+	var label: Label = _make_label(MIN_FONT_SIZE)
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.custom_minimum_size.y = 0.0
+	row.add_child(label)
+	panel.visible = false
+	_ability_box.add_child(panel)
+	var chip: Dictionary = {"panel": panel, "glyph": glyph, "label": label}
+	_ability_chips[id] = chip
+	return chip
 
 
 ## Removes every objective row. Runs on EventBus.level_loaded so a new chapter starts with an empty list.
@@ -145,6 +287,7 @@ func refresh_texts() -> void:
 	_refresh_boss_name()
 	_alarm_label.text = _tr("UI_HUD_ALARM")
 	_fit_all_labels()
+	refresh_abilities()
 
 
 ## Moves the alarm timer forward. The HUD calls this from _process; tests call it directly.
@@ -522,6 +665,14 @@ func _build_ui() -> void:
 	_alarm_label.add_theme_color_override("font_color", Palette.SINDOOR)
 	_alarm_label.visible = false
 	center.add_child(_alarm_label)
+
+	_ability_box = HBoxContainer.new()
+	_ability_box.name = "AbilityBar"
+	_ability_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_ability_box.add_theme_constant_override("separation", 10)
+	_ability_box.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT, Control.PRESET_MODE_MINSIZE, MARGIN)
+	_ability_box.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	_root.add_child(_ability_box)
 
 
 func _make_label(size: int) -> Label:

@@ -145,8 +145,70 @@ OBJ_CH4_WAVES,Break the grove's defenders,वाटिका के रक्ष
 OBJ_CH5_COURT,Speak before Ravana,रावण के सम्मुख वचन कहें
 OBJ_CH5_BURN,Spread fire to the rakshasa armouries,राक्षसों के शस्त्रागारों में अग्नि फैलाएँ
 OBJ_CH5_OCEAN,Reach the ocean and cool your tail,समुद्र तक पहुँचकर पूँछ की अग्नि शांत करें
-PUZ_SURASA_GROW,Grow! (E),बढ़ें! (E)
-PUZ_SURASA_SHRINK,Shrink now! (Q),अब सिकुड़ें! (Q)
+PUZ_SURASA_GROW,Grow! (%s),बढ़ें! (%s)
+PUZ_SURASA_SHRINK,Shrink now! (%s),अब सिकुड़ें! (%s)
 UI_CREDITS_1,Based on the Sundara Kanda of the Valmiki Ramayana,वाल्मीकि रामायण के सुन्दरकाण्ड पर आधारित
 UI_CREDITS_2,Thank you for playing,खेलने के लिए धन्यवाद
 UI_CREDITS_3,Press any key,कोई भी कुंजी दबाएँ
+TUT_MOVE,Move around,चारों ओर चलो
+TUT_TALK_GO,Walk up to Jambavan,जाम्बवान के पास जाओ
+TUT_TALK,Talk to Jambavan,जाम्बवान से बात करो
+TUT_LIGHT,Strike the training rocks,प्रशिक्षण-शिलाओं पर प्रहार करो
+TUT_CHAIN,Strike three times in a row (%d/3),लगातार तीन प्रहार करो (%d/3)
+TUT_HEAVY,Hold to swing a heavy blow,भारी प्रहार के लिए दबाए रखो
+TUT_DODGE,Leap aside to dodge,छलाँग लगाकर बचो
+TUT_GROW,Grow to a mighty size,विशाल रूप धारण करो
+TUT_PEAK,Climb to the peak and leap,शिखर पर चढ़कर छलाँग लगाओ
+PROMPT_TALK,Talk,बात करें
+PROMPT_MEDITATE,Meditate,ध्यान करें
+PROMPT_EXAMINE,Examine,जाँचें
+UNLOCK_NEW,New power,नई शक्ति
+UNLOCK_CONTINUE,Press %s to continue,आगे बढ़ने के लिए %s दबाओ
+UNLOCK_GROW_TITLE,Grow,विशाल रूप
+UNLOCK_GROW_TEXT,"Swell to a mighty size: your blows fall twice as hard, but holding it drains Smarana.","विशाल रूप धरो: तुम्हारे प्रहार दुगुने प्रबल होंगे, पर इसे थामे रखने में स्मरण घटता है।"
+UNLOCK_SHRINK_TITLE,Shrink,सूक्ष्म रूप
+UNLOCK_SHRINK_TEXT,Become tiny to slip through narrow gaps and past watchful eyes.,सूक्ष्म रूप धरकर संकरे मार्गों और सजग आँखों से बचकर निकलो।
+UNLOCK_SURGE_TITLE,Smarana surge,स्मरण-प्रवाह
+UNLOCK_SURGE_TEXT,"With the meter full, call on Rama's name: a shockwave dissolves weak foes and stuns bosses.",स्मरण पूर्ण हो तो राम का नाम लो: एक तरंग दुर्बल शत्रुओं को विलीन करती और महाबलियों को स्तब्ध करती है।
+UNLOCK_TAIL_FIRE_TITLE,Tail fire,पूँछ की अग्नि
+UNLOCK_TAIL_FIRE_TEXT,Your tail burns now. Whatever you brush past may catch fire.,"अब तुम्हारी पूँछ प्रज्वलित है। जिसके पास से गुज़रो, उसमें अग्नि लग सकती है।"
+CTRL_TITLE,Controls,नियंत्रण
+CTRL_GROUP_MOVE,Move,चलना
+CTRL_GROUP_FIGHT,Fight,युद्ध
+CTRL_GROUP_POWERS,Powers,शक्तियाँ
+CTRL_GROUP_MENUS,Menus,मेनू
+CTRL_MOVE,Move,चलो
+CTRL_INTERACT,Interact,संवाद / ध्यान
+CTRL_CAMERA,Rotate camera,कैमरा घुमाओ
+CTRL_LIGHT,Light attack,हल्का प्रहार
+CTRL_HEAVY,Heavy attack (hold),भारी प्रहार (दबाए रखो)
+CTRL_DODGE,Dodge / leap,छलाँग / बचाव
+CTRL_GROW,Grow,विशाल रूप
+CTRL_SHRINK,Shrink,सूक्ष्म रूप
+CTRL_SURGE,Smarana surge,स्मरण-प्रवाह
+CTRL_TAIL_FIRE,Tail fire (always lit),पूँछ की अग्नि (सदा प्रज्वलित)
+CTRL_PAUSE,Pause,विराम
+CTRL_SHOW,Show controls (hold),नियंत्रण दिखाओ (दबाए रखो)
+CTRL_RELEASE,Release to close,बंद करने के लिए छोड़ दो
+CTRL_BAR_DODGE,Dodge,बचाव
+CTRL_BAR_GROW,Grow,बढ़ो
+CTRL_BAR_SHRINK,Shrink,सिकुड़ो
+CTRL_BAR_SURGE,Surge,प्रवाह
+UI_MENU_CONTROLS,Controls,नियंत्रण
+UI_MENU_TUTORIAL_HINTS,Tutorial hints,शिक्षण-संकेत
+HINT_SPEAKER_JAMBAVAN,Jambavan,जाम्बवान
+HINT_SPEAKER_NARRATOR,Narrator,सूत्रधार
+HINT_PRO_MOVE,"Child of the wind, walk! Use %s to move.","पवनपुत्र, चलो! चलने के लिए %s दबाओ।"
+HINT_PRO_TALK,"Come to me, Hanuman. Press %s when you stand near me.","मेरे पास आओ, हनुमान। निकट आकर %s दबाओ।"
+HINT_PRO_LIGHT,Take up your gada and strike the rocks with %s.,गदा उठाओ और %s से शिलाओं पर प्रहार करो।
+HINT_PRO_CHAIN,Do not stop at one blow. Strike again and again with %s.,एक प्रहार पर मत रुको। %s से बार-बार प्रहार करो।
+HINT_PRO_HEAVY,"Hold %s a moment longer, and the blow will fall like a mountain.","%s को क्षण भर और दबाए रखो, प्रहार पर्वत-सा गिरेगा।"
+HINT_PRO_DODGE,"Be swift as your father, the wind! Leap aside with %s.",अपने पिता पवन के समान चपल बनो! %s से छलाँग लगाकर बचो।
+HINT_PRO_GROW,Remember your power. Press %s and grow.,अपनी शक्ति स्मरण करो। %s दबाओ और विशाल बनो।
+HINT_PRO_PEAK,"The peak awaits, Hanuman. Climb to the highest ground and leap.","शिखर तुम्हारी प्रतीक्षा में है, हनुमान। सबसे ऊँचे स्थान पर चढ़कर छलाँग लगाओ।"
+HINT_NARR_TASK,Remember your task: %s,अपना कार्य स्मरण करो: %s
+HINT_NARR_NONE,Look about you. The way forward is near.,चारों ओर देखो। आगे का मार्ग निकट है।
+HINT_BOSS_LANKINI,"Lankini: strike with a light blow just as her weapon begins to fall, and she will stagger.","लंकिनी: जैसे ही उसका शस्त्र गिरने लगे, हल्का प्रहार करो, वह लड़खड़ा जाएगी।"
+HINT_BOSS_SIMHIKA,"Simhika: when her mouth opens wide, shrink with %s and dive in.","सिंहिका: जब उसका मुख खुले, %s से सिकुड़ो और भीतर कूद जाओ।"
+HINT_BOSS_JAMBUMALI,"Jambumali moves between the pillars. Shelter from the arrow storm, then strike with a heavy blow.","जम्बुमाली स्तंभों के बीच घूमता है। बाणों की वर्षा से बचो, फिर भारी प्रहार करो।"
+HINT_BOSS_AKSHAYA,Akshaya: only heavy blows can break his chariot.,अक्षय: केवल भारी प्रहार ही उसके रथ को तोड़ सकते हैं।

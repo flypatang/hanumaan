@@ -8,7 +8,7 @@ extends Control
 ## lights the group "sun" for the graphics preset to reach them. Every label goes through tr() and is re-applied
 ## on Locale.language_changed.
 
-enum Screen { TITLE, PAUSE, SETTINGS }
+enum Screen { TITLE, PAUSE, SETTINGS, CONTROLS }
 
 signal start_requested
 signal resume_requested
@@ -23,6 +23,7 @@ const MENU_WIDTH: float = 460.0
 const LABEL_WIDTH: float = 230.0
 const OPTION_SECTIONS: Dictionary = {
 	"shloka_cards": "text",
+	"tutorial_hints": "text",
 	"fps_cap": "video",
 	"graphics": "video",
 	"vsync": "video",
@@ -33,6 +34,7 @@ const OPTION_SECTIONS: Dictionary = {
 }
 const DEFAULTS: Dictionary = {
 	"shloka_cards": "on",
+	"tutorial_hints": "on",
 	"fps_cap": 60,
 	"graphics": "high",
 	"vsync": true,
@@ -42,6 +44,7 @@ const DEFAULTS: Dictionary = {
 	"volume_sfx": 1.0,
 }
 const SHLOKA_MODES: PackedStringArray = ["on", "short", "off"]
+const TUTORIAL_MODES: PackedStringArray = ["on", "off"]
 const FPS_CAPS: PackedInt32Array = [30, 60, 0]
 const GRAPHICS_PRESETS: PackedStringArray = ["low", "medium", "high"]
 const LOW_RENDER_SCALE: float = 0.75
@@ -58,6 +61,7 @@ var _option_buttons: Dictionary = {}
 var _checks: Dictionary = {}
 var _sliders: Dictionary = {}
 var _syncing: bool = false
+var _controls: ControlsScreen = null
 
 
 func _ready() -> void:
@@ -72,6 +76,7 @@ func _ready() -> void:
 	_build_title_panel()
 	_build_pause_panel()
 	_build_settings_panel()
+	_build_controls_panel()
 	_apply_saved_all()
 	_refresh_labels()
 	show_screen(Screen.TITLE)
@@ -86,6 +91,8 @@ func _exit_tree() -> void:
 ## Shows one screen (and the menu root). Settings opened from another screen return to it with go_back().
 func show_screen(screen: Screen) -> void:
 	_screen = screen
+	if screen == Screen.CONTROLS and _controls != null:
+		_controls.refresh()
 	for key: int in _panels.keys():
 		(_panels[key] as Control).visible = key == int(screen)
 	visible = true
@@ -99,9 +106,9 @@ func hide_menus() -> void:
 	visible = false
 
 
-## Leaves the settings screen for the screen it was opened from. Does nothing on other screens.
+## Leaves the settings or controls screen for the screen it was opened from. Does nothing on other screens.
 func go_back() -> void:
-	if _screen == Screen.SETTINGS:
+	if _screen == Screen.SETTINGS or _screen == Screen.CONTROLS:
 		show_screen(_return_screen)
 
 
@@ -175,6 +182,11 @@ static func shloka_cards_mode() -> String:
 	return str(saved_option(&"shloka_cards"))
 
 
+## True unless the player switched Settings -> Tutorial hints off.
+static func tutorial_hints_enabled() -> bool:
+	return str(saved_option(&"tutorial_hints")) != "off"
+
+
 ## How many of total crowd instances to draw under the saved graphics preset.
 static func crowd_limit(total: int) -> int:
 	return _visible_count(total, graphics_preset())
@@ -191,6 +203,9 @@ static func _validated(key: String, value: Variant) -> Variant:
 		"shloka_cards":
 			var mode: String = str(value)
 			return mode if SHLOKA_MODES.has(mode) else null
+		"tutorial_hints":
+			var hints: String = str(value)
+			return hints if TUTORIAL_MODES.has(hints) else null
 		"fps_cap":
 			if typeof(value) != TYPE_INT and typeof(value) != TYPE_FLOAT:
 				return null
@@ -323,6 +338,7 @@ func _build_pause_panel() -> void:
 	column.add_child(heading)
 	_localize(heading, "UI_MENU_PAUSED")
 	_add_button(column, "ResumeButton", "UI_MENU_RESUME", _on_resume_pressed)
+	_add_button(column, "ControlsButton", "UI_MENU_CONTROLS", _open_controls)
 	_add_button(column, "PauseSettingsButton", "UI_MENU_SETTINGS", _open_settings)
 	_add_button(column, "QuitToTitleButton", "UI_MENU_QUIT_TO_TITLE", _on_quit_to_title_pressed)
 
@@ -335,6 +351,7 @@ func _build_settings_panel() -> void:
 	_localize(heading, "UI_MENU_SETTINGS")
 	_add_option_row(column, LANGUAGE_OPTION, "LanguageLabel", "UI_MENU_LANGUAGE", "LanguageOption")
 	_add_option_row(column, "shloka_cards", "ShlokaLabel", "UI_MENU_SHLOKA_CARDS", "ShlokaOption")
+	_add_option_row(column, "tutorial_hints", "TutorialLabel", "UI_MENU_TUTORIAL_HINTS", "TutorialOption")
 	_add_option_row(column, "fps_cap", "FpsLabel", "UI_MENU_FPS", "FpsOption")
 	_add_option_row(column, "graphics", "GraphicsLabel", "UI_MENU_GRAPHICS", "GraphicsOption")
 	_add_check(column, "vsync", "VsyncCheck", "UI_MENU_VSYNC")
@@ -343,6 +360,17 @@ func _build_settings_panel() -> void:
 	_add_slider_row(column, "volume_music", "VolumeMusicLabel", "UI_MENU_VOLUME_MUSIC", "VolumeMusicSlider")
 	_add_slider_row(column, "volume_sfx", "VolumeSfxLabel", "UI_MENU_VOLUME_SFX", "VolumeSfxSlider")
 	_add_button(column, "BackButton", "UI_MENU_BACK", _on_back_pressed)
+
+
+func _build_controls_panel() -> void:
+	var column: VBoxContainer = _make_panel(Screen.CONTROLS, "ControlsPanel")
+	column.custom_minimum_size = Vector2.ZERO
+	_controls = ControlsScreen.new()
+	_controls.set_embedded()
+	column.add_child(_controls)
+	var back: Button = _add_button(column, "ControlsBackButton", "UI_MENU_BACK", _on_back_pressed)
+	back.custom_minimum_size = Vector2(300.0, 44.0)
+	back.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 
 
 func _make_label(label_name: String, font_size: int) -> Label:
@@ -366,7 +394,7 @@ func _add_button(parent: Control, button_name: String, key: String, handler: Cal
 
 func _button_sound(button_name: String) -> StringName:
 	match button_name:
-		"BackButton":
+		"BackButton", "ControlsBackButton":
 			return &"ui_back"
 		"BeginButton", "ResumeButton":
 			return &"ui_confirm"
@@ -451,6 +479,8 @@ func _choices(option: String) -> Array:
 			return Array(LANGUAGES)
 		"shloka_cards":
 			return Array(SHLOKA_MODES)
+		"tutorial_hints":
+			return Array(TUTORIAL_MODES)
 		"fps_cap":
 			return Array(FPS_CAPS)
 		"graphics":
@@ -463,7 +493,7 @@ func _choice_text(option: String, value: Variant) -> String:
 	match option:
 		LANGUAGE_OPTION:
 			return tr("UI_MENU_LANG_HI") if str(value) == "hi" else tr("UI_MENU_LANG_EN")
-		"shloka_cards":
+		"shloka_cards", "tutorial_hints":
 			return tr("UI_MENU_SHLOKA_" + str(value).to_upper())
 		"fps_cap":
 			var cap: int = value as int
@@ -520,6 +550,11 @@ func _on_language_changed(_code: StringName) -> void:
 func _open_settings() -> void:
 	_return_screen = _screen
 	show_screen(Screen.SETTINGS)
+
+
+func _open_controls() -> void:
+	_return_screen = _screen
+	show_screen(Screen.CONTROLS)
 
 
 func _on_back_pressed() -> void:

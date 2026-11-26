@@ -55,6 +55,14 @@ const FLAG_UNLOCKS: Dictionary = {
 }
 const SPAWN_META_SKIP: Array[String] = ["id", "kind", "pos", "facing"]
 const FLIGHT_POSE: StringName = &"attack_strike"
+## Abilities that get an unlock card (DESIGN §4.1a point 3) and the GameState flag that remembers the card was shown.
+const CARD_ABILITIES: Array[StringName] = [&"grow", &"shrink", &"surge", &"tail_fire"]
+const CARD_FLAG_PREFIX: String = "unlock_card_"
+## Dialogue triggers that wait for the Interact key near their NPC while tutorial hints are on: trigger id -> actor id.
+const TALK_GATES: Dictionary = {"t_jambavan": "jambavan"}
+const PROLOGUE_TRIGGER: StringName = &"t_jambavan"
+const BOSS_HINT_FRACTION: float = 0.66
+const TALK_FLAG: StringName = &"grow_unlocked"
 
 ## Tests and tools switch these off. Music builds its tracks lazily and is not needed headless.
 var music_enabled: bool = true
@@ -95,6 +103,11 @@ var _spawn_position: Vector3 = Vector3.ZERO
 var _tiles: Dictionary = {}
 var _fade_tween: Tween = null
 var _step_time: float = 0.0
+var _prompt: WorldPrompt = null
+var _unlock_card: UnlockCard = null
+var _controls: ControlsScreen = null
+var _tutorial: TutorialDirector = null
+var _talk_nodes: Dictionary = {}
 
 
 # ---------------------------------------------------------------- accessors
@@ -145,6 +158,22 @@ func size_shift() -> SizeShift:
 
 func devotion() -> Devotion:
 	return _devotion
+
+
+func world_prompt() -> WorldPrompt:
+	return _prompt
+
+
+func unlock_card() -> UnlockCard:
+	return _unlock_card
+
+
+func controls_screen() -> ControlsScreen:
+	return _controls
+
+
+func tutorial() -> TutorialDirector:
+	return _tutorial
 
 
 func level_id() -> StringName:
@@ -224,6 +253,11 @@ func _clear() -> void:
 	_fade_rect = null
 	_prompt_label = null
 	_shloka_card = null
+	_prompt = null
+	_unlock_card = null
+	_controls = null
+	_tutorial = null
+	_talk_nodes = {}
 	_cut_camera = null
 	_actors = {}
 	_triggers = {}
@@ -261,6 +295,7 @@ func _load_world(data: Dictionary, id: StringName) -> void:
 	_connect_triggers()
 	_ensure_shrine_record()
 	_apply_sync_unlocks()
+	_build_teaching()
 
 
 # ---------------------------------------------------------------- UI, dialogue and cutscenes
@@ -300,6 +335,13 @@ func _build_ui() -> void:
 	_fade_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_fade_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_ui_layer.add_child(_fade_rect)
+	KeyGlyph.ensure_actions()
+	_unlock_card = UnlockCard.new()
+	_ui_layer.add_child(_unlock_card)
+	_unlock_card.closed.connect(_on_unlock_card_closed)
+	_controls = ControlsScreen.new()
+	_controls.game_state = _state()
+	_ui_layer.add_child(_controls)
 	_cutscene = CutscenePlayer.new()
 	_cutscene.name = "CutscenePlayer"
 	add_child(_cutscene)
@@ -711,6 +753,8 @@ func _hook_enemy(enemy: Node3D, kind: String) -> void:
 		jambumali.set_pillars(_pillars)
 	if GUARD_KINDS.has(kind) and _stealth != null:
 		_stealth.register_guard(enemy)
+	if kind.begins_with(BOSS_PREFIX):
+		enemy.ready.connect(hook_boss_hints.bind(enemy, kind), CONNECT_ONE_SHOT)
 
 
 func _on_boss_yielded(kind: String) -> void:
@@ -898,6 +942,8 @@ func _on_interact_requested(target: Area3D) -> void:
 	var shrine: Shrine = target as Shrine
 	if shrine != null and _player != null:
 		shrine.interact(_player)
+		if _prompt != null:
+			_prompt.register_use(&"meditate")
 
 
 # ---------------------------------------------------------------- triggers
@@ -919,11 +965,15 @@ func _connect_triggers() -> void:
 		area.monitoring = true
 		area.body_entered.connect(_on_trigger_body.bind(tid))
 		_triggers[tid] = area
+		if TALK_GATES.has(tid) and Menus.tutorial_hints_enabled():
+			_talk_nodes[tid] = null  # filled in by _build_teaching, once the NPC exists
 
 
 func _on_trigger_body(body: Node3D, trigger_id: String) -> void:
 	if body != _player:
 		return
+	if _talk_nodes.has(trigger_id):
+		return  # this dialogue starts when the player presses Interact near the NPC (see _try_talk)
 	fire_trigger(StringName(trigger_id))
 
 
@@ -938,7 +988,10 @@ func fire_trigger(trigger_id: StringName) -> bool:
 		return false
 	_fired[key] = true
 	var on_enter: String = str(area.get_meta("on_enter", ""))
+	_forget_talk_target(key)
 	trigger_fired.emit(trigger_id, on_enter)
+	if _tutorial != null:
+		_tutorial.notify_trigger(trigger_id)
 	route(on_enter)
 	return true
 
@@ -992,6 +1045,7 @@ func _apply_sync_unlocks() -> void:
 # ---------------------------------------------------------------- per-frame
 
 func _process(delta: float) -> void:
+	check_unlock_cards()
 	if _player == null or not is_instance_valid(_player):
 		return
 	_update_camera_zoom(delta)
@@ -1060,6 +1114,7 @@ func _load_leap() -> void:
 	_hud = Hud.new()
 	_hud.name = "Hud"
 	add_child(_hud)
+	_hud.bind_abilities(_state(), null, null, null)
 	_rider = Node3D.new()
 	_rider.name = "Rider"
 	var pivot: Node3D = Node3D.new()
@@ -1088,6 +1143,166 @@ func _load_leap() -> void:
 	_actors["hanuman"] = _rider
 	_size_shift.force_size(SizeShift.SIZE.GIANT)
 	_apply_sync_unlocks()
+	_hud.bind_abilities(_state(), null, _size_shift, null)
+	_build_tutorial(null, false)
+
+
+# ---------------------------------------------------------------- teaching the controls (DESIGN §4.1a)
+
+## Builds the world prompt, binds the HUD ability bar and starts the tutorial director for a walkable level.
+func _build_teaching() -> void:
+	if _player == null or _ui_layer == null:
+		return
+	if _hud != null:
+		_hud.bind_abilities(_state(), _player, _size_shift, _devotion)
+	_prompt = WorldPrompt.new()
+	_prompt.suppressed = Callable(self, "input_locked")
+	_prompt.game_state = _state()
+	_prompt.bind(_player, _camera.get_camera() if _camera != null else null)
+	_ui_layer.add_child(_prompt)
+	var shrines: Node = _level_root.get_node_or_null(NodePath("Shrines"))
+	if shrines != null:
+		for child: Node in shrines.get_children():
+			var shrine: Shrine = child as Shrine
+			if shrine != null:
+				_prompt.add_target(shrine, &"meditate", &"interact", true, 1.7)
+	var talk_npc: Node3D = null
+	for tid: Variant in _talk_nodes.keys():
+		var npc: Node3D = _actors.get(TALK_GATES[tid], null) as Node3D
+		_talk_nodes[tid] = npc
+		if npc != null:
+			_prompt.add_target(npc, &"talk", &"interact", false, 2.1)
+			talk_npc = npc
+	_build_tutorial(talk_npc, _triggers.has(str(PROLOGUE_TRIGGER)))
+
+
+func _build_tutorial(talk_npc: Node3D, prologue: bool) -> void:
+	_tutorial = TutorialDirector.new()
+	_tutorial.enabled = Menus.tutorial_hints_enabled()
+	_tutorial.locked = Callable(self, "input_locked")
+	_tutorial.game_state = _state()
+	_tutorial.stuck_hints_enabled = _leap == null
+	add_child(_tutorial)
+	_tutorial.setup(_ui_layer, _player, talk_npc, prologue)
+	game_event.connect(_tutorial.notify_event)
+	var gs: Node = _state()
+	if prologue and gs != null and gs.call("get_flag", TALK_FLAG, false) as bool:
+		_tutorial.notify_event(TutorialDirector.TALK_FILE)  # a continued game has already spoken with Jambavan
+	var bus: Node = _bus()
+	if bus != null:
+		bus.connect("objective_updated", _tutorial.notify_objective)
+		bus.connect("enemy_defeated", _on_enemy_defeated_progress)
+
+
+func _on_enemy_defeated_progress(_enemy_id: StringName, _pos: Vector3) -> void:
+	if _tutorial != null:
+		_tutorial.notify_progress()
+
+
+## Connects a boss to the tutorial director: one hint at its first phase change (a phase_changed signal, or the first
+## time it falls to two thirds of its health).
+func hook_boss_hints(boss: Node, kind: String) -> void:
+	if _tutorial == null or boss == null:
+		return
+	if boss.has_signal(&"phase_changed"):
+		boss.connect(&"phase_changed", _on_boss_phase.bind(kind))
+		return
+	var health: Health = boss.get("health") as Health
+	if health != null:
+		health.changed.connect(_on_boss_health.bind(kind))
+
+
+func _on_boss_phase(_phase: int, kind: String) -> void:
+	if _tutorial != null:
+		_tutorial.notify_boss_phase(kind)
+
+
+func _on_boss_health(value: int, max_now: int, kind: String) -> void:
+	if _tutorial != null and max_now > 0 and float(value) <= float(max_now) * BOSS_HINT_FRACTION:
+		_tutorial.notify_boss_phase(kind)
+
+
+func _forget_talk_target(trigger_id: String) -> void:
+	if not _talk_nodes.has(trigger_id):
+		return
+	var npc: Node3D = _talk_nodes[trigger_id] as Node3D
+	if npc != null and _prompt != null:
+		_prompt.remove_target(npc)
+	_talk_nodes.erase(trigger_id)
+
+
+## The Interact key near an NPC whose dialogue waits for it. Returns true when it started the dialogue.
+func _try_talk() -> bool:
+	if _player == null or _lock_depth > 0:
+		return false
+	for tid: Variant in _talk_nodes.keys():
+		var npc: Node3D = _talk_nodes[tid] as Node3D
+		if npc == null or _fired.has(str(tid)):
+			continue
+		var offset: Vector3 = npc.global_position - _player.global_position
+		offset.y = 0.0
+		if offset.length() <= WorldPrompt.SHOW_RANGE:
+			if _prompt != null:
+				_prompt.register_use(&"talk")
+			return fire_trigger(StringName(str(tid)))
+	return false
+
+
+func _input(event: InputEvent) -> void:
+	if _controls == null:
+		return
+	if KeyGlyph.observe(event) and _controls.visible:
+		_controls.refresh()
+	if event.is_echo():
+		return
+	if event.is_action(KeyGlyph.ACTION_SHOW_CONTROLS):
+		_set_controls_overlay(event.is_pressed())
+	elif event.is_action_pressed(&"interact"):
+		_try_talk()
+
+
+## Holding the show_controls action (Tab) shows the controls screen over the game; releasing it hides it.
+func _set_controls_overlay(open: bool) -> void:
+	if _controls == null:
+		return
+	if open and not (_unlock_card != null and _unlock_card.is_open()):
+		_controls.open_overlay()
+	else:
+		_controls.close_overlay()
+
+
+## Shows the card of the first unlocked ability that has not had one yet, when nothing else holds the player.
+## Returns true when a card opened. The runtime calls this every frame; tests call it directly.
+func check_unlock_cards() -> bool:
+	if _unlock_card == null or _unlock_card.is_open() or _lock_depth > 0:
+		return false
+	var gs: Node = _state()
+	if gs == null:
+		return false
+	for ability: StringName in CARD_ABILITIES:
+		var flag: StringName = StringName(CARD_FLAG_PREFIX + str(ability))
+		if gs.call("is_unlocked", ability) as bool and not (gs.call("get_flag", flag, false) as bool):
+			gs.call("set_flag", flag, true)
+			_open_unlock_card(ability)
+			return true
+	return false
+
+
+func _open_unlock_card(ability: StringName) -> void:
+	_lock_input(true)
+	if _leap != null:
+		_leap.set_physics_process(false)
+	if _controls != null:
+		_controls.close_overlay()
+	_unlock_card.show_for(ability)
+
+
+func _on_unlock_card_closed(_ability: StringName) -> void:
+	_lock_input(false)
+	if _leap != null:
+		_leap.set_physics_process(true)
+	if _tutorial != null:
+		_tutorial.notify_progress()
 
 
 # ---------------------------------------------------------------- music and autoloads

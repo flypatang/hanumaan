@@ -237,6 +237,11 @@ func _service() -> void:
 	var box: DialogueBox = rt.dialogue_box()
 	if box != null:
 		box.chars_per_second = 5000.0
+	var unlock_card: UnlockCard = rt.unlock_card()
+	if unlock_card != null and unlock_card.is_open():
+		_press_key()  # an ability-unlock card (DESIGN §4.1a) closes with the real Interact input
+		stats["cards_closed"] = (stats["cards_closed"] as int) + 1
+		return
 	for card_node: Node in rt.find_children("*", "ShlokaCard", true, false):
 		var card: ShlokaCard = card_node as ShlokaCard
 		if card != null and card.is_open():
@@ -534,7 +539,13 @@ func _play_prologue() -> void:
 	if not ok:
 		block("walk_to_jambavan", "the player could not walk 6 m east from %s to the t_jambavan trigger with the keyboard" % str(start))
 		rt.fire_trigger(&"t_jambavan")
+	# Jambavan's dialogue waits for the Interact key near him (DESIGN §4.1a): press it through the real input pipeline.
+	await wait_seconds(0.2)
+	_press_key()
 	await until(func() -> bool: return rt.dialogue_box().is_playing() or flow.is_objective_done(&"talk_jambavan"), 3.0)
+	if not rt.dialogue_box().is_playing() and not flow.is_objective_done(&"talk_jambavan"):
+		note("Interact near Jambavan did not start his dialogue; fired the trigger directly")
+		rt.fire_trigger(&"t_jambavan")
 	await free_control(60.0, "jambavan dialogue")
 	if not flow.is_objective_done(&"talk_jambavan"):
 		block("jambavan_objective", "objective talk_jambavan not done after the Jambavan dialogue")

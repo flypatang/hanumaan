@@ -155,8 +155,8 @@ const TEXTS: Dictionary = {
 	"OBJ_CH5_COURT": ["Speak before Ravana", "रावण के सम्मुख वचन कहें"],
 	"OBJ_CH5_BURN": ["Spread fire to the rakshasa armouries", "राक्षसों के शस्त्रागारों में अग्नि फैलाएँ"],
 	"OBJ_CH5_OCEAN": ["Reach the ocean and cool your tail", "समुद्र तक पहुँचकर पूँछ की अग्नि शांत करें"],
-	"PUZ_SURASA_GROW": ["Grow! (E)", "बढ़ें! (E)"],
-	"PUZ_SURASA_SHRINK": ["Shrink now! (Q)", "अब सिकुड़ें! (Q)"],
+	"PUZ_SURASA_GROW": ["Grow! (%s)", "बढ़ें! (%s)"],
+	"PUZ_SURASA_SHRINK": ["Shrink now! (%s)", "अब सिकुड़ें! (%s)"],
 	"UI_CREDITS_1": ["Based on the Sundara Kanda of the Valmiki Ramayana", "वाल्मीकि रामायण के सुन्दरकाण्ड पर आधारित"],
 	"UI_CREDITS_2": ["Thank you for playing", "खेलने के लिए धन्यवाद"],
 	"UI_CREDITS_3": ["Press any key", "कोई भी कुंजी दबाएँ"],
@@ -841,6 +841,7 @@ func _place_simhika() -> void:
 	_boss.inner_phase_cleared.connect(_on_simhika_inside_done)
 	_boss.window_missed.connect(_restore_rider_size)
 	_boss.event_bus = _bus()
+	_rt.hook_boss_hints(_boss, "boss_simhika")
 
 
 func _on_simhika_defeated() -> void:
@@ -864,17 +865,17 @@ func _on_mouth_changed(level: int) -> void:
 	if _rt == null:
 		return
 	if level < SurasaPuzzle.GROWS_NEEDED:
-		_rt.show_prompt(ChapterFlow.text("PUZ_SURASA_GROW"))
+		_rt.show_prompt(ChapterFlow.text("PUZ_SURASA_GROW") % KeyGlyph.text_for(&"grow"))
 
 
 func _on_window_opened() -> void:
 	if _rt != null:
-		_rt.show_prompt(ChapterFlow.text("PUZ_SURASA_SHRINK"))
+		_rt.show_prompt(ChapterFlow.text("PUZ_SURASA_SHRINK") % KeyGlyph.text_for(&"shrink"))
 
 
 func _on_window_failed() -> void:
 	if _rt != null:
-		_rt.show_prompt(ChapterFlow.text("PUZ_SURASA_GROW"))
+		_rt.show_prompt(ChapterFlow.text("PUZ_SURASA_GROW") % KeyGlyph.text_for(&"grow"))
 
 
 func _on_puzzle_solved() -> void:
