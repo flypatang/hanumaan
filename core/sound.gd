@@ -117,6 +117,13 @@ static func cue_at(from: Node3D, id: StringName) -> Node:
 ## Stops a looping player returned by cue()/play() and releases it.
 static func stop_loop(player: Node) -> void:
 	if player != null and is_instance_valid(player):
+		if player is AudioStreamPlayer3D:
+			(player as AudioStreamPlayer3D).stop()
+		elif player is AudioStreamPlayer:
+			(player as AudioStreamPlayer).stop()
+		var par: Node = player.get_parent()
+		if par != null:
+			par.remove_child(player)
 		player.queue_free()
 
 

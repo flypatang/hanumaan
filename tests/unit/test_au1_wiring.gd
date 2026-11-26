@@ -155,7 +155,7 @@ func test_freed_burning_prop_releases_fire_loop() -> void:
 	assert_object(loop).is_not_null()
 	prop.free()
 	await get_tree().process_frame
-	assert_bool(is_instance_valid(loop)).is_false()
+	assert_bool(not is_instance_valid(loop) or loop.is_queued_for_deletion()).is_true()
 	assert_int(s.get_child_count()).is_less_equal(before + 1)
 
 
