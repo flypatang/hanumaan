@@ -280,20 +280,11 @@ func _place_rider() -> void:
 
 
 func _build_scenery() -> void:
-	var ocean: MeshInstance3D = NatureKit.ocean_plane(Vector2(600.0, 1400.0))
+	# Art Direction v2: Gerstner ocean (F3) and the 'day' mood rig with sky (F1).
+	var ocean: MeshInstance3D = WaterKit.ocean(Vector2(600.0, 1400.0), &"day")
 	ocean.position = Vector3(0.0, -FLIGHT_HEIGHT, 450.0)
 	add_child(ocean)
-	var env: Environment = Environment.new()
-	env.background_mode = Environment.BG_COLOR
-	env.background_color = Palette.SAFFRON.darkened(0.2)
-	env.ambient_light_color = Palette.MOON
-	env.ambient_light_energy = 0.6
-	var we: WorldEnvironment = WorldEnvironment.new()
-	we.environment = env
-	add_child(we)
-	var sun: DirectionalLight3D = DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-35.0, 30.0, 0.0)
-	add_child(sun)
+	Look.apply(&"day", self)
 
 
 func _to_f(v: Variant) -> float:

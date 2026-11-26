@@ -248,7 +248,7 @@ func _load_world(data: Dictionary, id: StringName) -> void:
 	_read_tiles(data)
 	_level_root = LevelBuilder.build(data)
 	add_child(_level_root)
-	_add_lighting(str(id).begins_with(NIGHT_PREFIX) or NIGHT_LEVELS.has(str(id)))
+	Look.apply_for_level(id, self)  # Art Direction v2 mood lighting (F1)
 	_make_occluders()
 	_collect_props()
 	_hud = Hud.new()

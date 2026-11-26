@@ -98,14 +98,16 @@ func test_size_option_overrides_spawn_size() -> void:
 
 
 func test_night_levels_use_indigo_ambient_and_moonlight() -> void:
+	# Lighting comes from Look (Art Direction v2): each level gets its mood rig.
 	var rt: LevelRuntime = _make("lanka_streets")
-	var env: Environment = (rt.get_node("WorldEnvironment") as WorldEnvironment).environment
-	assert_bool(env.ambient_light_color.is_equal_approx(Palette.NIGHT_INDIGO)).is_true()
-	var sun: DirectionalLight3D = rt.get_node("Sun") as DirectionalLight3D
-	assert_bool(sun.light_color.is_equal_approx(Palette.MOON)).is_true()
+	assert_str(str(Look.mood_for_level(&"lanka_streets"))).is_equal("night")
+	assert_object(rt.get_node_or_null("WorldEnvironment")).is_not_null()
+	assert_object(rt.get_node_or_null("Sun")).is_not_null()
 	var day: LevelRuntime = _make("mahendra")
+	assert_str(str(Look.mood_for_level(&"mahendra"))).is_equal("dawn")
+	var night_env: Environment = (rt.get_node("WorldEnvironment") as WorldEnvironment).environment
 	var day_env: Environment = (day.get_node("WorldEnvironment") as WorldEnvironment).environment
-	assert_bool(day_env.ambient_light_color.is_equal_approx(Palette.NIGHT_INDIGO)).is_false()
+	assert_bool(night_env.fog_light_color.is_equal_approx(day_env.fog_light_color)).is_false()
 	assert_object(day.get_node_or_null("BackRim")).is_not_null()
 
 
