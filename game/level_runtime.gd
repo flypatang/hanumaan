@@ -321,6 +321,8 @@ func show_prompt(text: String) -> void:
 func play_dialogue(file_and_node: String) -> bool:
 	if _dialogue_box == null:
 		return false
+	if _dialogue_box.is_playing():
+		return false  # never restart a conversation that is already on screen (e.g. walking back into its trigger)
 	var err: Error = _dialogue_box.play(StringName(file_and_node), &"")
 	if err != OK:
 		push_warning("LevelRuntime: dialogue '%s' did not start (error %d)" % [file_and_node, err])
