@@ -119,6 +119,24 @@ on-rails leap. Walls and roofs between the camera and Hanuman fade to 25% opacit
 `rotate_camera_left`, `rotate_camera_right`. (The Smarana surge on a gamepad is bound to RT; the consumer also requires
 LT to be held, by checking `Input.get_joy_axis`.)
 
+### 4.1a Teaching the controls (owner question 2026-11-27: "How will the user know which key to press when?")
+Binding rule: **no control is ever needed before the game has taught it, and every taught control stays discoverable.**
+1. **Just-in-time teaching (the Mahendra tutorial).** In order: move (shown on spawn), talk (F, when near Jambavan),
+   light attack and its 3-hit chain, then heavy attack, then dodge (on the training rocks, one at a time, each step
+   waiting until the player does it), grow (after Jambavan's words), and the leap at the peak. Each prompt is a
+   centred card with the key glyph and a 4–6 word instruction.
+2. **World prompts:** a floating glyph and verb over every interactable within 3 m (Talk, Meditate, Examine). They hide
+   after the player has used that verb 3 times, except at shrines.
+3. **Ability-unlock cards:** Grow (prologue), Shrink (Surasa), Smarana surge (Ch4) and Tail fire (Ch5). Each card shows the
+   glyph and one sentence, and pauses the game until it is dismissed.
+4. **Ability bar (HUD, bottom-left):** only unlocked abilities, each with its glyph and a greyed-out state when it can't be used
+   (no Smarana, a ceiling above, and so on).
+5. **Controls screen:** hold Tab, or Pause → Controls. It lists only unlocked controls, grouped as Move, Fight, Powers and Menus.
+6. **Device- and binding-aware glyphs:** keyboard and mouse or gamepad, depending on the last input used, read from the live InputMap
+   so that remapped keys are shown correctly.
+7. **Stuck hints:** if an objective makes no progress for 20 s, a short hint appears (Jambavan's voice in the prologue,
+   otherwise the narrator). Each boss gets one hint on its first phase change (for example Lankini: strike as she attacks).
+
 ### 4.2 Stats and resources
 - **Vitality** (HP): 100 at the start, and +25 per **Vow** upgrade. Restored at Shrines and by Mainaka.
 - **Smarana** (devotion meter, 0–100): filled by landing hits (+2), protecting the innocent (+10), dialogue choices
