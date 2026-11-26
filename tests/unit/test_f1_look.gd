@@ -210,6 +210,66 @@ func test_inferno_is_fire_coloured() -> void:
 	assert_bool(env.volumetric_fog_emission.r > env.volumetric_fog_emission.b).is_true()
 
 
+func _sky_colour(env: Environment, parameter: String) -> Color:
+	return (env.sky.sky_material as ShaderMaterial).get_shader_parameter(parameter) as Color
+
+
+func test_inferno_is_a_dark_smoky_night_with_a_glowing_horizon() -> void:
+	# B6: the first inferno was a wall of red in which nothing could be read. The sky is now black smoke overhead
+	# with the orange of the fires only on the horizon.
+	var env: Environment = _env(Look.apply(&"inferno", _parent(), &"high"))
+	var top: Color = _sky_colour(env, "top_color")
+	var horizon: Color = _sky_colour(env, "horizon_color")
+	assert_bool(top.v < 0.08).is_true()
+	assert_bool(horizon.v > top.v * 5.0).is_true()
+	assert_bool(horizon.r > horizon.g * 1.8 and horizon.g > horizon.b * 1.8).is_true()
+	assert_bool((env.sky.sky_material as ShaderMaterial).get_shader_parameter("cloud_cover") as float >= 0.7).is_true()
+
+
+func test_inferno_stays_legible() -> void:
+	var inferno: Dictionary = Look.apply(&"inferno", _parent(), &"high")
+	var env: Environment = _env(inferno)
+	var dusk: Environment = _env(Look.apply(&"dusk", _parent(), &"high"))
+	# Thin, dark haze: the iso camera looks through a constant depth of fog, so it must not paint the frame.
+	assert_bool(env.fog_light_color.v * env.fog_light_energy < 0.25).is_true()
+	assert_bool(env.fog_density < dusk.fog_density).is_true()
+	assert_bool(env.volumetric_fog_density < dusk.volumetric_fog_density).is_true()
+	assert_bool(env.volumetric_fog_emission_energy <= 0.01).is_true()
+	# The grade does not push the reds further, but keeps deep contrast.
+	assert_bool(env.adjustment_saturation <= 1.1).is_true()
+	assert_bool(env.adjustment_contrast >= 1.1).is_true()
+	assert_bool(env.glow_intensity <= 1.05 and env.glow_bloom <= 0.04).is_true()
+	# The key is fire-coloured but not pure red, so stone keeps its own colour under it.
+	var key: Color = _light(inferno, "key").light_color
+	assert_bool(key.s < 0.7).is_true()
+	# Shadows stay dark and coloured.
+	assert_bool(env.ambient_light_color.b > env.ambient_light_color.r).is_true()
+	assert_bool(env.ambient_light_energy <= 0.35).is_true()
+
+
+func test_inferno_firelight_comes_from_the_side_and_from_below() -> void:
+	var inferno: Dictionary = Look.apply(&"inferno", _parent(), &"medium")
+	var key_dir: Vector3 = -_light(inferno, "key").basis.z
+	var rim: DirectionalLight3D = _light(inferno, "rim")
+	var fill: DirectionalLight3D = _light(inferno, "fill")
+	# A low key raking in from the side...
+	assert_bool(key_dir.y < -0.15 and key_dir.y > -0.65).is_true()
+	# ...a fire-coloured rim that shines UP from the burning streets...
+	assert_bool((-rim.basis.z).y > 0.1).is_true()
+	assert_bool(rim.light_color.r > rim.light_color.b * 2.0).is_true()
+	# ...and a cool fill from high above for contrast.
+	assert_bool(fill.light_color.b > fill.light_color.r).is_true()
+	assert_bool((-fill.basis.z).y < -0.7).is_true()
+
+
+func test_night_stone_is_not_a_single_blue() -> void:
+	# B6: a neutral-enough moon and ambient, so stone, grass and sand keep different hues at night.
+	var night: Dictionary = Look.apply(&"night", _parent(), &"medium")
+	assert_bool(_light(night, "key").light_color.s < 0.5).is_true()
+	assert_bool(_env(night).ambient_light_color.s < 0.7).is_true()
+	assert_bool(_env(night).adjustment_saturation <= 1.1).is_true()
+
+
 func test_divine_is_bright_and_golden() -> void:
 	var divine: Environment = _env(Look.apply(&"divine", _parent(), &"high"))
 	var night: Environment = _env(Look.apply(&"night", _parent(), &"high"))
