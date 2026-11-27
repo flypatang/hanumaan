@@ -1043,7 +1043,7 @@ func _guard_fall() -> void:
 		if snd != null:
 			snd.call("play", &"recovered")
 		return
-	if _player.is_on_floor():
+	if _player.is_grounded():
 		var cell: Vector2i = Vector2i(floori(pos.x / LevelBuilder.TILE_SIZE), floori(pos.z / LevelBuilder.TILE_SIZE))
 		if _is_walkable(cell):
 			_last_safe = pos

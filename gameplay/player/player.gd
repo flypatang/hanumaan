@@ -160,6 +160,11 @@ func get_heavy_hitbox() -> Hitbox:
 	return _heavy_hitbox
 
 
+## True when the last movement tick ended standing on a floor (the manual slide does not update is_on_floor()).
+func is_grounded() -> bool:
+	return _grounded
+
+
 func get_state() -> State:
 	return _state
 
