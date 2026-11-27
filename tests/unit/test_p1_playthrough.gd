@@ -130,8 +130,9 @@ func test_ocean_leap_gates_and_the_surasa_puzzle() -> void:
 	if _skipped("leap_finish") or _skipped("load"):
 		return
 	assert_bool(_bot.stats["ring_collected"] as bool).is_true()
-	assert_int(_bot.stats["puzzle_grows"] as int).is_equal(3)
+	assert_int(_bot.stats["puzzle_grows"] as int).is_greater_equal(2)
 	assert_int(_bot.stats["puzzle_shrinks"] as int).is_greater_equal(1)
+	assert_int(_bot.stats["puzzle_darts"] as int).is_greater_equal(2)
 	assert_int(_bot.stats["simhika_hits"] as int).is_greater_equal(1)
 	var gs: Node = get_tree().root.get_node("GameState")
 	assert_bool(gs.call("is_unlocked", &"shrink") as bool).is_true()

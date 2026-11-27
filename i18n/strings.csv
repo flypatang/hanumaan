@@ -138,7 +138,7 @@ OBJ_PRO_TALK,Speak with Jambavan,जाम्बवान से बात क�
 OBJ_PRO_TRAIN,Strike the training rocks,प्रशिक्षण-शिलाओं पर प्रहार करें
 OBJ_PRO_LEAP,Climb to the peak and leap,शिखर पर चढ़कर छलाँग लगाएँ
 OBJ_CH1_MAINAKA,Greet Mainaka and fly on,मैनाक का अभिवादन करें और आगे उड़ें
-OBJ_CH1_SURASA,"Pass Surasa: grow, then shrink","सुरसा को पार करें: बढ़ें, फिर सिकुड़ें"
+OBJ_CH1_SURASA,Get past Surasa: outwit her,सुरसा को पार करें: बुद्धि से
 OBJ_CH1_SIMHIKA,Defeat Simhika,सिंहिका को परास्त करें
 OBJ_CH2_LANKINI,Face Lankini at the gate,द्वार पर लंकिनी का सामना करें
 OBJ_CH2_SEARCH,"Search Lanka: the mansions, the palace, the Pushpaka courtyard","लंका में खोजें: भवन, राजमहल और पुष्पक-प्रांगण"
@@ -148,8 +148,20 @@ OBJ_CH4_WAVES,Break the grove's defenders,वाटिका के रक्ष
 OBJ_CH5_COURT,Speak before Ravana,रावण के सम्मुख वचन कहें
 OBJ_CH5_BURN,Spread fire to the rakshasa armouries,राक्षसों के शस्त्रागारों में अग्नि फैलाएँ
 OBJ_CH5_OCEAN,Reach the ocean and cool your tail,समुद्र तक पहुँचकर पूँछ की अग्नि शांत करें
-PUZ_SURASA_GROW,Grow! (%s),बढ़ें! (%s)
-PUZ_SURASA_SHRINK,Shrink now! (%s),अब सिकुड़ें! (%s)
+SUR_START,Surasa bars the way: none may pass but through her jaws.,सुरसा मार्ग रोके खड़ी है: उसके मुख से होकर ही कोई आगे जा सकता है।
+SUR_OPENING,Surasa's jaws stretch wider than you...,सुरसा का मुख आपसे भी बड़ा फैल रहा है...
+SUR_OPEN,Her jaws gape wide open.,उसका मुख पूरा खुल गया है।
+SUR_WINDUP,Surasa rears up to swallow you!,सुरसा आपको निगलने को झपटने वाली है!
+SUR_GULPED,She snapped at you - you broke free. Try again.,वह आप पर झपटी - आप छूट निकले। फिर प्रयास करें।
+SUR_TINY,Thumb-sized! Her wide jaws close slowly...,अँगूठे भर के! उसका चौड़ा मुख धीरे-धीरे बंद हो रहा है...
+SUR_FEINT,She saw it coming and snaps her jaws shut!,उसने चाल भाँप ली और झट से मुख बंद कर रही है!
+SUR_CLOSED,Her jaws are shut. Make her open them again.,उसका मुख बंद है। उसे फिर से खुलवाइए।
+SUR_TOO_NARROW,Too narrow - her jaws have nearly closed.,बहुत संकरा - उसका मुख लगभग बंद हो चुका है।
+SUR_TOO_BIG,You are far too big to slip in.,इतने बड़े होकर आप भीतर नहीं जा सकते।
+SUR_INSIDE,Inside! Get out before her jaws close!,भीतर! मुख बंद होने से पहले बाहर निकलिए!
+SUR_SPAT,Her jaws closed on you - she spat you out. Try again.,मुख बंद हो गया - उसने आपको बाहर थूक दिया। फिर प्रयास करें।
+SUR_HINT,"Hint: let her open as wide as she can, then suddenly become tiny.","संकेत: उसे जितना हो सके मुख खोलने दें, फिर अचानक छोटे हो जाएँ।"
+SUR_CONTROLS,%s Grow    %s Shrink    %s Dart in / out,%s बढ़ें    %s सिकुड़ें    %s भीतर / बाहर
 UI_CREDITS_1,Based on the Sundara Kanda of the Valmiki Ramayana,वाल्मीकि रामायण के सुन्दरकाण्ड पर आधारित
 UI_CREDITS_2,Thank you for playing,खेलने के लिए धन्यवाद
 UI_CREDITS_3,Press any key,कोई भी कुंजी दबाएँ

@@ -52,8 +52,15 @@ On-rails flight over the ocean. You steer within a corridor and dodge.
 1. **Mainaka.** The golden mountain rises from the sea and offers him rest. Hanuman touches it in thanks and flies on.
    *Gameplay:* a healing ring and a Smarana refill. You pass straight through.
 2. **Surasa**, mother of the nagas, sent by the gods to test him. She opens her mouth wider each time he grows.
-   *Gameplay:* a size puzzle. Grow three times to match her, then **Shrink** at the right moment (shown on screen)
-   to slip in and out. **Shrink unlocks here.**
+   *Gameplay (redesigned 2026-11-27, owner: "the player should control when to enlarge and reduce and try to
+   trick Surasa"):* a free-form trick, not a sequence of prompts. Hanuman grows and shrinks whenever the player
+   likes; Surasa always opens her jaws one step wider than he is. Once fully open she rears up and bites if he
+   lingers (the trial resets; nothing is lost), so he must keep growing to stay ahead, up to four steps. The trick
+   is to let her jaws gape fully, then suddenly **Shrink** to a thumb's size: committed, she can only close slowly.
+   **Dart** (Interact) slips in, and Dart again slips out before the jaws shut. Shrinking while she is still opening
+   is a feint she sees through (she snaps shut fast); staying inside too long gets him spat out. The wider he baits
+   her, the more time he has, but the longer he must outpace her bites. On-screen narration describes what Surasa
+   does, never which key to press next; after three failed tricks a single hint appears. **Shrink unlocks here.**
 3. **Simhika**, the shadow-seizing demoness, grabs his shadow on the water.
    *Gameplay:* the first boss. Dodge the shadow-grabs on the water, and when her mouth opens, Shrink and dive in. Then 3 hit phases.
 - **End:** he lands on Trikuta mountain and Lanka glows golden at dusk.

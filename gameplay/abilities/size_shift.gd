@@ -35,6 +35,8 @@ var _visual: float = 1.0
 var _tween_from: float = 1.0
 var _tween_elapsed: float = 0.0
 var _tweening: bool = false
+## Extra scale on top of the size table, for scripted moments (Surasa: Hanuman grows past GIANT).
+var _bonus: float = 1.0
 var _probe: ShapeCast3D = null
 
 
@@ -104,16 +106,30 @@ func force_size(size: SIZE) -> void:
 	_change_size(size)
 
 
+## Multiplies the drawn scale (1 = the size table). Tweened like a size change. For scripted moments only.
+func set_bonus_scale(bonus: float) -> void:
+	if is_equal_approx(bonus, _bonus):
+		return
+	_bonus = bonus
+	_tween_from = _visual
+	_tween_elapsed = 0.0
+	_tweening = true
+
+
+func get_bonus_scale() -> float:
+	return _bonus
+
+
 ## Advances the visual tween and the Smarana drain by delta seconds.
 func tick(delta: float) -> void:
 	if _tweening:
 		_tween_elapsed = minf(_tween_elapsed + delta, TWEEN_TIME)
 		var t: float = _tween_elapsed / TWEEN_TIME
 		var eased: float = t * t * (3.0 - 2.0 * t)
-		_visual = lerpf(_tween_from, SCALES[_size], eased)
+		_visual = lerpf(_tween_from, SCALES[_size] * _bonus, eased)
 		if _tween_elapsed >= TWEEN_TIME - TIME_EPSILON:
 			_tweening = false
-			_visual = SCALES[_size]
+			_visual = SCALES[_size] * _bonus
 		_apply_visual()
 	if _size == SIZE.LARGE:
 		_drain(delta)

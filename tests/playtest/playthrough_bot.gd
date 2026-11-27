@@ -4,8 +4,8 @@ extends Node
 ## which means the real ChapterFlow, LevelRuntime, Player, enemies, bosses, dialogue box and cutscene player.
 ##
 ## What is real and what is a shortcut (REPORT.md repeats this):
-##  - Real: new game through the title menu, the prologue walk and training swings (keyboard actions), the Surasa size
-##    puzzle (grow / shrink actions), the leap steering and the Simhika fight (attack and shrink actions), one Kinkara
+##  - Real: new game through the title menu, the prologue walk and training swings (keyboard actions), the Surasa trial
+##    (grow / shrink / interact actions), the leap steering and the Simhika fight (attack and shrink actions), one Kinkara
 ##    fight with the player's own light attacks, dialogue advancing (input events), the Ch3 story choices (choice
 ##    buttons, including one wrong answer), the cutscenes, the shloka cards, the grove waves, the court and the credits.
 ##    The climb from the training rocks up the Mahendra terraces to the peak is a real walk too (keyboard input along
@@ -49,7 +49,7 @@ var notes: Array[String] = []
 ## Counters proving the real paths were used.
 var stats: Dictionary = {
 	"real_walk_metres": 0.0, "real_light_attacks": 0, "real_attack_hits": 0, "dialogue_lines": 0, "choices_right": 0,
-	"choices_wrong": 0, "cards_closed": 0, "puzzle_grows": 0, "puzzle_shrinks": 0, "simhika_hits": 0, "teleports": 0,
+	"choices_wrong": 0, "cards_closed": 0, "puzzle_grows": 0, "puzzle_shrinks": 0, "puzzle_darts": 0, "simhika_hits": 0, "teleports": 0,
 	"fire_burnt": 0, "fire_total": 0, "protected_total": 0, "protected_ignited": 0, "searches": 0, "waves_seen": 0,
 	"frames": 0, "forced_steps": 0, "grow_in_prologue": false, "ring_collected": false,
 }
@@ -761,14 +761,28 @@ func _leap_gate_logic(rt: LevelRuntime, controller: LeapController) -> void:
 	var puzzle: ChapterFlow.SurasaPuzzle = flow.puzzle()
 	if puzzle != null and puzzle.is_active() and not rt.input_locked():
 		set_precise(true)
-		if puzzle.phase == ChapterFlow.SurasaPuzzle.Phase.GROWING:
-			var before: int = puzzle.grows
+		# The trick, played only with real Grow / Shrink / Interact presses: bait her jaws wide (growth 3), wait
+		# until they are fully open, shrink, dart in, then dart out.
+		if puzzle.phase == ChapterFlow.SurasaPuzzle.Phase.INSIDE:
+			if puzzle.inside_time >= ChapterFlow.SurasaPuzzle.INSIDE_MIN_TIME:
+				await tap(&"interact")
+				if puzzle.phase == ChapterFlow.SurasaPuzzle.Phase.DONE:
+					stats["puzzle_darts"] = (stats["puzzle_darts"] as int) + 1
+		elif puzzle.growth == 0:
+			if puzzle.mouth >= ChapterFlow.SurasaPuzzle.ENTER_MIN:
+				await tap(&"interact")
+				if puzzle.phase == ChapterFlow.SurasaPuzzle.Phase.INSIDE:
+					stats["puzzle_darts"] = (stats["puzzle_darts"] as int) + 1
+			elif puzzle.mouth <= ChapterFlow.SurasaPuzzle.MOUTH_CLOSED:
+				await tap(&"grow")
+		elif puzzle.growth < 3:
+			var before: int = puzzle.growth
 			await tap(&"grow")
-			if puzzle.grows > before:
+			if puzzle.growth > before:
 				stats["puzzle_grows"] = (stats["puzzle_grows"] as int) + 1
-		elif puzzle.phase == ChapterFlow.SurasaPuzzle.Phase.WINDOW:
+		elif puzzle.is_fully_open():
 			await tap(&"shrink")
-			if puzzle.phase == ChapterFlow.SurasaPuzzle.Phase.DONE:
+			if puzzle.growth == 0:
 				stats["puzzle_shrinks"] = (stats["puzzle_shrinks"] as int) + 1
 		return
 	var boss: BossSimhika = rt.get_node_or_null("BossSimhika") as BossSimhika

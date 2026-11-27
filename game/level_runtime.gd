@@ -418,6 +418,11 @@ func show_prompt(text: String) -> void:
 	_prompt_label.visible = text != ""
 
 
+## The centred prompt line as shown (empty when hidden).
+func prompt_text() -> String:
+	return _prompt_label.text if _prompt_label != null and _prompt_label.visible else ""
+
+
 ## Plays data/dialogue/<file>[#node]. Returns false when it could not start.
 func play_dialogue(file_and_node: String) -> bool:
 	if _dialogue_box == null:

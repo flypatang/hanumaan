@@ -145,7 +145,7 @@ const TEXTS: Dictionary = {
 	"OBJ_PRO_TRAIN": ["Strike the training rocks", "प्रशिक्षण-शिलाओं पर प्रहार करें"],
 	"OBJ_PRO_LEAP": ["Climb to the peak and leap", "शिखर पर चढ़कर छलाँग लगाएँ"],
 	"OBJ_CH1_MAINAKA": ["Greet Mainaka and fly on", "मैनाक का अभिवादन करें और आगे उड़ें"],
-	"OBJ_CH1_SURASA": ["Pass Surasa: grow, then shrink", "सुरसा को पार करें: बढ़ें, फिर सिकुड़ें"],
+	"OBJ_CH1_SURASA": ["Get past Surasa: outwit her", "सुरसा को पार करें: बुद्धि से"],
 	"OBJ_CH1_SIMHIKA": ["Defeat Simhika", "सिंहिका को परास्त करें"],
 	"OBJ_CH2_LANKINI": ["Face Lankini at the gate", "द्वार पर लंकिनी का सामना करें"],
 	"OBJ_CH2_SEARCH": ["Search Lanka: the mansions, the palace, the Pushpaka courtyard", "लंका में खोजें: भवन, राजमहल और पुष्पक-प्रांगण"],
@@ -155,8 +155,20 @@ const TEXTS: Dictionary = {
 	"OBJ_CH5_COURT": ["Speak before Ravana", "रावण के सम्मुख वचन कहें"],
 	"OBJ_CH5_BURN": ["Spread fire to the rakshasa armouries", "राक्षसों के शस्त्रागारों में अग्नि फैलाएँ"],
 	"OBJ_CH5_OCEAN": ["Reach the ocean and cool your tail", "समुद्र तक पहुँचकर पूँछ की अग्नि शांत करें"],
-	"PUZ_SURASA_GROW": ["Grow! (%s)", "बढ़ें! (%s)"],
-	"PUZ_SURASA_SHRINK": ["Shrink now! (%s)", "अब सिकुड़ें! (%s)"],
+	"SUR_START": ["Surasa bars the way: none may pass but through her jaws.", "सुरसा मार्ग रोके खड़ी है: उसके मुख से होकर ही कोई आगे जा सकता है।"],
+	"SUR_OPENING": ["Surasa's jaws stretch wider than you...", "सुरसा का मुख आपसे भी बड़ा फैल रहा है..."],
+	"SUR_OPEN": ["Her jaws gape wide open.", "उसका मुख पूरा खुल गया है।"],
+	"SUR_WINDUP": ["Surasa rears up to swallow you!", "सुरसा आपको निगलने को झपटने वाली है!"],
+	"SUR_GULPED": ["She snapped at you - you broke free. Try again.", "वह आप पर झपटी - आप छूट निकले। फिर प्रयास करें।"],
+	"SUR_TINY": ["Thumb-sized! Her wide jaws close slowly...", "अँगूठे भर के! उसका चौड़ा मुख धीरे-धीरे बंद हो रहा है..."],
+	"SUR_FEINT": ["She saw it coming and snaps her jaws shut!", "उसने चाल भाँप ली और झट से मुख बंद कर रही है!"],
+	"SUR_CLOSED": ["Her jaws are shut. Make her open them again.", "उसका मुख बंद है। उसे फिर से खुलवाइए।"],
+	"SUR_TOO_NARROW": ["Too narrow - her jaws have nearly closed.", "बहुत संकरा - उसका मुख लगभग बंद हो चुका है।"],
+	"SUR_TOO_BIG": ["You are far too big to slip in.", "इतने बड़े होकर आप भीतर नहीं जा सकते।"],
+	"SUR_INSIDE": ["Inside! Get out before her jaws close!", "भीतर! मुख बंद होने से पहले बाहर निकलिए!"],
+	"SUR_SPAT": ["Her jaws closed on you - she spat you out. Try again.", "मुख बंद हो गया - उसने आपको बाहर थूक दिया। फिर प्रयास करें।"],
+	"SUR_HINT": ["Hint: let her open as wide as she can, then suddenly become tiny.", "संकेत: उसे जितना हो सके मुख खोलने दें, फिर अचानक छोटे हो जाएँ।"],
+	"SUR_CONTROLS": ["%s Grow    %s Shrink    %s Dart in / out", "%s बढ़ें    %s सिकुड़ें    %s भीतर / बाहर"],
 	"UI_CREDITS_1": ["Based on the Sundara Kanda of the Valmiki Ramayana", "वाल्मीकि रामायण के सुन्दरकाण्ड पर आधारित"],
 	"UI_CREDITS_2": ["Thank you for playing", "खेलने के लिए धन्यवाद"],
 	"UI_CREDITS_3": ["Press any key", "कोई भी कुंजी दबाएँ"],
@@ -179,6 +191,11 @@ const SIMHIKA_FILE: String = "ch1_simhika"
 const SEA_LEVEL: float = -12.0
 const SURASA_SCALE: float = 6.0
 const SURASA_DISTANCE: float = 34.0
+## The chase camera offset of the rider at normal flight size (level_runtime builds it there).
+const CHASE_BASE: Vector3 = Vector3(0.0, 5.0, 17.0)
+const CHASE_ROTATION: Vector3 = Vector3(-10.0, 0.0, 0.0)
+## Over-the-shoulder camera offset during the Surasa trial (scaled by Hanuman's growth).
+const SURASA_CAMERA_OFFSET: Vector3 = Vector3(14.0, 12.0, 20.0)
 const MAINAKA_SCALE: float = 5.0
 const SIMHIKA_DISTANCE: float = 26.0
 const LEAP_ATTACK_RANGE: float = 40.0
@@ -187,77 +204,191 @@ const LEAP_HEAVY_DAMAGE: int = 35
 const LEAP_HEAVY_HOLD: float = 0.5
 
 
-## The Surasa size puzzle (DESIGN §3 Ch1). Surasa opens her mouth one step wider each time Hanuman grows. After the
-## third growth a 1.5 s window opens in which he must SHRINK to slip in and out; a late shrink resets the puzzle
-## (there is no failure state). Sizes are forced through SizeShift.force_size, so the unlocked abilities do not matter.
+## The Surasa trial (DESIGN §3 Ch1), redesigned 2026-11-27 on owner feedback ("the player should control when to
+## enlarge and reduce and try to trick Surasa"). Nothing is scripted: Hanuman grows and shrinks whenever the player
+## likes, and Surasa always opens her jaws one step wider than he is.
+## - She opens at OPEN_SPEED. Once her jaws are fully open she holds for WINDUP_DELAY, then winds up a bite for
+##   WINDUP_TIME. Growing again makes her open further (and resets the bite); at MAX_GROWTH he cannot grow further.
+##   A bite that lands "gulps the air" and resets the trial (no damage, no failure state).
+## - The trick: once her jaws are fully open, Shrink to a thumb's size. Committed, she can only close slowly
+##   (CLOSE_SPEED); shrink while she is still opening and she sees through the feint and snaps shut (SNAP_SPEED).
+## - Dart slips in while her jaws are at least ENTER_MIN wide, and Dart again (after INSIDE_MIN_TIME) slips out while
+##   they are still at least EXIT_MIN wide. Too late and she spits him out: the trial resets.
+## The wider he baits her, the more time the trick gives, but the longer he must outpace her bites.
 class SurasaPuzzle extends RefCounted:
-	enum Phase { IDLE, GROWING, WINDOW, DONE }
+	enum Phase { IDLE, PLAYING, INSIDE, DONE }
 
-	signal mouth_changed(level: int)
-	signal window_opened
-	signal window_failed
+	## Fired on every notable change: &"opening", &"open" (fully open), &"windup", &"gulped", &"tiny", &"feint",
+	## &"closed", &"too_narrow", &"inside", &"spat", &"too_big".
+	signal state_changed(state: StringName)
+	## Hanuman's growth changed (0 = thumb-sized, 1..MAX_GROWTH = giant steps).
+	signal growth_changed(growth: int)
 	signal solved
 
-	const GROWS_NEEDED: int = 3
-	const WINDOW_TIME: float = 1.5
-	## Size after the 1st, 2nd and 3rd growth (SizeShift.SIZE values: LARGE, GIANT, GIANT).
-	const GROW_SIZES: Array[int] = [2, 3, 3]
-	const SIZE_NORMAL: int = 1
+	const MAX_GROWTH: int = 4
+	## Extra scale over GIANT for growth 1..MAX_GROWTH.
+	const GROWTH_SCALES: Array[float] = [1.0, 1.3, 1.6, 1.9]
+	const OPEN_SPEED: float = 1.5
+	const CLOSE_SPEED: float = 0.7
+	const SNAP_SPEED: float = 2.5
+	const WINDUP_DELAY: float = 1.0
+	const WINDUP_TIME: float = 1.2
+	const ENTER_MIN: float = 2.5
+	const EXIT_MIN: float = 1.2
+	const INSIDE_MIN_TIME: float = 0.35
+	const MOUTH_CLOSED: float = 1.0
 	const SIZE_SMALL: int = 0
+	const SIZE_GIANT: int = 3
 
 	var phase: Phase = Phase.IDLE
-	var grows: int = 0
-	var window_left: float = 0.0
+	## 0 = thumb-sized, 1..MAX_GROWTH = giant steps.
+	var growth: int = 1
+	## Surasa's jaw width in "steps" (1 = closed, growth + 1 = fully open for his current size).
+	var mouth: float = MOUTH_CLOSED
+	var hold: float = 0.0
+	var windup: float = 0.0
+	var inside_time: float = 0.0
+	var close_speed: float = CLOSE_SPEED
+	## Counters for hints and the playtest bot.
+	var gulps: int = 0
+	var feints: int = 0
+	var spits: int = 0
 	var shift: SizeShift = null
 
-	## Starts a fresh attempt with Hanuman at normal size.
+	## Starts a fresh attempt: Hanuman giant (growth 1), Surasa's jaws closed.
 	func begin(size_shift: SizeShift) -> void:
 		shift = size_shift
-		grows = 0
-		window_left = 0.0
-		phase = Phase.GROWING
-		_force(SIZE_NORMAL)
-		mouth_changed.emit(0)
-
-	## The player pressed Grow. Counts only while growing. Returns true when it counted.
-	func on_grow() -> bool:
-		if phase != Phase.GROWING:
-			return false
-		grows += 1
-		_force(GROW_SIZES[mini(grows, GROWS_NEEDED) - 1])
-		mouth_changed.emit(grows)
-		if grows >= GROWS_NEEDED:
-			phase = Phase.WINDOW
-			window_left = WINDOW_TIME
-			window_opened.emit()
-		return true
-
-	## The player pressed Shrink. Succeeds only inside the window. Returns true when the puzzle is solved.
-	func on_shrink() -> bool:
-		if phase != Phase.WINDOW or window_left <= 0.0:
-			return false
-		phase = Phase.DONE
-		window_left = 0.0
-		_force(SIZE_SMALL)
-		solved.emit()
-		return true
-
-	## Advances the window timer. A window that runs out resets the puzzle to the start.
-	func tick(delta: float) -> void:
-		if phase != Phase.WINDOW:
-			return
-		window_left -= delta
-		if window_left > 0.0:
-			return
-		window_failed.emit()
-		begin(shift)
+		phase = Phase.PLAYING
+		_reset_round()
 
 	func is_active() -> bool:
-		return phase == Phase.GROWING or phase == Phase.WINDOW
+		return phase == Phase.PLAYING or phase == Phase.INSIDE
 
-	func _force(size_index: int) -> void:
-		if shift != null:
-			shift.force_size(size_index as SizeShift.SIZE)
+	## Jaw width Surasa is opening toward (growth + 1 while he is giant).
+	func target_mouth() -> float:
+		return float(growth + 1) if growth > 0 else MOUTH_CLOSED
+
+	func is_fully_open() -> bool:
+		return growth > 0 and mouth >= target_mouth() - 0.001
+
+	## 0..1 progress of the bite wind-up (0 when she is not winding up).
+	func windup_fraction() -> float:
+		return clampf(windup / WINDUP_TIME, 0.0, 1.0)
+
+	## Extra scale over GIANT for the current growth (1 when thumb-sized, the size table handles SMALL).
+	func growth_scale() -> float:
+		return GROWTH_SCALES[growth - 1] if growth > 0 else 1.0
+
+	## The player pressed Grow. Returns true when it counted.
+	func on_grow() -> bool:
+		if phase != Phase.PLAYING or growth >= MAX_GROWTH:
+			return false
+		growth += 1
+		hold = 0.0
+		windup = 0.0
+		_apply_size()
+		growth_changed.emit(growth)
+		state_changed.emit(&"opening")
+		return true
+
+	## The player pressed Shrink: straight down to a thumb's size. Returns true when it counted.
+	func on_shrink() -> bool:
+		if phase != Phase.PLAYING or growth == 0:
+			return false
+		var committed: bool = is_fully_open()
+		growth = 0
+		hold = 0.0
+		windup = 0.0
+		close_speed = CLOSE_SPEED if committed else SNAP_SPEED
+		_apply_size()
+		growth_changed.emit(growth)
+		if committed:
+			state_changed.emit(&"tiny")
+		else:
+			feints += 1
+			state_changed.emit(&"feint")
+		return true
+
+	## The player pressed Dart: in through her jaws, or back out. Returns true when it moved him.
+	func on_dart() -> bool:
+		match phase:
+			Phase.PLAYING:
+				if growth > 0:
+					state_changed.emit(&"too_big")
+					return false
+				if mouth < ENTER_MIN:
+					state_changed.emit(&"too_narrow")
+					return false
+				phase = Phase.INSIDE
+				inside_time = 0.0
+				state_changed.emit(&"inside")
+				return true
+			Phase.INSIDE:
+				if inside_time < INSIDE_MIN_TIME:
+					return false
+				phase = Phase.DONE
+				solved.emit()
+				return true
+		return false
+
+	## Advances Surasa by delta seconds (frame-rate independent).
+	func tick(delta: float) -> void:
+		if not is_active() or delta <= 0.0:
+			return
+		if phase == Phase.INSIDE:
+			inside_time += delta
+			mouth = maxf(MOUTH_CLOSED, mouth - close_speed * delta)
+			if mouth < EXIT_MIN:
+				spits += 1
+				phase = Phase.PLAYING
+				_reset_round()
+				state_changed.emit(&"spat")
+			return
+		if growth == 0:
+			if mouth > MOUTH_CLOSED:
+				mouth = maxf(MOUTH_CLOSED, mouth - close_speed * delta)
+				if mouth <= MOUTH_CLOSED:
+					state_changed.emit(&"closed")
+			return
+		var target: float = target_mouth()
+		if mouth < target:
+			mouth = minf(target, mouth + OPEN_SPEED * delta)
+			if mouth >= target:
+				state_changed.emit(&"open")
+			return
+		if mouth > target:
+			mouth = maxf(target, mouth - CLOSE_SPEED * delta)
+			return
+		if hold < WINDUP_DELAY:
+			hold += delta
+			if hold >= WINDUP_DELAY:
+				state_changed.emit(&"windup")
+			return
+		windup += delta
+		if windup >= WINDUP_TIME:
+			gulps += 1
+			_reset_round()
+			state_changed.emit(&"gulped")
+
+	func _reset_round() -> void:
+		growth = 1
+		mouth = MOUTH_CLOSED
+		hold = 0.0
+		windup = 0.0
+		inside_time = 0.0
+		close_speed = CLOSE_SPEED
+		_apply_size()
+		growth_changed.emit(growth)
+
+	func _apply_size() -> void:
+		if shift == null:
+			return
+		if growth == 0:
+			shift.set_bonus_scale(1.0)
+			shift.force_size(SIZE_SMALL as SizeShift.SIZE)
+		else:
+			shift.force_size(SIZE_GIANT as SizeShift.SIZE)
+			shift.set_bonus_scale(GROWTH_SCALES[growth - 1])
 
 
 ## Test hook: when false the flow does not write its save slot.
@@ -286,6 +417,7 @@ var _rt: LevelRuntime = null
 var _puzzle: SurasaPuzzle = null
 var _surasa: Node3D = null
 var _mouth: MeshInstance3D = null
+var _surasa_status: String = "SUR_START"
 var _mainaka: Node3D = null
 var _boss: BossSimhika = null
 var _surasa_stage: int = 0
@@ -718,9 +850,7 @@ func bind_leap(runtime: LevelRuntime) -> void:
 	_surasa_stage = 0
 	_simhika_stage = 0
 	_puzzle = SurasaPuzzle.new()
-	_puzzle.mouth_changed.connect(_on_mouth_changed)
-	_puzzle.window_opened.connect(_on_window_opened)
-	_puzzle.window_failed.connect(_on_window_failed)
+	_puzzle.state_changed.connect(_on_surasa_state)
 	_puzzle.solved.connect(_on_puzzle_solved)
 	controller.gate_reached.connect(_on_gate_reached)
 	controller.failed.connect(_on_leap_failed)
@@ -764,14 +894,19 @@ func _on_leap_dialogue_done(file_id: StringName) -> void:
 		SURASA_FILE:
 			if _surasa_stage == 0:
 				_surasa_stage = 1
+				_surasa_status = "SUR_START"
 				_puzzle.begin(_rt.size_shift())
+				_update_surasa_prompt()
 			elif _surasa_stage == 2:
 				_surasa_stage = 3
 				var gs: Node = _state()
 				if gs != null:
 					gs.call("set_flag", SHRINK_UNLOCK_FLAG, true)
 					LevelRuntime.sync_unlocks(gs)
+				_rt.size_shift().set_bonus_scale(1.0)
 				_rt.size_shift().force_size(SizeShift.SIZE.GIANT)
+				_set_rider_dart(0.0)
+				_set_chase_scale(1.0)
 				_remove(_surasa)
 				_surasa = null
 				controller.resume()
@@ -826,7 +961,7 @@ func _place_surasa() -> void:
 	_mouth.material_override = MeshKit.flat_material()
 	_mouth.position = Vector3(0.0, 3.5, -0.62)
 	_surasa.add_child(_mouth)
-	_on_mouth_changed(0)
+	_update_surasa_visuals()
 
 
 func _place_simhika() -> void:
@@ -859,27 +994,102 @@ func _restore_rider_size() -> void:
 		_rt.size_shift().force_size(SizeShift.SIZE.GIANT)
 
 
-func _on_mouth_changed(level: int) -> void:
-	if _mouth != null and is_instance_valid(_mouth):
-		_mouth.scale = Vector3.ONE * (0.5 + 0.9 * float(level))
-	if _rt == null:
+## Narration for each moment of the Surasa trial. It describes what Surasa does, never which key to press next;
+## the control strip below it lists the three verbs.
+const SURASA_STATUS_KEYS: Dictionary = {
+	&"opening": "SUR_OPENING",
+	&"open": "SUR_OPEN",
+	&"windup": "SUR_WINDUP",
+	&"gulped": "SUR_GULPED",
+	&"tiny": "SUR_TINY",
+	&"feint": "SUR_FEINT",
+	&"closed": "SUR_CLOSED",
+	&"too_narrow": "SUR_TOO_NARROW",
+	&"too_big": "SUR_TOO_BIG",
+	&"inside": "SUR_INSIDE",
+	&"spat": "SUR_SPAT",
+}
+## After this many failed tricks (gulps + feints + spits) the narration adds a gentle hint.
+const SURASA_HINT_AFTER: int = 3
+
+
+func _on_surasa_state(state: StringName) -> void:
+	_surasa_status = str(SURASA_STATUS_KEYS.get(state, _surasa_status))
+	if state == &"inside":
+		_set_rider_dart(1.0)
+	elif state == &"spat" or state == &"gulped":
+		_set_rider_dart(0.0)
+	_update_surasa_prompt()
+
+
+func _update_surasa_prompt() -> void:
+	if _rt == null or _puzzle == null or not _puzzle.is_active():
 		return
-	if level < SurasaPuzzle.GROWS_NEEDED:
-		_rt.show_prompt(ChapterFlow.text("PUZ_SURASA_GROW") % KeyGlyph.text_for(&"grow"))
+	var lines: Array[String] = [ChapterFlow.text(_surasa_status)]
+	var fails: int = _puzzle.gulps + _puzzle.feints + _puzzle.spits
+	if fails >= SURASA_HINT_AFTER and _puzzle.phase == SurasaPuzzle.Phase.PLAYING:
+		lines.append(ChapterFlow.text("SUR_HINT"))
+	lines.append(ChapterFlow.text("SUR_CONTROLS") % [KeyGlyph.text_for(&"grow"), KeyGlyph.text_for(&"shrink"),
+		KeyGlyph.text_for(&"interact")])
+	_rt.show_prompt("\n".join(lines))
 
 
-func _on_window_opened() -> void:
-	if _rt != null:
-		_rt.show_prompt(ChapterFlow.text("PUZ_SURASA_SHRINK") % KeyGlyph.text_for(&"shrink"))
+## Mouth size, the bite wind-up shudder and the chase camera follow the trial every frame.
+func _update_surasa_visuals() -> void:
+	if _puzzle == null:
+		return
+	if _mouth != null and is_instance_valid(_mouth):
+		_mouth.scale = Vector3.ONE * (0.5 + 0.6 * (_puzzle.mouth - SurasaPuzzle.MOUTH_CLOSED))
+	if _surasa != null and is_instance_valid(_surasa):
+		var shake: float = _puzzle.windup_fraction()
+		_surasa.rotation.z = sin(float(Time.get_ticks_msec()) * 0.03) * 0.06 * shake
+	if _puzzle.is_active():
+		_frame_surasa(_puzzle.growth_scale())
 
 
-func _on_window_failed() -> void:
-	if _rt != null:
-		_rt.show_prompt(ChapterFlow.text("PUZ_SURASA_GROW") % KeyGlyph.text_for(&"grow"))
+## 0 = Hanuman in his place, 1 = inside Surasa's jaws (the rider's model darts to her mouth and vanishes).
+func _set_rider_dart(amount: float) -> void:
+	if _rt == null or _rt.rider() == null:
+		return
+	var pivot: Node3D = _rt.rider().get_node_or_null("Pivot") as Node3D
+	if pivot == null:
+		return
+	if amount <= 0.0 or _mouth == null or not is_instance_valid(_mouth) or not _mouth.is_inside_tree():
+		pivot.position = Vector3.ZERO
+		pivot.visible = true
+		return
+	pivot.position = _rt.rider().to_local(_mouth.global_position) * amount
+	pivot.visible = amount < 1.0
+
+
+## Puts the chase camera back to its flight offset (factor 1) or scales the offset.
+func _set_chase_scale(factor: float) -> void:
+	var chase: Camera3D = _chase_camera()
+	if chase != null:
+		chase.position = CHASE_BASE * factor
+		chase.rotation_degrees = CHASE_ROTATION
+
+
+## During the trial: an over-the-shoulder view, pulled back as Hanuman grows, aimed at Surasa's jaws so the player
+## can always read how wide they are.
+func _frame_surasa(factor: float) -> void:
+	var chase: Camera3D = _chase_camera()
+	if chase == null or _mouth == null or not is_instance_valid(_mouth) or not _mouth.is_inside_tree():
+		return
+	chase.position = SURASA_CAMERA_OFFSET * factor
+	if chase.is_inside_tree():
+		chase.look_at(_mouth.global_position, Vector3.UP)
+
+
+func _chase_camera() -> Camera3D:
+	if _rt == null or _rt.rider() == null:
+		return null
+	return _rt.rider().get_node_or_null("ChaseCamera") as Camera3D
 
 
 func _on_puzzle_solved() -> void:
 	_surasa_stage = 2
+	_set_rider_dart(0.0)
 	if _rt != null:
 		_rt.show_prompt("")
 		_rt.play_dialogue("%s#w1" % SURASA_FILE)
@@ -914,8 +1124,7 @@ func _process(delta: float) -> void:
 func tick_leap(delta: float) -> void:
 	if _puzzle != null:
 		_puzzle.tick(delta)
-		if _puzzle.phase == SurasaPuzzle.Phase.WINDOW:
-			_on_window_opened()
+		_update_surasa_visuals()
 	if _rt == null or _rt.input_locked():
 		return
 	if _puzzle != null and _puzzle.is_active():
@@ -923,6 +1132,8 @@ func tick_leap(delta: float) -> void:
 			_puzzle.on_grow()
 		if Input.is_action_just_pressed(&"shrink"):
 			_puzzle.on_shrink()
+		if Input.is_action_just_pressed(&"interact"):
+			_puzzle.on_dart()
 	elif _boss != null and is_instance_valid(_boss) and _boss.active:
 		if Input.is_action_just_pressed(&"shrink") and _rt.size_shift() != null:
 			_rt.size_shift().shrink()

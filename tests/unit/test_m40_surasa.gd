@@ -1,20 +1,17 @@
 extends GdUnitTestSuite
-## M40 acceptance tests: the Surasa size puzzle and the leap gates (DESIGN §3 Ch1). Hanuman must grow three times
-## (forced steps through SizeShift.force_size) and then SHRINK inside a 1.5 s window. A late shrink only resets it.
+## M40 acceptance tests: the Surasa trial and the leap gates (DESIGN §3 Ch1). Redesigned 2026-11-27: the player grows
+## and shrinks freely, Surasa opens one step wider than Hanuman, bites if he lingers, and is tricked by shrinking
+## once her jaws are fully open, then darting in and out before they close. No step can fail the run.
 
 const GameStateScript: GDScript = preload("res://core/game_state.gd")
 const BusScript: GDScript = preload("res://core/event_bus.gd")
 
-var _mouth: Array[int] = []
-var _opened: int = 0
-var _failed: int = 0
+var _states: Array[StringName] = []
 var _solved: int = 0
 
 
 func before_test() -> void:
-	_mouth.clear()
-	_opened = 0
-	_failed = 0
+	_states.clear()
 	_solved = 0
 
 
@@ -33,90 +30,147 @@ func _make_shift() -> SizeShift:
 
 func _make_puzzle(shift: SizeShift) -> ChapterFlow.SurasaPuzzle:
 	var puzzle: ChapterFlow.SurasaPuzzle = ChapterFlow.SurasaPuzzle.new()
-	puzzle.mouth_changed.connect(func(level: int) -> void: _mouth.append(level))
-	puzzle.window_opened.connect(func() -> void: _opened += 1)
-	puzzle.window_failed.connect(func() -> void: _failed += 1)
+	puzzle.state_changed.connect(func(state: StringName) -> void: _states.append(state))
 	puzzle.solved.connect(func() -> void: _solved += 1)
 	puzzle.begin(shift)
 	return puzzle
 
 
-func test_three_grows_then_a_shrink_in_the_window_solves_it() -> void:
+func _run(puzzle: ChapterFlow.SurasaPuzzle, seconds: float, step: float = 1.0 / 60.0) -> void:
+	var t: float = 0.0
+	while t < seconds - 0.00001:
+		puzzle.tick(step)
+		t += step
+
+
+## Grows to `growth` and waits until her jaws are fully open (before her bite).
+func _bait(puzzle: ChapterFlow.SurasaPuzzle, growth: int) -> void:
+	while puzzle.growth < growth:
+		puzzle.on_grow()
+	_run(puzzle, float(growth) / ChapterFlow.SurasaPuzzle.OPEN_SPEED + 0.1)
+
+
+func test_the_trick_solves_it() -> void:
 	var shift: SizeShift = _make_shift()
 	var puzzle: ChapterFlow.SurasaPuzzle = _make_puzzle(shift)
-	assert_int(shift.get_size()).is_equal(SizeShift.SIZE.NORMAL)
-	assert_bool(puzzle.on_grow()).is_true()
-	assert_int(shift.get_size()).is_equal(SizeShift.SIZE.LARGE)
-	assert_bool(puzzle.on_grow()).is_true()
 	assert_int(shift.get_size()).is_equal(SizeShift.SIZE.GIANT)
-	assert_int(_opened).is_equal(0)
-	assert_bool(puzzle.on_grow()).is_true()
-	assert_int(_opened).is_equal(1)
-	assert_int(puzzle.phase).is_equal(ChapterFlow.SurasaPuzzle.Phase.WINDOW)
-	puzzle.tick(1.0)
+	_bait(puzzle, 3)
+	assert_bool(puzzle.is_fully_open()).is_true()
+	assert_float(shift.get_bonus_scale()).is_greater(1.0)
 	assert_bool(puzzle.on_shrink()).is_true()
-	assert_int(_solved).is_equal(1)
 	assert_int(shift.get_size()).is_equal(SizeShift.SIZE.SMALL)
-	assert_array(_mouth).contains_exactly([0, 1, 2, 3])
+	assert_float(shift.get_bonus_scale()).is_equal(1.0)
+	assert_bool(puzzle.on_dart()).is_true()
+	assert_int(puzzle.phase).is_equal(ChapterFlow.SurasaPuzzle.Phase.INSIDE)
+	_run(puzzle, 0.5)
+	assert_bool(puzzle.on_dart()).is_true()
+	assert_int(_solved).is_equal(1)
+	assert_bool(puzzle.is_active()).is_false()
+	assert_array(_states).contains([&"opening", &"open", &"tiny", &"inside"])
 
 
-func test_the_mouth_widens_with_every_grow() -> void:
+func test_surasa_always_opens_one_step_wider_than_hanuman() -> void:
+	var puzzle: ChapterFlow.SurasaPuzzle = _make_puzzle(_make_shift())
+	for growth: int in [2, 3, 4]:
+		_bait(puzzle, growth)
+		assert_float(puzzle.mouth).is_equal_approx(float(growth + 1), 0.001)
+	assert_bool(puzzle.on_grow()).is_false()  # MAX_GROWTH reached
+	assert_int(puzzle.growth).is_equal(ChapterFlow.SurasaPuzzle.MAX_GROWTH)
+
+
+func test_lingering_gets_bitten_and_the_trial_resets() -> void:
+	var puzzle: ChapterFlow.SurasaPuzzle = _make_puzzle(_make_shift())
+	_bait(puzzle, 2)
+	_run(puzzle, ChapterFlow.SurasaPuzzle.WINDUP_DELAY + 0.05)
+	assert_bool(_states.has(&"windup")).is_true()
+	assert_float(puzzle.windup_fraction()).is_greater(0.0)
+	_run(puzzle, ChapterFlow.SurasaPuzzle.WINDUP_TIME)
+	assert_bool(_states.has(&"gulped")).is_true()
+	assert_int(puzzle.gulps).is_equal(1)
+	assert_int(puzzle.growth).is_equal(1)
+	assert_float(puzzle.mouth).is_less(2.0)  # closed, and already opening again for growth 1
+	assert_bool(puzzle.is_active()).is_true()
+
+
+func test_growing_again_cancels_the_bite() -> void:
+	var puzzle: ChapterFlow.SurasaPuzzle = _make_puzzle(_make_shift())
+	_bait(puzzle, 2)
+	_run(puzzle, ChapterFlow.SurasaPuzzle.WINDUP_DELAY + 0.5)
+	assert_float(puzzle.windup_fraction()).is_greater(0.0)
+	puzzle.on_grow()
+	assert_float(puzzle.windup_fraction()).is_equal(0.0)
+	assert_int(puzzle.gulps).is_equal(0)
+
+
+func test_shrinking_while_she_still_opens_is_a_feint_she_sees_through() -> void:
 	var puzzle: ChapterFlow.SurasaPuzzle = _make_puzzle(_make_shift())
 	puzzle.on_grow()
 	puzzle.on_grow()
-	assert_int(puzzle.grows).is_equal(2)
-	assert_array(_mouth).contains_exactly([0, 1, 2])
+	_run(puzzle, 0.5)  # still opening toward 4
+	assert_bool(puzzle.is_fully_open()).is_false()
+	puzzle.on_shrink()
+	assert_bool(_states.has(&"feint")).is_true()
+	_run(puzzle, 0.2)
+	assert_bool(puzzle.on_dart()).is_false()  # she snapped shut too fast
+	assert_bool(_states.has(&"too_narrow")).is_true()
+	_run(puzzle, 2.0)
+	assert_bool(_states.has(&"closed")).is_true()
+	assert_bool(puzzle.on_grow()).is_true()  # he can always try again
+	assert_bool(puzzle.is_active()).is_true()
 
 
-func test_shrinking_before_the_third_grow_does_nothing() -> void:
-	var shift: SizeShift = _make_shift()
-	var puzzle: ChapterFlow.SurasaPuzzle = _make_puzzle(shift)
-	puzzle.on_grow()
-	assert_bool(puzzle.on_shrink()).is_false()
-	assert_int(puzzle.grows).is_equal(1)
+func test_baiting_only_one_step_is_not_wide_enough() -> void:
+	var puzzle: ChapterFlow.SurasaPuzzle = _make_puzzle(_make_shift())
+	_run(puzzle, 1.0)
+	assert_bool(puzzle.is_fully_open()).is_true()  # growth 1: jaws at 2
+	puzzle.on_shrink()
+	assert_bool(puzzle.on_dart()).is_false()
+
+
+func test_dart_needs_hanuman_to_be_tiny() -> void:
+	var puzzle: ChapterFlow.SurasaPuzzle = _make_puzzle(_make_shift())
+	_bait(puzzle, 3)
+	assert_bool(puzzle.on_dart()).is_false()
+	assert_bool(_states.has(&"too_big")).is_true()
+
+
+func test_staying_inside_too_long_gets_him_spat_out() -> void:
+	var puzzle: ChapterFlow.SurasaPuzzle = _make_puzzle(_make_shift())
+	_bait(puzzle, 2)
+	puzzle.on_shrink()
+	puzzle.on_dart()
+	assert_int(puzzle.phase).is_equal(ChapterFlow.SurasaPuzzle.Phase.INSIDE)
+	_run(puzzle, 5.0)
+	assert_bool(_states.has(&"spat")).is_true()
+	assert_int(puzzle.phase).is_equal(ChapterFlow.SurasaPuzzle.Phase.PLAYING)
+	assert_int(puzzle.growth).is_equal(1)
 	assert_int(_solved).is_equal(0)
-	assert_int(shift.get_size()).is_equal(SizeShift.SIZE.LARGE)
 
 
-func test_a_late_shrink_resets_the_puzzle() -> void:
-	var shift: SizeShift = _make_shift()
-	var puzzle: ChapterFlow.SurasaPuzzle = _make_puzzle(shift)
-	for i: int in 3:
-		puzzle.on_grow()
-	puzzle.tick(1.6)
-	assert_int(_failed).is_equal(1)
-	assert_int(puzzle.grows).is_equal(0)
-	assert_int(puzzle.phase).is_equal(ChapterFlow.SurasaPuzzle.Phase.GROWING)
-	assert_int(shift.get_size()).is_equal(SizeShift.SIZE.NORMAL)
-	assert_bool(puzzle.on_shrink()).is_false()
-	for i: int in 3:
-		puzzle.on_grow()
-	assert_bool(puzzle.on_shrink()).is_true()
-	assert_int(_solved).is_equal(1)
+func test_wider_bait_gives_more_time_inside() -> void:
+	var times: Array[float] = []
+	for growth: int in [2, 4]:
+		var puzzle: ChapterFlow.SurasaPuzzle = _make_puzzle(_make_shift())
+		_bait(puzzle, growth)
+		puzzle.on_shrink()
+		puzzle.on_dart()
+		var t: float = 0.0
+		while puzzle.phase == ChapterFlow.SurasaPuzzle.Phase.INSIDE and t < 20.0:
+			puzzle.tick(0.01)
+			t += 0.01
+		times.append(t)
+	assert_float(times[1]).is_greater(times[0] + 2.0)
 
 
-func test_the_window_is_the_same_at_30_and_60_fps() -> void:
+func test_timing_is_the_same_at_30_and_60_fps() -> void:
+	var mouths: Array[float] = []
 	for step: float in [1.0 / 30.0, 1.0 / 60.0]:
 		var puzzle: ChapterFlow.SurasaPuzzle = _make_puzzle(_make_shift())
-		for i: int in 3:
-			puzzle.on_grow()
-		var elapsed: float = 0.0
-		while elapsed < 1.4:
-			puzzle.tick(step)
-			elapsed += step
-		assert_int(puzzle.phase).is_equal(ChapterFlow.SurasaPuzzle.Phase.WINDOW)
-		puzzle.tick(0.15)
-		assert_int(puzzle.phase).is_equal(ChapterFlow.SurasaPuzzle.Phase.GROWING)
-
-
-func test_grow_is_ignored_once_the_window_is_open_or_solved() -> void:
-	var puzzle: ChapterFlow.SurasaPuzzle = _make_puzzle(_make_shift())
-	for i: int in 3:
 		puzzle.on_grow()
-	assert_bool(puzzle.on_grow()).is_false()
-	puzzle.on_shrink()
-	assert_bool(puzzle.on_grow()).is_false()
-	assert_bool(puzzle.is_active()).is_false()
+		puzzle.on_grow()
+		_run(puzzle, 1.0, step)
+		mouths.append(puzzle.mouth)
+	assert_float(mouths[0]).is_equal_approx(mouths[1], 0.01)
 
 
 # --- the gates on a real leap runtime -------------------------------------------------------------------------
@@ -164,10 +218,16 @@ func test_surasa_gate_runs_the_puzzle_and_unlocks_shrink() -> void:
 	rt.dialogue_box().finished.emit(&"ch1_surasa")
 	assert_bool(flow.puzzle().is_active()).is_true()
 	assert_bool(leap.paused_at_gate).is_true()
-	for i: int in 3:
+	assert_str(rt.prompt_text()).contains("Surasa")
+	for i: int in 2:
 		flow.puzzle().on_grow()
-	flow.tick_leap(0.5)
+	for i: int in 44:
+		flow.tick_leap(0.05)
+	assert_bool(flow.puzzle().is_fully_open()).is_true()
 	assert_bool(flow.puzzle().on_shrink()).is_true()
+	assert_bool(flow.puzzle().on_dart()).is_true()
+	flow.tick_leap(0.5)
+	assert_bool(flow.puzzle().on_dart()).is_true()
 	assert_bool(rt.dialogue_box().is_playing()).is_true()
 	rt.dialogue_box().finished.emit(&"ch1_surasa")
 	assert_bool(gs.call("is_unlocked", &"shrink") as bool).is_true()
