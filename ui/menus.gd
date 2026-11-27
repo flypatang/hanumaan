@@ -2,7 +2,7 @@ class_name Menus
 extends Control
 ## In-game menus (DESIGN §9, S19; as Hanumaan M33): the title, pause and settings screens.
 ## Each setting is applied to the engine as soon as it changes and saved to user://settings.cfg:
-##   [text] shloka_cards; [video] fps_cap, graphics, vsync, fullscreen; [audio] volume_master, volume_music, volume_sfx.
+##   [text] shloka_cards; [video] fps_cap, graphics, visual_style, vsync, fullscreen; [audio] volume_master, volume_music, volume_sfx.
 ## The language is saved by Locale in [general] language. Other views read the saved choices through the static
 ## helpers graphics_preset(), shloka_cards_mode() and crowd_limit(). Crowd nodes must join the group "crowd" and
 ## lights the group "sun" for the graphics preset to reach them. Every label goes through tr() and is re-applied
@@ -26,6 +26,7 @@ const OPTION_SECTIONS: Dictionary = {
 	"tutorial_hints": "text",
 	"fps_cap": "video",
 	"graphics": "video",
+	"visual_style": "video",
 	"vsync": "video",
 	"fullscreen": "video",
 	"volume_master": "audio",
@@ -37,6 +38,7 @@ const DEFAULTS: Dictionary = {
 	"tutorial_hints": "on",
 	"fps_cap": 60,
 	"graphics": "high",
+	"visual_style": "painterly",
 	"vsync": true,
 	"fullscreen": false,
 	"volume_master": 1.0,
@@ -47,6 +49,10 @@ const SHLOKA_MODES: PackedStringArray = ["on", "short", "off"]
 const TUTORIAL_MODES: PackedStringArray = ["on", "off"]
 const FPS_CAPS: PackedInt32Array = [30, 60, 0]
 const GRAPHICS_PRESETS: PackedStringArray = ["low", "medium", "high"]
+## PX1 (experiment): "painterly" is the Art Direction v2 look, "pixel" renders the world as chunky 3D pixel art.
+const VISUAL_STYLES: PackedStringArray = ["painterly", "pixel"]
+## Nodes in this group get set_visual_style(style: StringName) when the player changes the style.
+const VISUAL_STYLE_GROUP: StringName = &"visual_style"
 const LOW_RENDER_SCALE: float = 0.75
 const MUTE_DB: float = -80.0
 const BUS_MASTER: String = "Master"
@@ -177,6 +183,11 @@ static func graphics_preset() -> String:
 	return str(saved_option(&"graphics"))
 
 
+## "painterly" or "pixel": the visual style the level views render in (PX1 experiment).
+static func visual_style() -> String:
+	return str(saved_option(&"visual_style"))
+
+
 ## "on", "short" or "off": how shloka cards are shown.
 static func shloka_cards_mode() -> String:
 	return str(saved_option(&"shloka_cards"))
@@ -214,6 +225,9 @@ static func _validated(key: String, value: Variant) -> Variant:
 		"graphics":
 			var preset: String = str(value)
 			return preset if GRAPHICS_PRESETS.has(preset) else null
+		"visual_style":
+			var style: String = str(value)
+			return style if VISUAL_STYLES.has(style) else null
 		"vsync", "fullscreen":
 			return value if typeof(value) == TYPE_BOOL else null
 		"volume_master", "volume_music", "volume_sfx":
@@ -240,6 +254,9 @@ func _apply(key: String, value: Variant) -> void:
 			Engine.max_fps = value as int
 		"graphics":
 			_apply_graphics(str(value))
+		"visual_style":
+			if is_inside_tree():
+				get_tree().call_group(VISUAL_STYLE_GROUP, &"set_visual_style", StringName(str(value)))
 		"vsync":
 			var vsync_on: bool = value as bool
 			DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if vsync_on else DisplayServer.VSYNC_DISABLED)
@@ -354,6 +371,7 @@ func _build_settings_panel() -> void:
 	_add_option_row(column, "tutorial_hints", "TutorialLabel", "UI_MENU_TUTORIAL_HINTS", "TutorialOption")
 	_add_option_row(column, "fps_cap", "FpsLabel", "UI_MENU_FPS", "FpsOption")
 	_add_option_row(column, "graphics", "GraphicsLabel", "UI_MENU_GRAPHICS", "GraphicsOption")
+	_add_option_row(column, "visual_style", "StyleLabel", "UI_MENU_STYLE", "StyleOption")
 	_add_check(column, "vsync", "VsyncCheck", "UI_MENU_VSYNC")
 	_add_check(column, "fullscreen", "FullscreenCheck", "UI_MENU_FULLSCREEN")
 	_add_slider_row(column, "volume_master", "VolumeMasterLabel", "UI_MENU_VOLUME_MASTER", "VolumeMasterSlider")
@@ -485,6 +503,8 @@ func _choices(option: String) -> Array:
 			return Array(FPS_CAPS)
 		"graphics":
 			return Array(GRAPHICS_PRESETS)
+		"visual_style":
+			return Array(VISUAL_STYLES)
 		_:
 			return []
 
@@ -500,6 +520,8 @@ func _choice_text(option: String, value: Variant) -> String:
 			return tr("UI_MENU_FPS_UNLIMITED") if cap == 0 else str(cap)
 		"graphics":
 			return tr("UI_MENU_GFX_" + str(value).to_upper())
+		"visual_style":
+			return tr("UI_MENU_STYLE_" + str(value).to_upper())
 		_:
 			return str(value)
 

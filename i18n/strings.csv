@@ -117,6 +117,9 @@ UI_MENU_GRAPHICS,Graphics,ग्राफ़िक्स
 UI_MENU_GFX_LOW,Low,निम्न
 UI_MENU_GFX_MEDIUM,Medium,मध्यम
 UI_MENU_GFX_HIGH,High,उच्च
+UI_MENU_STYLE,Visual style,दृश्य शैली
+UI_MENU_STYLE_PAINTERLY,Painterly,चित्रमय
+UI_MENU_STYLE_PIXEL,Pixel,पिक्सेल
 UI_MENU_VSYNC,VSync,वी-सिंक
 UI_MENU_FULLSCREEN,Fullscreen,पूर्ण स्क्रीन
 UI_MENU_SHLOKA_CARDS,Shloka cards,श्लोक कार्ड

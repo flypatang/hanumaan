@@ -108,6 +108,10 @@ var _unlock_card: UnlockCard = null
 var _controls: ControlsScreen = null
 var _tutorial: TutorialDirector = null
 var _talk_nodes: Dictionary = {}
+## PX1 (experiment): the low-resolution view of the 'pixel' visual style, or null in the 'painterly' style.
+var _pixel_view: PixelView = null
+## A style chosen with set_visual_style(); empty means "use the saved Settings choice".
+var _style_choice: StringName = &""
 
 
 # ---------------------------------------------------------------- accessors
@@ -176,6 +180,27 @@ func tutorial() -> TutorialDirector:
 	return _tutorial
 
 
+## The PixelView that shows the world as 3D pixel art, or null while the style is 'painterly' (PX1).
+func pixel_view() -> PixelView:
+	return _pixel_view
+
+
+## "painterly" or "pixel": the style the next (or the current) level is shown in.
+func visual_style() -> StringName:
+	if _style_choice != &"":
+		return _style_choice
+	return StringName(Menus.visual_style())
+
+
+## Switches the visual style now and for the levels loaded later. Menus calls it (through the group
+## Menus.VISUAL_STYLE_GROUP) when the player changes Settings -> Visual style. Unknown styles are ignored.
+func set_visual_style(style: StringName) -> void:
+	if not Menus.VISUAL_STYLES.has(String(style)):
+		return
+	_style_choice = style
+	_apply_visual_style()
+
+
 func level_id() -> StringName:
 	return _level_id
 
@@ -223,6 +248,7 @@ func load_level(id: StringName, options: Dictionary = {}) -> Error:
 		_load_leap()
 	else:
 		_load_world(data, id)
+	_apply_visual_style()
 	_announce_loaded()
 	return OK
 
@@ -258,6 +284,7 @@ func _clear() -> void:
 	_controls = null
 	_tutorial = null
 	_talk_nodes = {}
+	_pixel_view = null
 	_cut_camera = null
 	_actors = {}
 	_triggers = {}
@@ -269,6 +296,26 @@ func _clear() -> void:
 	_bound = false
 	_tail_fire = false
 	_cutscene_dialogue = false
+
+
+func _enter_tree() -> void:
+	add_to_group(Menus.VISUAL_STYLE_GROUP)
+
+
+## Adds or removes the PixelView so the loaded level matches visual_style(). The world is not re-parented: the
+## view renders the same World3D at low resolution below the HUD and dialogue layers, which stay full resolution.
+func _apply_visual_style() -> void:
+	var wanted: bool = _ui_layer != null and visual_style() == &"pixel"
+	if wanted == (_pixel_view != null):
+		return
+	if wanted:
+		_pixel_view = PixelView.new()
+		_pixel_view.name = "PixelView"
+		add_child(_pixel_view)
+	else:
+		remove_child(_pixel_view)
+		_pixel_view.queue_free()
+		_pixel_view = null
 
 
 func _announce_loaded() -> void:
