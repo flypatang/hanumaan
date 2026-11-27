@@ -651,12 +651,19 @@ func test_a_boss_in_a_level_reaches_the_director() -> void:
 
 # ---------------------------------------------------------------- the Jambavan dialogue waits for Interact
 
-func test_walking_into_jambavans_zone_does_not_start_his_dialogue_by_itself() -> void:
+func test_walking_into_jambavans_zone_starts_his_dialogue() -> void:
+	# Changed 2026-11-27 (owner bug "there's no dialog"): story dialogue never depends on knowing a key.
+	var rt: LevelRuntime = _mahendra()
+	var jambavan: Node3D = rt.actors()["jambavan"] as Node3D
+	rt.player().global_position = jambavan.global_position + Vector3(-2.0, 0.0, 0.0)
+	rt._on_trigger_body(rt.player(), "t_jambavan")  # what the physics engine does when he walks in
+	assert_bool(rt.dialogue_box().is_playing()).is_true()
+
+
+func test_pressing_f_near_jambavan_also_starts_his_dialogue() -> void:
 	var rt: LevelRuntime = _mahendra()
 	var jambavan: Node3D = rt.actors()["jambavan"] as Node3D
 	rt.player().global_position = jambavan.global_position + Vector3(-5.0, 0.0, 0.0)
-	rt._on_trigger_body(rt.player(), "t_jambavan")  # what the physics engine does when he walks in
-	assert_bool(rt.dialogue_box().is_playing()).is_false()
 	_tap_key(KEY_F)  # too far away
 	assert_bool(rt.dialogue_box().is_playing()).is_false()
 	rt.player().global_position = jambavan.global_position + Vector3(-2.0, 0.0, 0.0)

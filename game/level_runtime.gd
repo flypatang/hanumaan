@@ -283,6 +283,7 @@ func _load_world(data: Dictionary, id: StringName) -> void:
 	_read_tiles(data)
 	_level_root = LevelBuilder.build(data)
 	add_child(_level_root)
+	_build_bounds()
 	Look.apply_for_level(id, self)  # Art Direction v2 mood lighting (F1)
 	_make_occluders()
 	_collect_props()
@@ -896,6 +897,70 @@ func _read_tiles(data: Dictionary) -> void:
 			_tiles[cell] = {"type": str(tile.get("type", "ground")), "step": (tile.get("step", 0) as int)}
 
 
+# ---------------------------------------------------------------- bounds and fall recovery
+# Owner bug 2026-11-27: "If Hanuman falls into the sea, nothing happens; the player cannot do anything."
+# Water and the level's outer edge are walled off with invisible colliders, and if he still ends up below the world
+# he is returned to the last solid ground he stood on (no penalty: §2, Hanuman never dies).
+
+const BOUND_HEIGHT: float = 6.0
+const FALL_MARGIN: float = 3.0
+var _last_safe: Vector3 = Vector3.INF
+var _floor_y: float = 0.0
+
+
+func _build_bounds() -> void:
+	if _tiles.is_empty():
+		return
+	var body: StaticBody3D = StaticBody3D.new()
+	body.name = "Bounds"
+	body.collision_layer = Layers.mask([Layers.WORLD])
+	body.collision_mask = 0
+	_level_root.add_child(body)
+	var lo: Vector2i = Vector2i(1 << 30, 1 << 30)
+	var hi: Vector2i = Vector2i(-(1 << 30), -(1 << 30))
+	var min_step: int = 1 << 30
+	for cell: Vector2i in _tiles:
+		lo = Vector2i(mini(lo.x, cell.x), mini(lo.y, cell.y))
+		hi = Vector2i(maxi(hi.x, cell.x), maxi(hi.y, cell.y))
+		min_step = mini(min_step, (_tiles[cell] as Dictionary)["step"] as int)
+	_floor_y = float(min_step) * LevelBuilder.STEP_HEIGHT
+	var blocked: Array[Vector2i] = []
+	for cell: Vector2i in _tiles:
+		if str((_tiles[cell] as Dictionary)["type"]) == "water":
+			blocked.append(cell)
+	for x: int in range(lo.x - 1, hi.x + 2):
+		for z: int in range(lo.y - 1, hi.y + 2):
+			var c: Vector2i = Vector2i(x, z)
+			if not _tiles.has(c):
+				blocked.append(c)
+	var t: float = LevelBuilder.TILE_SIZE
+	for c: Vector2i in blocked:
+		var shape: CollisionShape3D = CollisionShape3D.new()
+		var box: BoxShape3D = BoxShape3D.new()
+		box.size = Vector3(t, BOUND_HEIGHT, t)
+		shape.shape = box
+		shape.position = Vector3(c.x * t + t * 0.5, _floor_y + BOUND_HEIGHT * 0.5 - 1.0, c.y * t + t * 0.5)
+		body.add_child(shape)
+
+
+func _guard_fall() -> void:
+	if _player == null or not is_instance_valid(_player) or _leap != null or _tiles.is_empty():
+		return
+	var pos: Vector3 = _player.global_position
+	if pos.y < _floor_y - FALL_MARGIN:
+		var back: Vector3 = _last_safe if _last_safe != Vector3.INF else _spawn_position
+		_player.global_position = back + Vector3(0.0, SPAWN_LIFT, 0.0)
+		_player.velocity = Vector3.ZERO
+		var snd: Node = get_node_or_null(^"/root/Sound")
+		if snd != null:
+			snd.call("play", &"recovered")
+		return
+	if _player.is_on_floor():
+		var cell: Vector2i = Vector2i(floori(pos.x / LevelBuilder.TILE_SIZE), floori(pos.z / LevelBuilder.TILE_SIZE))
+		if _is_walkable(cell):
+			_last_safe = pos
+
+
 func _is_walkable(cell: Vector2i) -> bool:
 	return _tiles.has(cell) and WALKABLE.has(str((_tiles[cell] as Dictionary)["type"]))
 
@@ -972,8 +1037,8 @@ func _connect_triggers() -> void:
 func _on_trigger_body(body: Node3D, trigger_id: String) -> void:
 	if body != _player:
 		return
-	if _talk_nodes.has(trigger_id):
-		return  # this dialogue starts when the player presses Interact near the NPC (see _try_talk)
+	# Story dialogue must never depend on knowing a key (owner bug 2026-11-27: "there's no dialog"). Walking up to the
+	# NPC starts it; pressing Interact near the NPC (see _try_talk) also works.
 	fire_trigger(StringName(trigger_id))
 
 
@@ -1067,6 +1132,7 @@ func _update_camera_zoom(delta: float) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	_guard_fall()
 	_footsteps(delta)
 	if _tail_fire and _player != null and _fire != null:
 		burn_near(_player.global_position)

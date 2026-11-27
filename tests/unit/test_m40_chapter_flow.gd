@@ -111,6 +111,10 @@ func test_entry_cutscene_plays_before_the_chapter_is_ready() -> void:
 	assert_array(_cutscenes).contains_exactly(["opening_title"])
 	assert_array(_ready_ids).is_empty()
 	flow.notify_cutscene_finished(&"opening_title")
+	# The prologue opens with the Jambavan scene (owner bug 2026-11-27: "there's no dialog").
+	assert_array(_cutscenes).contains_exactly(["opening_title", "pro_jambavan_intro"])
+	assert_array(_ready_ids).is_empty()
+	flow.notify_cutscene_finished(&"pro_jambavan_intro")
 	assert_array(_ready_ids).contains_exactly(["prologue"])
 
 
@@ -245,6 +249,7 @@ func test_the_whole_story_can_be_walked_to_the_credits() -> void:
 	flow.new_game()
 	flow.notify_level_loaded(&"mahendra", null)
 	flow.notify_cutscene_finished(&"opening_title")
+	flow.notify_cutscene_finished(&"pro_jambavan_intro")
 	flow.handle_event("dialogue:pro_leap")
 	flow.notify_level_loaded(&"ocean_leap", null)
 	gs.call("set_flag", &"ch1_done", true)

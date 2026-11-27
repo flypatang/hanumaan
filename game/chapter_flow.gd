@@ -29,7 +29,7 @@ const CHAPTERS_JSON: String = """{
   "chapters": [
     {
       "id": "prologue",
-      "entry_cutscenes": ["opening_title"],
+      "entry_cutscenes": ["opening_title", "pro_jambavan_intro"],
       "levels": [{ "id": "mahendra" }],
       "objectives": [
         { "id": "talk_jambavan", "key": "OBJ_PRO_TALK", "done": "dialogue:pro_jambavan" },
