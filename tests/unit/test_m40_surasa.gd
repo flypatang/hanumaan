@@ -162,6 +162,15 @@ func test_wider_bait_gives_more_time_inside() -> void:
 	assert_float(times[1]).is_greater(times[0] + 2.0)
 
 
+func test_fully_open_jaws_are_always_wider_than_hanuman_is_tall() -> void:
+	for growth: int in range(1, ChapterFlow.SurasaPuzzle.MAX_GROWTH + 1):
+		var open: float = ChapterFlow.jaw_width_metres(float(growth + 1))
+		var tall: float = ChapterFlow.hanuman_height_metres(growth)
+		assert_float(open).is_greater(tall)
+		assert_float(open).is_less(tall * 1.8)  # close enough to compare by eye
+	assert_float(ChapterFlow.jaw_width_metres(1.0)).is_less(ChapterFlow.hanuman_height_metres(1))
+
+
 func test_timing_is_the_same_at_30_and_60_fps() -> void:
 	var mouths: Array[float] = []
 	for step: float in [1.0 / 30.0, 1.0 / 60.0]:

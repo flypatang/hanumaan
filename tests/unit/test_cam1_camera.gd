@@ -192,3 +192,43 @@ func test_mouse_sensitivity_is_gentle_and_follows_the_settings_slider() -> void:
 	assert_float(IsoCamera.sensitivity_for_slider(1.0)).is_equal_approx(IsoCamera.MOUSE_SENSITIVITY * 2.0, 0.00001)
 	assert_float(IsoCamera.sensitivity_for_slider(0.25)).is_less(IsoCamera.sensitivity_for_slider(0.75))
 	assert_bool(Menus.DEFAULTS.has("mouse_sensitivity")).is_true()
+
+
+func _motion_y(pixels: float) -> InputEventMouseMotion:
+	var ev: InputEventMouseMotion = InputEventMouseMotion.new()
+	ev.relative = Vector2(0.0, pixels)
+	return ev
+
+
+func test_vertical_mouse_motion_tilts_the_view_within_limits() -> void:
+	var iso: IsoCamera = _build()
+	var start: float = iso.pitch_goal()
+	assert_float(start).is_equal_approx(deg_to_rad(IsoCamera.ISO_ELEVATION_DEG), 0.0001)
+	iso._input(_motion_y(100.0))  # mouse down: look more steeply down
+	assert_float(iso.pitch_goal() - start).is_equal_approx(100.0 * iso.mouse_radians_per_pixel, 0.0001)
+	iso._input(_motion_y(100000.0))
+	assert_float(iso.pitch_goal()).is_equal_approx(deg_to_rad(IsoCamera.PITCH_MAX_DEG), 0.0001)
+	iso._input(_motion_y(-100000.0))
+	assert_float(iso.pitch_goal()).is_equal_approx(deg_to_rad(IsoCamera.PITCH_MIN_DEG), 0.0001)
+
+
+func test_tilt_moves_the_camera_and_can_be_inverted() -> void:
+	var iso: IsoCamera = _build()
+	var before: float = iso.get_camera().position.y
+	iso.tilt(0.5)
+	for i: int in 60:
+		iso._process(1.0 / 60.0)
+	assert_float(iso.pitch()).is_equal_approx(iso.pitch_goal(), 0.001)
+	assert_float(iso.get_camera().position.y).is_greater(before)
+	assert_float(iso.get_camera().rotation.x).is_equal_approx(-iso.pitch(), 0.001)
+	var goal: float = iso.pitch_goal()
+	iso.set_invert_look_y(true)
+	iso._input(_motion_y(50.0))
+	assert_float(iso.pitch_goal()).is_less(goal)
+
+
+func test_tilt_is_refused_while_locked() -> void:
+	var iso: IsoCamera = _build()
+	iso.locked = true
+	assert_bool(iso.tilt(0.3)).is_false()
+	assert_bool(InputMap.has_action(&"camera_orbit_up")).is_true()

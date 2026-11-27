@@ -34,6 +34,8 @@ static func register_all() -> void:
 	# Free orbit: the mouse moves (read as motion events by IsoCamera) and the right stick X axis.
 	_bind_action(&"camera_orbit_left", _STICK_DEADZONE, [_axis(JOY_AXIS_RIGHT_X, -1.0)] as Array[InputEvent])
 	_bind_action(&"camera_orbit_right", _STICK_DEADZONE, [_axis(JOY_AXIS_RIGHT_X, 1.0)] as Array[InputEvent])
+	_bind_action(&"camera_orbit_up", _STICK_DEADZONE, [_axis(JOY_AXIS_RIGHT_Y, -1.0)] as Array[InputEvent])
+	_bind_action(&"camera_orbit_down", _STICK_DEADZONE, [_axis(JOY_AXIS_RIGHT_Y, 1.0)] as Array[InputEvent])
 	# Zoom: the mouse wheel, or the D-pad up / down.
 	_bind_action(&"camera_zoom_in", _DEFAULT_DEADZONE, _events_mouse_and_joy_button(MOUSE_BUTTON_WHEEL_UP, JOY_BUTTON_DPAD_UP))
 	_bind_action(&"camera_zoom_out", _DEFAULT_DEADZONE, _events_mouse_and_joy_button(MOUSE_BUTTON_WHEEL_DOWN, JOY_BUTTON_DPAD_DOWN))

@@ -193,9 +193,18 @@ const SURASA_SCALE: float = 6.0
 const SURASA_DISTANCE: float = 34.0
 ## The chase camera offset of the rider at normal flight size (level_runtime builds it there).
 const CHASE_BASE: Vector3 = Vector3(0.0, 5.0, 17.0)
+const MOUTH_MESH_RADIUS: float = 0.3
+const MOUTH_LOCAL_Y: float = 3.5
+const MOUTH_LOCAL_Z: float = -0.62
+const HANUMAN_GIANT_HEIGHT: float = SizeShift.BODY_HEIGHT * 6.0
+## Jaw width per jaw level, in Hanuman GIANT heights (0.55 x 2 = 1.1 x his height at growth 1).
+const JAW_PER_STEP: float = 0.55
 const CHASE_ROTATION: Vector3 = Vector3(-10.0, 0.0, 0.0)
-## Over-the-shoulder camera offset during the Surasa trial (scaled by Hanuman's growth).
-const SURASA_CAMERA_OFFSET: Vector3 = Vector3(14.0, 12.0, 20.0)
+## Direction (rider-local) of the trial camera from the midpoint of Hanuman and Surasa: to the side, a little up and
+## behind, so both stand side by side and her jaws face the camera at an angle.
+const SURASA_CAMERA_DIR: Vector3 = Vector3(0.85, 0.2, 0.55)
+## Breathing room around the framed pair (1 = edge to edge).
+const SURASA_FRAME_MARGIN: float = 1.75
 const MAINAKA_SCALE: float = 5.0
 const SIMHIKA_DISTANCE: float = 26.0
 const LEAP_ATTACK_RANGE: float = 40.0
@@ -957,11 +966,30 @@ func _place_surasa() -> void:
 	_face_rider(_surasa)
 	_mouth = MeshInstance3D.new()
 	_mouth.name = "Mouth"
-	_mouth.mesh = MeshKit.sphere(0.3, 5, 8, Palette.UI_DARK)
+	_mouth.mesh = _maw_mesh()
 	_mouth.material_override = MeshKit.flat_material()
-	_mouth.position = Vector3(0.0, 3.5, -0.62)
+	_mouth.position = Vector3(0.0, MOUTH_LOCAL_Y, MOUTH_LOCAL_Z)
 	_surasa.add_child(_mouth)
 	_update_surasa_visuals()
+
+
+## Surasa's open maw, facing -Z (toward Hanuman): a dark throat disc of radius MOUTH_MESH_RADIUS in a sindoor-red
+## rim of lips, with two fangs above and two below. Scaled as a whole so its width matches the jaw level.
+static func _maw_mesh() -> ArrayMesh:
+	var r: float = MOUTH_MESH_RADIUS
+	var face_z: Basis = Basis(Vector3.RIGHT, PI * 0.5)  # cylinder axis Y -> Z
+	var parts: Array[Dictionary] = [
+		{"mesh": MeshKit.cylinder(r * 1.18, r * 1.18, r * 0.25, 20, Palette.SINDOOR),
+			"transform": Transform3D(face_z, Vector3(0.0, 0.0, r * 0.12))},
+		{"mesh": MeshKit.cylinder(r, r, r * 0.3, 20, Palette.UI_DARK),
+			"transform": Transform3D(face_z, Vector3(0.0, 0.0, -r * 0.05))},
+	]
+	for side: float in [-0.4, 0.4]:
+		parts.append({"mesh": MeshKit.cone(r * 0.12, r * 0.42, 6, Palette.MOON),
+			"transform": Transform3D(Basis(Vector3.BACK, PI), Vector3(side * r, r * 0.95, -r * 0.22))})
+		parts.append({"mesh": MeshKit.cone(r * 0.1, r * 0.32, 6, Palette.MOON),
+			"transform": Transform3D(Basis(), Vector3(side * r * 0.8, -r * 0.95, -r * 0.22))})
+	return MeshKit.merge(parts)
 
 
 func _place_simhika() -> void:
@@ -992,6 +1020,18 @@ func _on_simhika_inside_done(_inner: int) -> void:
 func _restore_rider_size() -> void:
 	if _rt != null and _rt.size_shift() != null:
 		_rt.size_shift().force_size(SizeShift.SIZE.GIANT)
+
+
+## Width of Surasa's open jaws in metres for a jaw level (1 = closed, growth + 1 = fully open).
+static func jaw_width_metres(mouth: float) -> float:
+	return HANUMAN_GIANT_HEIGHT * JAW_PER_STEP * mouth
+
+
+## Hanuman's height in metres at a trial growth (1..MAX_GROWTH), for comparing with her jaws.
+static func hanuman_height_metres(growth: int) -> float:
+	if growth <= 0:
+		return SizeShift.BODY_HEIGHT * SizeShift.SCALES[SizeShift.SIZE.SMALL]
+	return HANUMAN_GIANT_HEIGHT * SurasaPuzzle.GROWTH_SCALES[growth - 1]
 
 
 ## Narration for each moment of the Surasa trial. It describes what Surasa does, never which key to press next;
@@ -1038,8 +1078,17 @@ func _update_surasa_prompt() -> void:
 func _update_surasa_visuals() -> void:
 	if _puzzle == null:
 		return
+	# Owner 2026-11-27: her jaws must read against Hanuman's size. Jaw width in metres is JAW_PER_STEP x mouth, in
+	# units of Hanuman's GIANT height, so fully open (growth + 1) is always a little taller than he is. Surasa's
+	# body grows with her jaws so the maw still sits on her head.
+	var body: float = SURASA_SCALE * (0.6 + 0.4 * _puzzle.mouth)
+	if _surasa != null and is_instance_valid(_surasa):
+		_surasa.scale = Vector3.ONE * body
 	if _mouth != null and is_instance_valid(_mouth):
-		_mouth.scale = Vector3.ONE * (0.5 + 0.6 * (_puzzle.mouth - SurasaPuzzle.MOUTH_CLOSED))
+		var radius: float = jaw_width_metres(_puzzle.mouth) * 0.5 / body
+		var k: float = radius / MOUTH_MESH_RADIUS
+		_mouth.scale = Vector3(k, k, k)
+		_mouth.position = Vector3(0.0, MOUTH_LOCAL_Y, MOUTH_LOCAL_Z - radius * 0.15)
 	if _surasa != null and is_instance_valid(_surasa):
 		var shake: float = _puzzle.windup_fraction()
 		_surasa.rotation.z = sin(float(Time.get_ticks_msec()) * 0.03) * 0.06 * shake
@@ -1070,15 +1119,25 @@ func _set_chase_scale(factor: float) -> void:
 		chase.rotation_degrees = CHASE_ROTATION
 
 
-## During the trial: an over-the-shoulder view, pulled back as Hanuman grows, aimed at Surasa's jaws so the player
-## can always read how wide they are.
-func _frame_surasa(factor: float) -> void:
+## During the trial: a three-quarter side view that always frames both Hanuman (whole body) and Surasa's jaws, so
+## the player can compare his height with how wide she has opened (owner 2026-11-27).
+func _frame_surasa(_factor: float) -> void:
 	var chase: Camera3D = _chase_camera()
-	if chase == null or _mouth == null or not is_instance_valid(_mouth) or not _mouth.is_inside_tree():
+	var rider: Node3D = _rt.rider() if _rt != null else null
+	if chase == null or rider == null or _mouth == null or not is_instance_valid(_mouth) or not _mouth.is_inside_tree():
 		return
-	chase.position = SURASA_CAMERA_OFFSET * factor
-	if chase.is_inside_tree():
-		chase.look_at(_mouth.global_position, Vector3.UP)
+	if not rider.is_inside_tree():
+		return
+	var tall: float = hanuman_height_metres(_puzzle.growth) if _puzzle != null else HANUMAN_GIANT_HEIGHT
+	var jaw: float = jaw_width_metres(_puzzle.mouth) if _puzzle != null else 0.0
+	var mouth_local: Vector3 = rider.to_local(_mouth.global_position)
+	var top: float = maxf(tall, mouth_local.y + jaw * 0.5)
+	var bottom: float = minf(0.0, mouth_local.y - jaw * 0.5)
+	var centre: Vector3 = Vector3(mouth_local.x * 0.5, (top + bottom) * 0.5, mouth_local.z * 0.5)
+	var extent: float = maxf(top - bottom, absf(mouth_local.z) + jaw * 0.5)
+	var distance: float = extent * SURASA_FRAME_MARGIN / tan(deg_to_rad(chase.fov) * 0.5) * 0.5
+	chase.position = centre + SURASA_CAMERA_DIR.normalized() * distance
+	chase.look_at(rider.to_global(centre), Vector3.UP)
 
 
 func _chase_camera() -> Camera3D:

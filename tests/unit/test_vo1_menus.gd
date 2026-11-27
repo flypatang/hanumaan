@@ -4,6 +4,10 @@ extends GdUnitTestSuite
 const MENU_SCRIPT: String = "res://ui/menus.gd"
 
 
+func before_test() -> void:
+	after_test()
+
+
 func after_test() -> void:
 	var menu: Menus = auto_free((load(MENU_SCRIPT) as GDScript).new() as Menus) as Menus
 	add_child(menu)

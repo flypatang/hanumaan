@@ -36,6 +36,7 @@ const OPTION_SECTIONS: Dictionary = {
 	"voice_over": "audio",
 	"voice_over_hindi": "audio",
 	"mouse_sensitivity": "controls",
+	"invert_look_y": "controls",
 }
 const DEFAULTS: Dictionary = {
 	"shloka_cards": "on",
@@ -51,6 +52,7 @@ const DEFAULTS: Dictionary = {
 	"volume_voice": 1.0,
 	"voice_over": true,
 	"voice_over_hindi": false,
+	"invert_look_y": false,
 	"mouse_sensitivity": 0.5,  # owner 2026-11-27: the old mouse orbit was too fast; 0.5 is about 2.4x slower  # owner decision 2026-11-27: Hindi TTS quality is poor, subtitles only by default
 }
 const SHLOKA_MODES: PackedStringArray = ["on", "short", "off"]
@@ -239,7 +241,7 @@ static func _validated(key: String, value: Variant) -> Variant:
 		"visual_style":
 			var style: String = str(value)
 			return style if VISUAL_STYLES.has(style) else null
-		"vsync", "fullscreen", "voice_over", "voice_over_hindi":
+		"vsync", "fullscreen", "voice_over", "voice_over_hindi", "invert_look_y":
 			return value if typeof(value) == TYPE_BOOL else null
 		"volume_master", "volume_music", "volume_sfx", "volume_voice", "mouse_sensitivity":
 			if typeof(value) != TYPE_INT and typeof(value) != TYPE_FLOAT:
@@ -282,6 +284,9 @@ func _apply(key: String, value: Variant) -> void:
 			_set_bus_volume(BUS_SFX, value as float)
 		"volume_voice":
 			_set_bus_volume(BUS_VOICE, value as float)
+		"invert_look_y":
+			if is_inside_tree():
+				get_tree().call_group(MOUSE_SENSITIVITY_GROUP, &"set_invert_look_y", value as bool)
 		"mouse_sensitivity":
 			if is_inside_tree():
 				get_tree().call_group(MOUSE_SENSITIVITY_GROUP, &"set_mouse_sensitivity", value as float)
@@ -391,6 +396,7 @@ func _build_settings_panel() -> void:
 	_add_check(column, "vsync", "VsyncCheck", "UI_MENU_VSYNC")
 	_add_check(column, "fullscreen", "FullscreenCheck", "UI_MENU_FULLSCREEN")
 	_add_slider_row(column, "mouse_sensitivity", "MouseSensitivityLabel", "UI_MENU_MOUSE_SENSITIVITY", "MouseSensitivitySlider")
+	_add_check(column, "invert_look_y", "InvertLookCheck", "UI_MENU_INVERT_LOOK_Y")
 	_add_slider_row(column, "volume_master", "VolumeMasterLabel", "UI_MENU_VOLUME_MASTER", "VolumeMasterSlider")
 	_add_slider_row(column, "volume_music", "VolumeMusicLabel", "UI_MENU_VOLUME_MUSIC", "VolumeMusicSlider")
 	_add_slider_row(column, "volume_sfx", "VolumeSfxLabel", "UI_MENU_VOLUME_SFX", "VolumeSfxSlider")

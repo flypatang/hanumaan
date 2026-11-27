@@ -3,9 +3,11 @@ extends Node3D
 ## Orthographic isometric camera rig (DESIGN §4.1, §9 M35).
 ## Yaw starts at 45 degrees and turns in 90-degree steps with a 0.3 s eased tween (rotate_camera_left/right).
 ## Walls and roofs between the camera and the target fade to 75% transparency (25% opacity) and restore when clear.
-## CAM1: the mouse (and the right stick) orbit the view freely (yaw only, the isometric pitch is fixed), the wheel zooms
+## CAM1: the mouse (and the right stick) orbit the view freely, the wheel zooms
 ## (a multiplier on `size`, clamped), Z / C still snap by 90 degrees. The mouse is captured while playing and released
 ## while the tree is paused or the runtime holds input (dialogue, menu, card), then captured again.
+## CAM2 (owner 2026-11-27, "more flexible, all directions"): vertical mouse / right-stick motion tilts the view
+## between PITCH_MIN_DEG (low, toward the horizon) and PITCH_MAX_DEG (almost top-down); Settings can invert it.
 ## Frame-rate independent: follow smoothing and the turn duration use delta, and occlusion runs in physics.
 
 const ROTATE_TIME: float = 0.3
@@ -20,6 +22,10 @@ const OCCLUDER_GROUP: StringName = &"occluder"
 ## Radians of yaw per pixel of mouse motion at the default Settings value (90 degrees is about 750 px).
 ## Owner 2026-11-27: the old 0.005 made the world spin; the Settings slider scales this from 0.25x to 2x.
 const MOUSE_SENSITIVITY: float = 0.0021
+const PITCH_MIN_DEG: float = 15.0
+const PITCH_MAX_DEG: float = 75.0
+## Pitch speed of the right stick at full deflection, radians per second.
+const STICK_PITCH_SPEED: float = 1.4
 const MOUSE_SCALE_MIN: float = 0.25
 const MOUSE_SCALE_MAX: float = 2.0
 ## Radians per second at full right-stick deflection.
@@ -47,10 +53,14 @@ var mouse_look_enabled: bool = true
 var orbit_total: float = 0.0
 ## Radians of yaw per pixel of mouse motion; follows the Settings slider (set_mouse_sensitivity).
 var mouse_radians_per_pixel: float = MOUSE_SENSITIVITY
+## When true, moving the mouse up tilts the view down (Settings "Invert vertical look").
+var invert_pitch: bool = false
 
 var _camera: Camera3D = null
 var _target_node: Node3D = null
 var _yaw_goal: float = BASE_YAW
+var _pitch: float = deg_to_rad(ISO_ELEVATION_DEG)
+var _pitch_goal: float = deg_to_rad(ISO_ELEVATION_DEG)
 var _zoom: float = 1.0
 var _zoom_goal: float = 1.0
 var _mouse_mode: Input.MouseMode = Input.MOUSE_MODE_VISIBLE
@@ -63,14 +73,13 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS  # so the mouse is released while the tree is paused
 	add_to_group(Menus.MOUSE_SENSITIVITY_GROUP)
 	set_mouse_sensitivity(Menus.saved_option(&"mouse_sensitivity") as float)
+	invert_pitch = Menus.saved_option(&"invert_look_y") as bool
 	_camera = Camera3D.new()
 	_camera.name = "Camera"
 	_camera.projection = Camera3D.PROJECTION_ORTHOGONAL
 	_camera.size = size
-	var elevation: float = deg_to_rad(ISO_ELEVATION_DEG)
-	_camera.position = Vector3(0.0, CAMERA_DISTANCE * sin(elevation), CAMERA_DISTANCE * cos(elevation))
-	_camera.rotation.x = -elevation
 	add_child(_camera)
+	_apply_pitch()
 	_camera.current = true
 	rotation.y = BASE_YAW
 	_yaw_goal = BASE_YAW
@@ -96,6 +105,16 @@ func _process(delta: float) -> void:
 			var stick: float = Input.get_axis(&"camera_orbit_left", &"camera_orbit_right")
 			if absf(stick) > 0.0:
 				orbit(stick * STICK_SPEED * delta)
+		if InputMap.has_action(&"camera_orbit_up") and InputMap.has_action(&"camera_orbit_down"):
+			var tilt_stick: float = Input.get_axis(&"camera_orbit_up", &"camera_orbit_down")
+			if absf(tilt_stick) > 0.0:
+				tilt(tilt_stick * STICK_PITCH_SPEED * delta * (-1.0 if invert_pitch else 1.0))
+	if absf(_pitch - _pitch_goal) > 0.0001:
+		_pitch = lerpf(_pitch, _pitch_goal, 1.0 - exp(-ORBIT_SMOOTHING * delta))
+		_apply_pitch()
+	elif _pitch != _pitch_goal:
+		_pitch = _pitch_goal
+		_apply_pitch()
 	if not is_rotating():
 		rotation.y = lerpf(rotation.y, _yaw_goal, 1.0 - exp(-ORBIT_SMOOTHING * delta)) if absf(rotation.y - _yaw_goal) > 0.0001 else _yaw_goal
 	if _target_node != null and is_instance_valid(_target_node):
@@ -110,6 +129,7 @@ func _input(event: InputEvent) -> void:
 	if motion != null:
 		if mouse_look_enabled:
 			orbit(motion.relative.x * mouse_radians_per_pixel)
+			tilt(motion.relative.y * mouse_radians_per_pixel * (-1.0 if invert_pitch else 1.0))
 		return
 	if event.is_action_pressed(&"camera_zoom_in"):
 		zoom_by(ZOOM_STEP)
@@ -175,6 +195,36 @@ func orbit(radians: float) -> bool:
 	_yaw_goal += radians
 	orbit_total += absf(radians)
 	return true
+
+
+## Tilts the view: positive looks more steeply down, negative toward the horizon. Clamped to the pitch range.
+## Refused while locked or while a menu or dialogue holds input. Returns true when applied.
+func tilt(radians: float) -> bool:
+	if is_input_blocked():
+		return false
+	_pitch_goal = clampf(_pitch_goal + radians, deg_to_rad(PITCH_MIN_DEG), deg_to_rad(PITCH_MAX_DEG))
+	return true
+
+
+## The pitch (radians below the horizon) the view is heading for.
+func pitch_goal() -> float:
+	return _pitch_goal
+
+
+## The pitch drawn right now.
+func pitch() -> float:
+	return _pitch
+
+
+func set_invert_look_y(value: bool) -> void:
+	invert_pitch = value
+
+
+func _apply_pitch() -> void:
+	if _camera == null:
+		return
+	_camera.position = Vector3(0.0, CAMERA_DISTANCE * sin(_pitch), CAMERA_DISTANCE * cos(_pitch))
+	_camera.rotation.x = -_pitch
 
 
 ## The yaw the view is heading for (rotation.y once smoothing and turns are done).
