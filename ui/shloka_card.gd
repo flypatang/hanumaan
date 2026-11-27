@@ -30,6 +30,9 @@ var mode: StringName = MODE_ON:
 		else:
 			push_warning("ShlokaCard: unknown mode '%s' ignored" % str(value))
 
+## Voice-over player (VO1). Null means "use the Voice autoload when there is one".
+var voice: VoicePlayer = null
+
 var _id: StringName = &""
 var _open: bool = false
 var _elapsed: float = 0.0
@@ -126,6 +129,8 @@ func show_shloka(id: StringName) -> void:
 	visible = true
 	if mode == MODE_OFF:
 		_close()
+	elif mode == MODE_ON:
+		_recite()
 
 
 ## Re-reads the translation and fonts for the current language. Called when the Locale language changes, so an open
@@ -262,9 +267,23 @@ func _is_dismiss_event(event: InputEvent) -> bool:
 	return false
 
 
+## Plays the Sanskrit recitation of the open shloka (mode on only: short has no recitation).
+func _recite() -> void:
+	var player: VoicePlayer = voice
+	if player == null:
+		player = get_node_or_null(^"/root/Voice") as VoicePlayer
+	if player != null:
+		player.play_shloka(str(_id))
+
+
 func _close() -> void:
 	if not _open:
 		return
+	var player: VoicePlayer = voice
+	if player == null:
+		player = get_node_or_null(^"/root/Voice") as VoicePlayer
+	if player != null and player.current_clip() == _id:
+		player.stop()
 	_open = false
 	visible = false
 	closed.emit(_id)
