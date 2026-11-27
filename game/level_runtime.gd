@@ -419,6 +419,7 @@ func play_dialogue(file_and_node: String) -> bool:
 		push_warning("LevelRuntime: dialogue '%s' did not start (error %d)" % [file_and_node, err])
 		return false
 	_lock_input(true)
+	_playing_ref = file_and_node
 	var bus: Node = _bus()
 	if bus != null:
 		bus.emit_signal("dialogue_started", StringName(file_and_node.get_slice("#", 0)))
@@ -525,8 +526,19 @@ func _on_cutscene_finished(id: StringName) -> void:
 	game_event.emit("cutscene:%s" % str(id))
 
 
+var _playing_ref: String = ""
+
+
+func _dialogue_done(ref: String) -> bool:
+	var gs: Node = _state()
+	return gs != null and (gs.call("get_flag", StringName("dlg_done_" + ref), false) as bool)
+
+
 func _on_dialogue_finished(file_id: StringName) -> void:
 	var gs: Node = _state()
+	if gs != null and _playing_ref != "":
+		gs.call("set_flag", StringName("dlg_done_" + _playing_ref), true)
+	_playing_ref = ""
 	var flags: Dictionary = {}
 	if gs != null:
 		flags = gs.get("flags") as Dictionary
@@ -1117,6 +1129,10 @@ func route(on_enter: String) -> void:
 	var arg: String = on_enter.substr(colon + 1)
 	match verb:
 		"dialogue":
+			# A finished story conversation never replays from a trigger (owner bug 2026-11-27: walking back past
+			# Jambavan restarted the prologue speech).
+			if _dialogue_done(arg):
+				return
 			play_dialogue(arg)
 		"cutscene":
 			play_cutscene(StringName(arg))

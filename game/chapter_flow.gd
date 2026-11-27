@@ -150,7 +150,7 @@ const TEXTS: Dictionary = {
 	"OBJ_CH2_LANKINI": ["Face Lankini at the gate", "द्वार पर लंकिनी का सामना करें"],
 	"OBJ_CH2_SEARCH": ["Search Lanka: the mansions, the palace, the Pushpaka courtyard", "लंका में खोजें: भवन, राजमहल और पुष्पक-प्रांगण"],
 	"OBJ_CH2_VATIKA": ["Find the Ashoka Vatika", "अशोक वाटिका खोजें"],
-	"OBJ_CH3_SITA": ["Speak with Sita", "सीता से बात करें"],
+	"OBJ_CH3_SITA": ["Speak with Sita Mata", "सीता माता से बात करें"],
 	"OBJ_CH4_WAVES": ["Break the grove's defenders", "वाटिका के रक्षकों को परास्त करें"],
 	"OBJ_CH5_COURT": ["Speak before Ravana", "रावण के सम्मुख वचन कहें"],
 	"OBJ_CH5_BURN": ["Spread fire to the rakshasa armouries", "राक्षसों के शस्त्रागारों में अग्नि फैलाएँ"],

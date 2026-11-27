@@ -35,6 +35,7 @@ listed here so the reviewers can tell them apart from mistakes.
 | Rama's name | Shown in Devanagari "राम" on the HUD Smarana meter. The name is never used as a joke or a pickup. |
 | Shlokas | Every Sanskrit verse shown in the game is quoted **exactly** from the Valmiki Ramayana with its reference (Kanda.Sarga.Shloka), and is checked against the IIT Kanpur Valmiki Ramayana text (valmiki.iitk.ac.in) before release. Verses are never paraphrased and presented as scripture. |
 | Sita | Shown with dignity under the shimshapa tree. Ravana's threats are delivered in text, without menace animations aimed at her. |
+| Naming Sita | Everyone except Rama — narrator included — calls her **Sita Mata / सीता माता** (owner rule 2026-11-27). Only Rama says "Sita". Shloka texts and their translations are quoted as written. |
 | Gameplay liberties | (a) The kinkaras' numbers are shown as waves, not 80,000. (b) The leap is an on-rails flight sequence. (c) Shrines are a game device. |
 | Brahmastra | Hanuman **chooses** to submit out of respect for Brahma. This is a cutscene, not a fight you lose. |
 

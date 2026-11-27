@@ -239,6 +239,8 @@ func _begin_step(step: Dictionary) -> void:
 
 func _complete_step() -> void:
 	_step_active = false
+	if _moving_actor and _actor != null and is_instance_valid(_actor) and _actor.has_method(&"set_pose"):
+		_actor.call(&"set_pose", &"idle")
 	_clear_move_state()
 	_index += 1
 
@@ -276,6 +278,12 @@ func _begin_actor_move(step: Dictionary) -> void:
 	var target: Vector2 = _vec2(step.get("to", null), Vector2(_actor.global_position.x, _actor.global_position.z))
 	_actor_from = _actor.global_position
 	_actor_to = Vector3(target.x, _actor_from.y, target.y)
+	# Face the way they walk (owner bug 2026-11-27: Jambavan walked backwards toward Hanuman). Models face -Z.
+	var dir: Vector3 = _actor_to - _actor_from
+	if Vector2(dir.x, dir.z).length() > 0.01:
+		_actor.rotation.y = atan2(-dir.x, -dir.z)
+		if _actor.has_method(&"set_pose") and _step_duration > 0.0:
+			_actor.call(&"set_pose", &"walk_a")
 	if _step_duration <= 0.0:
 		_apply_progress(1.0)
 

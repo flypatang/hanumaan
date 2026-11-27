@@ -5,8 +5,8 @@ SPK_JAMBAVAN,Jambavan,जाम्बवान
 SPK_ANGADA,Angada,अंगद
 SPK_MAINAKA,Mainaka,मैनाक
 SPK_SURASA,Surasa,सुरसा
-DLG_PRO_JAM_001,"On the southern shore, the vanara search party stares at the endless ocean. Beyond it lies Lanka — and somewhere within it, Sita.","दक्षिणी तट पर वानर-दल अनंत सागर को निहार रहा है। उसके पार लंका है — और कहीं उसके भीतर, सीता।"
-DLG_PRO_JAM_002,"A hundred yojanas of sea. Who among us can cross it? If we return without news of Sita, all our effort will have been for nothing.","सौ योजन का समुद्र! हम में से कौन इसे पार कर सकता है? यदि सीता का समाचार लिए बिना लौटे, तो हमारा सारा परिश्रम व्यर्थ होगा।"
+DLG_PRO_JAM_001,"On the southern shore, the vanara search party stares at the endless ocean. Beyond it lies Lanka — and somewhere within it, Sita Mata.","दक्षिणी तट पर वानर-दल अनंत सागर को निहार रहा है। उसके पार लंका है — और कहीं उसके भीतर, सीता माता।"
+DLG_PRO_JAM_002,"A hundred yojanas of sea. Who among us can cross it? If we return without news of Sita Mata, all our effort will have been for nothing.","सौ योजन का समुद्र! हम में से कौन इसे पार कर सकता है? यदि सीता माता का समाचार लिए बिना लौटे, तो हमारा सारा परिश्रम व्यर्थ होगा।"
 DLG_PRO_JAM_003,"Hanuman, why do you sit apart in silence? You, the son of Anjana and the Wind himself, are equal in strength to Garuda.","हनुमान, तुम चुपचाप एक ओर क्यों बैठे हो? तुम अंजना और स्वयं पवनदेव के पुत्र हो, बल में गरुड़ के समान।"
 DLG_PRO_JAM_004,"As a child, you saw the rising sun and leapt into the sky to seize it, thinking it a ripe fruit. Indra's thunderbolt struck your jaw — and so you were named Hanuman.",बचपन में तुमने उगते सूर्य को पका फल समझकर पकड़ने के लिए आकाश में छलाँग लगाई थी। इन्द्र के वज्र ने तुम्हारी ठोड़ी पर प्रहार किया — इसी से तुम्हारा नाम हनुमान पड़ा।
 DLG_PRO_JAM_005,"The gods blessed you then: no weapon can slay you, and your strength knows no bound. Only the sages' word made you forget it — until someone reminds you.","तब देवताओं ने तुम्हें वर दिए: कोई अस्त्र तुम्हारा वध नहीं कर सकता, और तुम्हारे बल की कोई सीमा नहीं। केवल ऋषियों के वचन से तुम उसे भूल गए — जब तक कोई तुम्हें स्मरण न कराए।"
@@ -15,7 +15,7 @@ DLG_PRO_JAM_007,(Hanuman feels a long-forgotten strength stir within him.),(ह�
 CH_PRO_JAM_A,"""This strength is Rama's. I will cross the sea in his service.""","""यह बल श्रीराम का है। मैं उनकी सेवा में समुद्र पार करूँगा।"""
 CH_PRO_JAM_B,"""Am I truly capable of this?""","""क्या मैं सचमुच यह कर सकता हूँ?"""
 DLG_PRO_JAM_007B,Doubt is the only ocean you cannot cross by leaping. Remember whose work this is.,"संदेह ही वह सागर है जिसे छलाँग से पार नहीं किया जा सकता। स्मरण करो, यह किसका कार्य है।"
-DLG_PRO_JAM_008,"Elders, watch me. I will climb Mahendra mountain and leap from its peak. I will find Sita — or I will not return.","हे वृद्धजनों, देखिए। मैं महेन्द्र पर्वत पर चढ़कर उसके शिखर से छलाँग लगाऊँगा। मैं सीता को खोजूँगा — अन्यथा लौटूँगा नहीं।"
+DLG_PRO_JAM_008,"Elders, watch me. I will climb Mahendra mountain and leap from its peak. I will find Sita Mata — or I will not return.","हे वृद्धजनों, देखिए। मैं महेन्द्र पर्वत पर चढ़कर उसके शिखर से छलाँग लगाऊँगा। मैं सीता माता को खोजूँगा — अन्यथा लौटूँगा नहीं।"
 DLG_PRO_JAM_009,Grow is unlocked. Hold the Grow button to become vast — but greatness spends Smarana.,'बढ़ना' खुल गया है। विशाल होने के लिए 'बढ़ना' बटन दबाए रखें — पर विशालता स्मरण (Smarana) खर्च करती है।
 DLG_PRO_LEAP_001,"From the peak of Mahendra, Hanuman fixes his gaze to the south and joins his palms to the Wind, to the gods, and to Rama.","महेन्द्र के शिखर से हनुमान दक्षिण की ओर दृष्टि जमाते हैं, और पवनदेव, देवताओं तथा श्रीराम को हाथ जोड़कर प्रणाम करते हैं।"
 DLG_PRO_LEAP_002,The mountain trembles as he springs into the sky.,"जैसे ही वे आकाश में उछलते हैं, पर्वत काँप उठता है।"
@@ -23,15 +23,15 @@ DLG_CH1_MAI_001,"A golden mountain rises from the waves. ""Rest upon my peaks, s
 DLG_CH1_MAI_002,"""Your father, the Wind, once saved me from Indra's wrath. Let me repay that debt.""","""तुम्हारे पिता पवनदेव ने एक बार मुझे इन्द्र के क्रोध से बचाया था। मुझे वह ऋण चुकाने दो।"""
 DLG_CH1_MAI_003,"""Your welcome is honour enough. I have promised not to pause until my task is done.""","""आपका स्वागत ही मेरे लिए पर्याप्त सम्मान है। मैंने प्रण किया है कि कार्य पूरा होने तक रुकूँगा नहीं।"""
 DLG_CH1_SUR_001,"""The gods have granted me that whoever comes my way must enter my mouth. You shall be my meal.""","""देवताओं ने मुझे वर दिया है कि जो भी मेरे मार्ग में आए, उसे मेरे मुख में प्रवेश करना होगा। तुम मेरा भोजन बनोगे।"""
-DLG_CH1_SUR_002,"""I go on Rama's errand, to find his wife Sita. Let me pass, and I will return to you once my task is done.""","""मैं श्रीराम के कार्य से, उनकी पत्नी सीता को खोजने जा रहा हूँ। मुझे जाने दो, कार्य पूरा होने पर मैं तुम्हारे पास लौट आऊँगा।"""
+DLG_CH1_SUR_002,"""I go on Rama's errand, to find his wife, Sita Mata. Let me pass, and I will return to you once my task is done.""","""मैं श्रीराम के कार्य से, उनकी पत्नी सीता माता को खोजने जा रहा हूँ। मुझे जाने दो, कार्य पूरा होने पर मैं तुम्हारे पास लौट आऊँगा।"""
 DLG_CH1_SUR_003,"""None may pass me. Enter my mouth!""","""मुझे कोई पार नहीं कर सकता। मेरे मुख में प्रवेश करो!"""
 DLG_CH1_SUR_010,"""I have entered your mouth, as the gods decreed — and come out again. Mother, I bow to you.""","""देवताओं के वचन के अनुसार मैंने तुम्हारे मुख में प्रवेश कर लिया — और बाहर भी आ गया। माता, आपको प्रणाम।"""
-DLG_CH1_SUR_011,"""Go, wise one, and may you succeed. Bring Sita and Rama together again.""","""जाओ, बुद्धिमान, तुम्हें सफलता मिले। सीता और राम को फिर से मिलाओ।"""
+DLG_CH1_SUR_011,"""Go, wise one, and may you succeed. Bring Sita Mata and Rama together again.""","""जाओ, बुद्धिमान, तुम्हें सफलता मिले। सीता माता और राम को फिर से मिलाओ।"""
 DLG_CH1_SIM_001,Something seizes Hanuman's shadow on the water. He is dragged downward as if by an unseen hand.,जल पर पड़ी हनुमान की छाया को कोई पकड़ लेता है। वे ऐसे नीचे खिंचते हैं मानो किसी अदृश्य हाथ ने पकड़ा हो।
 DLG_CH1_SIM_002,"""This must be the shadow-seizer Sugriva spoke of — Simhika!""","""यह वही छाया-ग्राहिणी है जिसके बारे में सुग्रीव ने बताया था — सिंहिका!"""
 DLG_CH1_SIM_010,"Simhika's form dissolves into the sea. Ahead, at the edge of sight, golden Lanka glows above Trikuta mountain.","सिंहिका का रूप समुद्र में विलीन हो जाता है। आगे, दृष्टि की सीमा पर, त्रिकूट पर्वत के ऊपर स्वर्णिम लंका दमक रही है।"
 SPK_LANKINI,Lankini,लंकिनी
-SPK_SITA,Sita,सीता
+SPK_SITA,Sita Mata,सीता माता
 SPK_RAVANA,Ravana,रावण
 SPK_TRIJATA,Trijata,त्रिजटा
 SPK_VIBHISHANA,Vibhishana,विभीषण
@@ -46,14 +46,14 @@ DLG_CH2_LAN_003,"""I only wish to see this city, its gardens and its halls. Then
 DLG_CH2_LAN_010,"""Stop — I yield. Long ago Brahma told me: when a vanara overpowers you, know that the end of the rakshasas has come. Enter, and do what you came for.""","""रुको — मैं हार मानती हूँ। बहुत पहले ब्रह्मा ने मुझसे कहा था: जब कोई वानर तुम्हें परास्त करे, तब जान लेना कि राक्षसों का अंत निकट है। प्रवेश करो, और जिस कार्य से आए हो, वह करो।"""
 DLG_CH2_SR_001,"""Mansions of gold and crystal, and music drifting from every window... but no sign of her.""","""सोने और स्फटिक के महल, हर खिड़की से आता संगीत... पर उनका कहीं कोई चिह्न नहीं।"""
 DLG_CH2_SR_010,"In Ravana's inner palace, a queen of radiant beauty sleeps upon a jewelled couch. For a moment Hanuman's heart leaps.",रावण के अन्तःपुर में एक अत्यंत रूपवती रानी रत्नजटित पलंग पर सो रही है। एक क्षण के लिए हनुमान का हृदय उछल पड़ता है।
-DLG_CH2_SR_011,"""No. Separated from Rama, Sita would neither sleep in comfort nor wear jewels. This is not she.""","""नहीं। श्रीराम से बिछड़ी सीता न तो सुख से सोएँगी, न आभूषण पहनेंगी। ये वे नहीं हैं।"""
+DLG_CH2_SR_011,"""No. Separated from Rama, Sita Mata would neither sleep in comfort nor wear jewels. This is not she.""","""नहीं। श्रीराम से बिछड़ी सीता माता न तो सुख से सोएँगी, न आभूषण पहनेंगी। ये वे नहीं हैं।"""
 DLG_CH2_SR_020,"""Ravana's flying chariot, the Pushpaka — a wonder of the world. Yet she is not here either.""","""रावण का पुष्पक विमान — संसार का एक आश्चर्य। पर वे यहाँ भी नहीं हैं।"""
 DLG_CH2_DES_001,"""I have searched every hall of Lanka and not found her. If I return with nothing, Rama's hope will die, and the vanaras will lose heart.""","""मैंने लंका का हर भवन छान मारा, पर वे नहीं मिलीं। यदि खाली हाथ लौटा, तो श्रीराम की आशा टूट जाएगी, और वानर हिम्मत हार जाएँगे।"""
 DLG_CH2_DES_002,"""No. I will not give in to despair.""","""नहीं। मैं निराशा के आगे नहीं झुकूँगा।"""
 DLG_CH2_DES_003,"""There is one place I have not searched — that grove of Ashoka trees beyond the wall.""","""एक स्थान अभी शेष है — दीवार के पार वह अशोक वृक्षों का उपवन।"""
 DLG_CH3_GR_001,"Hidden in the dense leaves of a shimshapa tree, Hanuman sees her: thin from fasting, in a single soiled garment, her eyes fixed on the ground — yet shining like a flame veiled in smoke.","शिंशपा वृक्ष के घने पत्तों में छिपे हनुमान उन्हें देखते हैं: उपवास से दुर्बल, एक ही मलिन वस्त्र में, दृष्टि धरती पर टिकी — फिर भी धुएँ से ढकी ज्योति के समान दीप्त।"
-DLG_CH3_GR_002,"""It is she. Sita — exactly as Rama described.""","""यही हैं। सीता — ठीक वैसी, जैसा श्रीराम ने बताया था।"""
-DLG_CH3_GR_003,"Ravana arrives with his attendants and, with proud words, demands that Sita accept him. She places a blade of grass between them and refuses him.",रावण अपने सेवकों के साथ आता है और अहंकार भरे शब्दों में सीता से अपने को स्वीकार करने को कहता है। सीता अपने और उसके बीच एक तिनका रखकर उसे ठुकरा देती हैं।
+DLG_CH3_GR_002,"""It is she. Sita Mata — exactly as Rama described.""","""यही हैं। सीता माता — ठीक वैसी, जैसा श्रीराम ने बताया था।"""
+DLG_CH3_GR_003,"Ravana arrives with his attendants and, with proud words, demands that Sita Mata accept him. She places a blade of grass between them and refuses him.",रावण अपने सेवकों के साथ आता है और अहंकार भरे शब्दों में सीता माता से अपने को स्वीकार करने को कहता है। सीता माता अपने और उसके बीच एक तिनका रखकर उसे ठुकरा देती हैं।
 DLG_CH3_GR_004,"""Turn your mind back to your own wives. I belong to Rama as light belongs to the sun.""","""अपना मन अपनी पत्नियों की ओर लौटाओ। मैं श्रीराम की हूँ, जैसे प्रभा सूर्य की होती है।"""
 DLG_CH3_GR_005,"Ravana sets her a limit of two months, and leaves in anger. The rakshasis crowd around her with threats — until the elder, Trijata, wakes.",रावण उन्हें दो महीने की अवधि देकर क्रोध में चला जाता है। राक्षसियाँ उन्हें धमकाती हुई घेर लेती हैं — तभी वृद्धा त्रिजटा जाग उठती है।
 DLG_CH3_GR_006,"""Leave her be! I have dreamt of Rama in white garlands, and of Lanka sinking into the sea. Seek her forgiveness while you can.""","""उन्हें छोड़ दो! मैंने स्वप्न में श्वेत मालाओं से सुशोभित श्रीराम को देखा, और लंका को समुद्र में डूबते देखा। समय रहते इनसे क्षमा माँग लो।"""
@@ -61,18 +61,18 @@ DLG_CH3_GR_007,"""If I appear suddenly, she will think me another of Ravana's tr
 CH_CH3_C1_A,"""There was a king named Dasharatha, of the line of Ikshvaku...""","""इक्ष्वाकु वंश में दशरथ नाम के एक राजा थे..."""
 CH_CH3_C1_B,"""Ravana has made a grave mistake...""","""रावण ने बड़ी भूल की है..."""
 DLG_CH3_GR_C1,(How should the story begin?),(कथा कैसे आरंभ करें?)
-DLG_CH3_GR_C1R,"Sita stiffens at the name. Begin with Rama's story, not Ravana's.","नाम सुनते ही सीता सहम जाती हैं। रावण की नहीं, श्रीराम की कथा से आरंभ करें।"
-CH_CH3_C2_A,"""To keep his father's word, Rama went to the forest with Sita and Lakshmana.""","""पिता के वचन की रक्षा हेतु श्रीराम सीता और लक्ष्मण के साथ वन गए।"""
+DLG_CH3_GR_C1R,"Sita Mata stiffens at the name. Begin with Rama's story, not Ravana's.","नाम सुनते ही सीता माता सहम जाती हैं। रावण की नहीं, श्रीराम की कथा से आरंभ करें।"
+CH_CH3_C2_A,"""To keep his father's word, Rama went to the forest with Sita Mata and Lakshmana.""","""पिता के वचन की रक्षा हेतु श्रीराम सीता माता और लक्ष्मण के साथ वन गए।"""
 CH_CH3_C2_B,"""Rama went to the forest to win glory in battle.""","""श्रीराम युद्ध में यश पाने के लिए वन गए।"""
 DLG_CH3_GR_C2,(Continue the story.),(कथा आगे कहें।)
 DLG_CH3_GR_C2R,That is not how it happened. Rama went to the forest to honour his father's promise.,ऐसा नहीं हुआ था। श्रीराम पिता के वचन का मान रखने के लिए वन गए थे।
 CH_CH3_C3_A,"""Searching for her, Rama made friends with Sugriva, king of the vanaras, who sent us to every corner of the earth.""","""उन्हें खोजते हुए श्रीराम ने वानरराज सुग्रीव से मित्रता की, जिन्होंने हमें पृथ्वी के हर कोने में भेजा।"""
 CH_CH3_C3_B,"""Rama has forgotten her and returned to Ayodhya.""","""श्रीराम उन्हें भूलकर अयोध्या लौट गए।"""
 DLG_CH3_GR_C3,(Continue the story.),(कथा आगे कहें।)
-DLG_CH3_GR_C3R,Never. Rama grieves for Sita day and night.,कभी नहीं। श्रीराम दिन-रात सीता के वियोग में व्याकुल हैं।
+DLG_CH3_GR_C3R,Never. Rama grieves for Sita Mata day and night.,कभी नहीं। श्रीराम दिन-रात सीता माता के वियोग में व्याकुल हैं।
 DLG_CH3_GR_008,"""Who speaks of Rama here, in this place of sorrow? Show yourself.""","""इस शोक-स्थान में श्रीराम की बात कौन कर रहा है? सामने आओ।"""
 DLG_CH3_GR_009,"""I am Hanuman, a messenger of Rama and minister of Sugriva. Here is Rama's ring, inscribed with his name, given to me as a token for you.""","""मैं हनुमान हूँ, श्रीराम का दूत और सुग्रीव का मंत्री। यह श्रीराम की अँगूठी है, जिस पर उनका नाम अंकित है — आपके लिए पहचान के रूप में दी गई।"""
-DLG_CH3_GR_010,"(Sita holds the ring as if she held Rama himself, and her face lights up like the moon freed from an eclipse.)","(सीता अँगूठी को ऐसे थामती हैं मानो स्वयं श्रीराम को थामे हों, और उनका मुख ग्रहण से मुक्त चन्द्रमा की तरह खिल उठता है।)"
+DLG_CH3_GR_010,"(Sita Mata holds the ring as if she held Rama himself, and her face lights up like the moon freed from an eclipse.)","(सीता माता अँगूठी को ऐसे थामती हैं मानो स्वयं श्रीराम को थामे हों, और उनका मुख ग्रहण से मुक्त चन्द्रमा की तरह खिल उठता है।)"
 DLG_CH3_GR_011,"""Mother, climb onto my back. I will carry you across the ocean to Rama this very night.""","""माता, मेरी पीठ पर बैठ जाइए। मैं आज ही रात आपको समुद्र पार श्रीराम के पास ले चलूँगा।"""
 DLG_CH3_GR_012,"""No, Hanuman. It is for Rama to come, defeat Ravana, and take me back with honour. Give him this jewel from my hair, and tell him: I will hold on to life for one more month.""","""नहीं, हनुमान। श्रीराम स्वयं आएँ, रावण को परास्त करें और मुझे सम्मान सहित ले जाएँ — यही उचित है। उन्हें मेरे केशों का यह चूड़ामणि देना, और कहना: मैं बस एक महीना और प्राण धारण करूँगी।"""
 DLG_CH3_GR_013,"""It shall be as you say. Rama will come.""","""जैसा आप कहें। श्रीराम आएँगे।"""
@@ -86,15 +86,15 @@ DLG_CH4_BT_040,"Indrajit, Ravana's eldest son, releases the weapon of Brahma. Ha
 DLG_CH4_BT_041,"""Out of respect for Brahma, I will not resist. Besides — this way, I will be brought before Ravana himself.""","""ब्रह्मा के सम्मान में मैं इसका विरोध नहीं करूँगा। और फिर — इसी बहाने मुझे स्वयं रावण के सामने ले जाया जाएगा।"""
 DLG_CH5_CT_001,"In a hall blazing with gems, Ravana sits upon his crystal throne, terrible in his splendour.","रत्नों से जगमगाते सभा-भवन में रावण अपने स्फटिक सिंहासन पर बैठा है, अपने वैभव में भयानक।"
 DLG_CH5_CT_002,"""Who are you, and who sent you to destroy my grove?""","""तुम कौन हो, और मेरा उपवन उजाड़ने के लिए तुम्हें किसने भेजा?"""
-DLG_CH5_CT_003,"""I am a messenger of Rama. I bring you the counsel of Sugriva, king of the vanaras: return Sita to Rama, and save yourself and your city. Righteousness does not protect those who abandon it.""","""मैं श्रीराम का दूत हूँ। वानरराज सुग्रीव का संदेश लाया हूँ: सीता को श्रीराम को लौटा दो, और अपनी तथा अपनी नगरी की रक्षा करो। जो धर्म को त्याग देता है, धर्म उसकी रक्षा नहीं करता।"""
+DLG_CH5_CT_003,"""I am a messenger of Rama. I bring you the counsel of Sugriva, king of the vanaras: return Sita Mata to Rama, and save yourself and your city. Righteousness does not protect those who abandon it.""","""मैं श्रीराम का दूत हूँ। वानरराज सुग्रीव का संदेश लाया हूँ: सीता माता को श्रीराम को लौटा दो, और अपनी तथा अपनी नगरी की रक्षा करो। जो धर्म को त्याग देता है, धर्म उसकी रक्षा नहीं करता।"""
 DLG_CH5_CT_004,"""Kill this monkey!""","""इस वानर का वध करो!"""
 DLG_CH5_CT_005,"""Brother, forgive me — but a messenger must never be killed. That is the ancient law of kings. Punish him some other way, if you must.""","""भैया, क्षमा करें — पर दूत का वध कभी नहीं किया जाता। यह राजाओं की सनातन मर्यादा है। दंड देना ही हो, तो कोई और दंड दें।"""
 DLG_CH5_CT_006,"""Very well. A monkey's pride is his tail. Set it on fire, and parade him through the city!""","""ठीक है। वानर का गौरव उसकी पूँछ है। उसमें आग लगा दो, और उसे पूरे नगर में घुमाओ!"""
-DLG_CH5_DH_001,"""The fire does not burn me — it feels cool, as if Sita herself has blessed me. Then let this fire serve Rama!""","""यह अग्नि मुझे जलाती नहीं — शीतल लगती है, मानो स्वयं सीता ने मुझे आशीर्वाद दिया हो। तो यह अग्नि श्रीराम के कार्य आए!"""
+DLG_CH5_DH_001,"""The fire does not burn me — it feels cool, as if Sita Mata herself has blessed me. Then let this fire serve Rama!""","""यह अग्नि मुझे जलाती नहीं — शीतल लगती है, मानो स्वयं सीता माता ने मुझे आशीर्वाद दिया हो। तो यह अग्नि श्रीराम के कार्य आए!"""
 DLG_CH5_DH_010,"""What have I done! In my fury I set all Lanka ablaze — what if the fire has reached the Ashoka grove?""","""यह मैंने क्या कर दिया! क्रोध में मैंने पूरी लंका जला दी — कहीं आग अशोक वाटिका तक न पहुँच गई हो!"""
 DLG_CH5_DH_011,"""She is safe. The fire did not touch her — it could not. Now, back across the sea.""","""वे सुरक्षित हैं। अग्नि ने उन्हें छुआ तक नहीं — छू ही नहीं सकती थी। अब, समुद्र के पार वापस।"""
 DLG_EPI_001,"On the far shore, the vanaras hear a great roar across the water, and know at once that Hanuman has succeeded.","दूसरे तट पर वानर समुद्र के पार से एक प्रचंड गर्जना सुनते हैं, और तुरंत जान जाते हैं कि हनुमान सफल हुए हैं।"
-DLG_EPI_002,"""I have seen Sita.""","""दृष्टा सीता — मैंने सीता को देख लिया।"""
+DLG_EPI_002,"""I have seen Sita Mata.""","""दृष्टा सीता — मैंने सीता माता को देख लिया।"""
 DLG_EPI_003,"Hanuman places the chudamani in Rama's hands. Rama holds it to his heart, and weeps.",हनुमान चूड़ामणि श्रीराम के हाथों में रखते हैं। श्रीराम उसे हृदय से लगाकर रो पड़ते हैं।
 DLG_EPI_004,"""Hanuman, you have done what no other could. I have nothing to give you equal to this — so accept my embrace.""","""हनुमान, तुमने वह किया जो कोई और नहीं कर सकता था। इसके योग्य देने को मेरे पास कुछ नहीं — इसलिए मेरा आलिंगन स्वीकार करो।"""
 DLG_TSR_001,"Days later, on the southern shore, the whole vanara army gathers before the endless sea.","कुछ दिनों बाद, दक्षिणी तट पर पूरी वानर सेना अनंत सागर के सामने एकत्र होती है।"
@@ -143,7 +143,7 @@ OBJ_CH1_SIMHIKA,Defeat Simhika,सिंहिका को परास्त �
 OBJ_CH2_LANKINI,Face Lankini at the gate,द्वार पर लंकिनी का सामना करें
 OBJ_CH2_SEARCH,"Search Lanka: the mansions, the palace, the Pushpaka courtyard","लंका में खोजें: भवन, राजमहल और पुष्पक-प्रांगण"
 OBJ_CH2_VATIKA,Find the Ashoka Vatika,अशोक वाटिका खोजें
-OBJ_CH3_SITA,Speak with Sita,सीता से बात करें
+OBJ_CH3_SITA,Speak with Sita Mata,सीता माता से बात करें
 OBJ_CH4_WAVES,Break the grove's defenders,वाटिका के रक्षकों को परास्त करें
 OBJ_CH5_COURT,Speak before Ravana,रावण के सम्मुख वचन कहें
 OBJ_CH5_BURN,Spread fire to the rakshasa armouries,राक्षसों के शस्त्रागारों में अग्नि फैलाएँ

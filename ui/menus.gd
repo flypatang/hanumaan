@@ -38,7 +38,7 @@ const DEFAULTS: Dictionary = {
 	"tutorial_hints": "on",
 	"fps_cap": 60,
 	"graphics": "high",
-	"visual_style": "painterly",
+	"visual_style": "pixel",  # owner decision 2026-11-27: pixel is the default, painterly selectable
 	"vsync": true,
 	"fullscreen": false,
 	"volume_master": 1.0,

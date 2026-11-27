@@ -305,19 +305,20 @@ func _make_runtime() -> LevelRuntime:
 	return rt
 
 
-func test_style_setting_defaults_to_painterly_persists_and_rejects_unknown_values() -> void:
+func test_style_setting_defaults_to_pixel_persists_and_rejects_unknown_values() -> void:
 	if FileAccess.file_exists(SETTINGS_PATH):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(SETTINGS_PATH))
-	assert_str(Menus.visual_style()).is_equal("painterly")
+	assert_str(Menus.visual_style()).is_equal("pixel")
 	var menu: Menus = auto_free(Menus.new()) as Menus
 	add_child(menu)
-	assert_bool(menu.set_option(&"visual_style", "pixel")).is_true()
-	assert_str(Menus.visual_style()).is_equal("pixel")
+	assert_bool(menu.set_option(&"visual_style", "painterly")).is_true()
+	assert_str(Menus.visual_style()).is_equal("painterly")
 	var config: ConfigFile = ConfigFile.new()
 	assert_int(config.load(SETTINGS_PATH)).is_equal(OK)
-	assert_str(str(config.get_value("video", "visual_style", ""))).is_equal("pixel")
+	assert_str(str(config.get_value("video", "visual_style", ""))).is_equal("painterly")
 	assert_bool(menu.set_option(&"visual_style", "voxel")).is_false()
-	assert_str(Menus.visual_style()).is_equal("pixel")
+	assert_str(Menus.visual_style()).is_equal("painterly")
+	menu.set_option(&"visual_style", "pixel")
 	var option: OptionButton = menu.find_child("StyleOption", true, false) as OptionButton
 	assert_object(option).is_not_null()
 	assert_int(option.item_count).is_equal(2)
@@ -343,14 +344,14 @@ func test_style_strings_exist_in_english_and_hindi() -> void:
 		assert_bool(filled.get(key, false) as bool).is_true()
 
 
-func test_runtime_is_painterly_by_default() -> void:
+func test_runtime_is_pixel_by_default() -> void:
+	# Owner decision 2026-11-27: Pixel is the default style; Painterly stays selectable in Settings.
 	if FileAccess.file_exists(SETTINGS_PATH):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(SETTINGS_PATH))
 	var rt: LevelRuntime = _make_runtime()
 	assert_int(rt.load_level(&"test_tiny")).is_equal(OK)
-	assert_str(str(rt.visual_style())).is_equal("painterly")
-	assert_object(rt.pixel_view()).is_null()
-	assert_bool(rt.get_viewport().disable_3d).is_false()
+	assert_str(str(rt.visual_style())).is_equal("pixel")
+	assert_object(rt.pixel_view()).is_not_null()
 
 
 func test_runtime_reads_the_saved_style_and_keeps_the_hud_at_full_resolution() -> void:
@@ -384,11 +385,12 @@ func test_runtime_reads_the_saved_style_and_keeps_the_hud_at_full_resolution() -
 func test_runtime_switches_style_live_and_back() -> void:
 	if FileAccess.file_exists(SETTINGS_PATH):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(SETTINGS_PATH))
+	var menu: Menus = auto_free(Menus.new()) as Menus
+	add_child(menu)
+	menu.set_option(&"visual_style", "painterly")  # pixel is the default now; start from painterly to test switching
 	var rt: LevelRuntime = _make_runtime()
 	assert_int(rt.load_level(&"test_tiny")).is_equal(OK)
 	assert_object(rt.pixel_view()).is_null()
-	var menu: Menus = auto_free(Menus.new()) as Menus
-	add_child(menu)
 	menu.set_option(&"visual_style", "pixel")
 	assert_object(rt.pixel_view()).is_not_null()
 	assert_bool(PixelView.is_material_tuning_active()).is_true()
