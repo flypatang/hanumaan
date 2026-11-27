@@ -152,7 +152,7 @@ func orbit(radians: float) -> bool:
 	if is_input_blocked():
 		return false
 	if is_rotating():
-		finish_rotation()
+		return false # a snap turn is easing; ignore orbit input rather than popping the view
 	_yaw_goal += radians
 	orbit_total += absf(radians)
 	return true
