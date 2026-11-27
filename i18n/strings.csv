@@ -154,6 +154,7 @@ UI_CREDITS_1,Based on the Sundara Kanda of the Valmiki Ramayana,वाल्म�
 UI_CREDITS_2,Thank you for playing,खेलने के लिए धन्यवाद
 UI_CREDITS_3,Press any key,कोई भी कुंजी दबाएँ
 TUT_MOVE,Move around,चारों ओर चलो
+TUT_CAMERA,Move the mouse to look around,चारों ओर देखने के लिए माउस घुमाओ
 TUT_TALK_GO,Walk up to Jambavan,जाम्बवान के पास जाओ
 TUT_TALK,Talk to Jambavan,जाम्बवान से बात करो
 TUT_LIGHT,Strike the training rocks,प्रशिक्षण-शिलाओं पर प्रहार करो
@@ -182,7 +183,9 @@ CTRL_GROUP_POWERS,Powers,शक्तियाँ
 CTRL_GROUP_MENUS,Menus,मेनू
 CTRL_MOVE,Move,चलो
 CTRL_INTERACT,Interact,संवाद / ध्यान
-CTRL_CAMERA,Rotate camera,कैमरा घुमाओ
+CTRL_LOOK,Look around,चारों ओर देखो
+CTRL_ZOOM,Zoom,ज़ूम
+CTRL_CAMERA,Snap turn,90° घुमाओ
 CTRL_LIGHT,Light attack,हल्का प्रहार
 CTRL_HEAVY,Heavy attack (hold),भारी प्रहार (दबाए रखो)
 CTRL_DODGE,Dodge / leap,छलाँग / बचाव
@@ -202,6 +205,7 @@ UI_MENU_TUTORIAL_HINTS,Tutorial hints,शिक्षण-संकेत
 HINT_SPEAKER_JAMBAVAN,Jambavan,जाम्बवान
 HINT_SPEAKER_NARRATOR,Narrator,सूत्रधार
 HINT_PRO_MOVE,"Child of the wind, walk! Use %s to move.","पवनपुत्र, चलो! चलने के लिए %s दबाओ।"
+HINT_PRO_CAMERA,"Look around, Hanuman. Move %s to turn your view.","चारों ओर देखो, हनुमान। दृश्य घुमाने के लिए %s चलाओ।"
 HINT_PRO_TALK,"Come to me, Hanuman. Press %s when you stand near me.","मेरे पास आओ, हनुमान। निकट आकर %s दबाओ।"
 HINT_PRO_LIGHT,Take up your gada and strike the rocks with %s.,गदा उठाओ और %s से शिलाओं पर प्रहार करो।
 HINT_PRO_CHAIN,Do not stop at one blow. Strike again and again with %s.,एक प्रहार पर मत रुको। %s से बार-बार प्रहार करो।

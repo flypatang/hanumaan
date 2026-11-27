@@ -8,6 +8,8 @@ const GROUPS: Array[StringName] = [&"move", &"fight", &"powers", &"menus"]
 ## Every control: {group, action (glyph pseudo actions allowed), label key, unlock (empty = always), passive (no key)}.
 const CONTROLS: Array[Dictionary] = [
 	{"group": &"move", "action": &"move", "label": "CTRL_MOVE", "unlock": &""},
+	{"group": &"move", "action": &"look", "label": "CTRL_LOOK", "unlock": &""},
+	{"group": &"move", "action": &"zoom", "label": "CTRL_ZOOM", "unlock": &""},
 	{"group": &"move", "action": &"camera", "label": "CTRL_CAMERA", "unlock": &""},
 	{"group": &"move", "action": &"interact", "label": "CTRL_INTERACT", "unlock": &""},
 	{"group": &"fight", "action": &"attack_light", "label": "CTRL_LIGHT", "unlock": &""},

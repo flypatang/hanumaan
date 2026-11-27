@@ -28,8 +28,15 @@ static func register_all() -> void:
 	_bind_action(&"smarana_surge", _DEFAULT_DEADZONE, _events_key_and_axis(KEY_R, JOY_AXIS_TRIGGER_RIGHT, 1.0))
 	_bind_action(&"pause", _DEFAULT_DEADZONE, _events_key_and_joy_button(KEY_ESCAPE, JOY_BUTTON_START))
 
-	_bind_action(&"rotate_camera_left", _DEFAULT_DEADZONE, _events_key_and_axis(KEY_Z, JOY_AXIS_RIGHT_X, -1.0))
-	_bind_action(&"rotate_camera_right", _DEFAULT_DEADZONE, _events_key_and_axis(KEY_C, JOY_AXIS_RIGHT_X, 1.0))
+	# 90-degree snap turns (Z / C, or a click of the left / right stick). The right stick itself orbits freely.
+	_bind_action(&"rotate_camera_left", _DEFAULT_DEADZONE, _events_key_and_joy_button(KEY_Z, JOY_BUTTON_LEFT_STICK))
+	_bind_action(&"rotate_camera_right", _DEFAULT_DEADZONE, _events_key_and_joy_button(KEY_C, JOY_BUTTON_RIGHT_STICK))
+	# Free orbit: the mouse moves (read as motion events by IsoCamera) and the right stick X axis.
+	_bind_action(&"camera_orbit_left", _STICK_DEADZONE, [_axis(JOY_AXIS_RIGHT_X, -1.0)] as Array[InputEvent])
+	_bind_action(&"camera_orbit_right", _STICK_DEADZONE, [_axis(JOY_AXIS_RIGHT_X, 1.0)] as Array[InputEvent])
+	# Zoom: the mouse wheel, or the D-pad up / down.
+	_bind_action(&"camera_zoom_in", _DEFAULT_DEADZONE, _events_mouse_and_joy_button(MOUSE_BUTTON_WHEEL_UP, JOY_BUTTON_DPAD_UP))
+	_bind_action(&"camera_zoom_out", _DEFAULT_DEADZONE, _events_mouse_and_joy_button(MOUSE_BUTTON_WHEEL_DOWN, JOY_BUTTON_DPAD_DOWN))
 
 
 static func _bind_action(action: StringName, deadzone: float, events: Array[InputEvent]) -> void:

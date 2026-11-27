@@ -115,8 +115,15 @@ func test_pause_bindings() -> void:
 func test_camera_rotation_bindings() -> void:
 	assert_bool(_has_key(&"rotate_camera_left", KEY_Z)).is_true()
 	assert_bool(_has_key(&"rotate_camera_right", KEY_C)).is_true()
-	assert_bool(_has_joy_axis(&"rotate_camera_left", JOY_AXIS_RIGHT_X, -1.0)).is_true()
-	assert_bool(_has_joy_axis(&"rotate_camera_right", JOY_AXIS_RIGHT_X, 1.0)).is_true()
+	assert_bool(_has_joy_button(&"rotate_camera_left", JOY_BUTTON_LEFT_STICK)).is_true()
+	assert_bool(_has_joy_button(&"rotate_camera_right", JOY_BUTTON_RIGHT_STICK)).is_true()
+
+
+func test_free_orbit_and_zoom_bindings() -> void:
+	assert_bool(_has_joy_axis(&"camera_orbit_left", JOY_AXIS_RIGHT_X, -1.0)).is_true()
+	assert_bool(_has_joy_axis(&"camera_orbit_right", JOY_AXIS_RIGHT_X, 1.0)).is_true()
+	assert_bool(_has_mouse(&"camera_zoom_in", MOUSE_BUTTON_WHEEL_UP)).is_true()
+	assert_bool(_has_mouse(&"camera_zoom_out", MOUSE_BUTTON_WHEEL_DOWN)).is_true()
 
 
 func test_register_all_is_idempotent() -> void:
