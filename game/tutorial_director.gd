@@ -17,10 +17,11 @@ signal step_changed(step_id: StringName)
 signal finished
 signal hint_shown(speaker_key: String, text: String)
 
-const STEPS: Array[StringName] = [&"move", &"talk", &"light", &"chain", &"heavy", &"dodge", &"grow", &"peak"]
+const STEPS: Array[StringName] = [&"move", &"camera", &"talk", &"light", &"chain", &"heavy", &"dodge", &"grow", &"peak"]
 ## step -> {action: glyph action, text: key, hint: stuck hint key (prologue), needs: ability that must be unlocked}.
 const CARDS: Dictionary = {
 	&"move": {"action": &"move", "text": "TUT_MOVE", "hint": "HINT_PRO_MOVE", "needs": &""},
+	&"camera": {"action": &"look", "text": "TUT_CAMERA", "hint": "HINT_PRO_CAMERA", "needs": &""},
 	&"talk": {"action": &"interact", "text": "TUT_TALK", "hint": "HINT_PRO_TALK", "needs": &""},
 	&"light": {"action": &"attack_light", "text": "TUT_LIGHT", "hint": "HINT_PRO_LIGHT", "needs": &""},
 	&"chain": {"action": &"attack_light", "text": "TUT_CHAIN", "hint": "HINT_PRO_CHAIN", "needs": &""},
@@ -32,6 +33,8 @@ const CARDS: Dictionary = {
 const MOVE_ACTIONS: Array[StringName] = [&"move_left", &"move_right", &"move_up", &"move_down"]
 const WATCHED_ACTIONS: Array[StringName] = [&"move_left", &"move_right", &"move_up", &"move_down", &"attack_light", &"leap"]
 const TALK_TARGET_RANGE: float = 3.0
+## Orbit that completes the camera step: 90 degrees of mouse, stick or snap turning.
+const CAMERA_ORBIT_NEEDED: float = PI / 2.0
 const CHAIN_NEEDED: int = 3
 const CHAIN_GAP: float = 1.0
 const HEAVY_HOLD_SECONDS: float = 0.0  # heavy has its own button (RMB / B) since 2026-11-27: one press counts
@@ -62,6 +65,7 @@ var _talk_target: Node3D = null
 var _index: int = 0
 var _seen: Dictionary = {}
 var _event_frame: Dictionary = {}
+var _orbit: float = 0.0
 var _chain_count: int = 0
 var _chain_age: float = 99.0
 var _heavy_hold: float = 0.0
@@ -101,6 +105,12 @@ func _process(delta: float) -> void:
 func _input(event: InputEvent) -> void:
 	if not enabled:
 		return
+	var motion: InputEventMouseMotion = event as InputEventMouseMotion
+	if motion != null:
+		_add_orbit(absf(motion.relative.x) * IsoCamera.MOUSE_SENSITIVITY)
+		return
+	if event.is_action_pressed(&"rotate_camera_left") or event.is_action_pressed(&"rotate_camera_right"):
+		_add_orbit(IsoCamera.STEP_ANGLE)
 	for action: StringName in WATCHED_ACTIONS:
 		if event.is_action_pressed(action):
 			_event_frame[action] = Engine.get_process_frames()
@@ -257,10 +267,22 @@ func tick(delta: float) -> void:
 ## Presses made with Input.action_press (no input event, as the playthrough bot does) are found by polling each frame.
 ## A press that already arrived as an event this frame is not counted twice.
 func _poll_actions() -> void:
+	if InputMap.has_action(&"camera_orbit_left") and InputMap.has_action(&"camera_orbit_right"):
+		_add_orbit(absf(Input.get_axis(&"camera_orbit_left", &"camera_orbit_right")) * IsoCamera.STICK_SPEED * get_process_delta_time())
 	var frame: int = Engine.get_process_frames()
 	for action: StringName in WATCHED_ACTIONS:
 		if InputMap.has_action(action) and Input.is_action_just_pressed(action) and _event_frame.get(action, -1) != frame:
 			_register_press(action)
+
+
+## Orbit the player did with the mouse, the right stick or a snap turn. The camera step needs 90 degrees of it.
+## Only counted while the camera step is the current one, and not while input is held (dialogue, menu).
+func _add_orbit(radians: float) -> void:
+	if current_step() != &"camera" or (locked.is_valid() and locked.call() as bool):
+		return
+	_orbit += radians
+	if _orbit >= CAMERA_ORBIT_NEEDED:
+		_mark(&"camera")
 
 
 ## One press of a watched action.

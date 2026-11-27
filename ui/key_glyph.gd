@@ -3,13 +3,16 @@ extends PanelContainer
 ## A key-cap (keyboard and mouse) or a round gamepad-button badge for one InputMap action (DESIGN §4.1a points 1 and 6).
 ## The text always comes from the LIVE InputMap, so a remapped key is shown correctly, and it follows the last device the
 ## player used (keyboard and mouse, or gamepad). Two pseudo actions exist for controls made of several actions:
-## `move` (WASD or the left stick) and `camera` (Z / C or the right stick).
+## `move` (WASD or the left stick), `camera` (the Z / C snap turn, or a stick click), `look` (Mouse or the right
+## stick) and `zoom` (Wheel or the D-pad).
 ##
 ## `KeyGlyph.text_for(action)` is the static, node-free lookup. The device is tracked in a static variable that
 ## `KeyGlyph.observe(event)` updates: LevelRuntime feeds it every input event, and each glyph feeds it too.
 
 const ACTION_MOVE: StringName = &"move"
 const ACTION_CAMERA: StringName = &"camera"
+const ACTION_LOOK: StringName = &"look"
+const ACTION_ZOOM: StringName = &"zoom"
 const ACTION_SHOW_CONTROLS: StringName = &"show_controls"
 const MOVE_ACTIONS: Array[StringName] = [&"move_up", &"move_left", &"move_down", &"move_right"]
 const CAMERA_ACTIONS: Array[StringName] = [&"rotate_camera_left", &"rotate_camera_right"]
@@ -152,7 +155,11 @@ static func text_for(action: StringName) -> String:
 	if action == ACTION_MOVE:
 		return _joined(MOVE_ACTIONS, "", "L Stick")
 	if action == ACTION_CAMERA:
-		return _joined(CAMERA_ACTIONS, " / ", "R Stick")
+		return _joined(CAMERA_ACTIONS, " / ", "L3 / R3")
+	if action == ACTION_LOOK:
+		return "R Stick" if _gamepad else "Mouse"
+	if action == ACTION_ZOOM:
+		return "D-pad" if _gamepad else "Wheel"
 	if not InputMap.has_action(action):
 		return "?"
 	if _gamepad and action == SURGE_ACTION:
@@ -225,6 +232,8 @@ static func _mouse_text(button: MouseButton) -> String:
 			return "RMB"
 		MOUSE_BUTTON_MIDDLE:
 			return "MMB"
+		MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN:
+			return "Wheel"
 	return "Mouse %d" % int(button)
 
 
@@ -242,6 +251,12 @@ static func _joy_button_text(button: JoyButton) -> String:
 			return "LB"
 		JOY_BUTTON_RIGHT_SHOULDER:
 			return "RB"
+		JOY_BUTTON_LEFT_STICK:
+			return "L3"
+		JOY_BUTTON_RIGHT_STICK:
+			return "R3"
+		JOY_BUTTON_DPAD_UP, JOY_BUTTON_DPAD_DOWN:
+			return "D-pad"
 		JOY_BUTTON_START:
 			return "Start"
 		JOY_BUTTON_BACK:

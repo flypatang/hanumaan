@@ -66,6 +66,14 @@ func _mouse(pressed: bool, button: MouseButton = MOUSE_BUTTON_LEFT) -> void:
 	Input.flush_buffered_events()
 
 
+## Mouse motion handed to the director's input handler (the engine rewrites `relative` of parsed motion events, so
+## they are not routed through Input; about 90 degrees of orbit per 320 px).
+func _look(pixels: float, director: TutorialDirector) -> void:
+	var ev: InputEventMouseMotion = InputEventMouseMotion.new()
+	ev.relative = Vector2(pixels, 0.0)
+	director._input(ev)
+
+
 func _click() -> void:
 	_mouse(true)
 	_mouse(false)
@@ -100,6 +108,8 @@ func test_glyph_text_reads_the_live_input_map() -> void:
 	assert_str(KeyGlyph.text_for(&"pause")).is_equal("Esc")
 	assert_str(KeyGlyph.text_for(&"move")).is_equal("WASD")
 	assert_str(KeyGlyph.text_for(&"camera")).is_equal("Z / C")
+	assert_str(KeyGlyph.text_for(&"look")).is_equal("Mouse")
+	assert_str(KeyGlyph.text_for(&"zoom")).is_equal("Wheel")
 	assert_str(KeyGlyph.text_for(&"show_controls")).is_equal("Tab")
 	assert_str(KeyGlyph.text_for(&"no_such_action")).is_equal("?")
 
@@ -169,6 +179,13 @@ func test_the_mahendra_tutorial_advances_on_real_input() -> void:
 	assert_str(director.card_text()).is_equal("Move around")
 	assert_str(director.card_glyph_text()).is_equal("WASD")
 	_tap_key(KEY_W)
+	assert_str(_step_names(director)).is_equal("camera")
+	director.tick(0.5)
+	assert_str(director.card_text()).is_equal("Move the mouse to look around")
+	assert_str(director.card_glyph_text()).is_equal("Mouse")
+	_look(100.0, director)
+	assert_str(_step_names(director)).is_equal("camera")  # not yet 90 degrees
+	_look(250.0, director)
 	assert_str(_step_names(director)).is_equal("talk")
 
 	# 2. talk: first "walk up to Jambavan", then the F glyph once he is near
@@ -270,7 +287,7 @@ func test_a_step_the_player_already_did_is_skipped() -> void:
 	var director: TutorialDirector = rt.tutorial()
 	_tap_key(KEY_SPACE)  # dodge before it is asked for
 	_tap_key(KEY_W)
-	assert_str(_step_names(director)).is_equal("talk")
+	assert_str(_step_names(director)).is_equal("camera")
 	assert_bool(director.has_seen(&"dodge")).is_true()
 
 
@@ -539,6 +556,7 @@ func test_no_card_ever_shows_an_action_that_is_not_unlocked() -> void:
 	var seen_steps: Array[StringName] = []
 	var script: Array[Callable] = [
 		func() -> void: _tap_key(KEY_W),
+		func() -> void: _look(400.0, director),
 		func() -> void: director.notify_event(TutorialDirector.TALK_FILE),
 		func() -> void: _click(),
 		func() -> void: _click(); _click(),
@@ -558,7 +576,7 @@ func test_no_card_ever_shows_an_action_that_is_not_unlocked() -> void:
 	director.tick(0.5)
 	assert_bool(director.card_visible()).is_true()
 	assert_str(String(director.card_action())).is_equal("grow")
-	assert_array(seen_steps).contains_exactly([&"move", &"talk", &"light", &"chain", &"heavy", &"dodge"])
+	assert_array(seen_steps).contains_exactly([&"move", &"camera", &"talk", &"light", &"chain", &"heavy", &"dodge"])
 
 
 # ---------------------------------------------------------------- stuck hints and boss hints
