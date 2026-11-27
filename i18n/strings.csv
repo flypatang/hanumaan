@@ -129,6 +129,8 @@ UI_MENU_SHLOKA_OFF,Off,बंद
 UI_MENU_VOLUME_MASTER,Master volume,मुख्य ध्वनि
 UI_MENU_VOLUME_MUSIC,Music volume,संगीत ध्वनि
 UI_MENU_VOLUME_SFX,Effects volume,प्रभाव ध्वनि
+UI_MENU_VOLUME_VOICE,Voice volume,वाणी ध्वनि
+UI_MENU_VOICE_OVER,Voice-over,वाचन (वॉइस-ओवर)
 UI_MENU_CONTINUE,Continue,जारी रखें
 BOSS_SIMHIKA,Simhika,सिंहिका
 BOSS_LANKINI,Lankini,लंकिनी

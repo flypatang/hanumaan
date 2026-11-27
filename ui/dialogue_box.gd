@@ -14,6 +14,9 @@ signal choice_selected(index: int)
 signal line_shown(speaker: StringName, text: String)
 signal shloka_started(shloka_id: StringName)
 
+## The typewriter aims to finish at this fraction of the clip length, and never types slower than MIN_VOICE_CPS.
+const VOICE_TYPING_FRACTION: float = 0.9
+const MIN_VOICE_CPS: float = 8.0
 const ENTRY_CACHE_DIR: String = "user://dialogue_entries/"
 const SPEAKER_KEY_PREFIX: String = "SPK_"
 const DEFAULT_CHARS_PER_SECOND: float = 30.0
@@ -35,6 +38,8 @@ const VIRAMA: int = 0x094D
 @export var shloka_mode: StringName = ShlokaCard.MODE_ON
 ## Typing speed in grapheme clusters per second.
 @export var chars_per_second: float = DEFAULT_CHARS_PER_SECOND
+## Voice-over player (VO1). Null means "use the Voice autoload when there is one".
+var voice: VoicePlayer = null
 
 var _runner: DialogueRunner = null
 var _card: ShlokaCard = null
@@ -55,6 +60,10 @@ var _file_id: StringName = &""
 var _choices_dirty: bool = false
 var _line_seen: bool = false
 var _entry_path: String = ""
+## Nodes of the file being played, to find the text key of the line on show (for its voice-over).
+var _nodes: Dictionary = {}
+## Typing speed of the line on show: chars_per_second, or the speed that ends the typing with the voice clip.
+var _line_cps: float = DEFAULT_CHARS_PER_SECOND
 
 
 func _ready() -> void:
@@ -66,6 +75,12 @@ func _ready() -> void:
 
 func _exit_tree() -> void:
 	_remove_entry()
+	if _playing:
+		# Freed mid-conversation: silence its voice-over and let the music come back up.
+		_stop_voice()
+		var bus: Node = get_node_or_null(^"/root/EventBus")
+		if bus != null:
+			bus.emit_signal(&"dialogue_finished", _file_id, {})
 
 
 func _process(delta: float) -> void:
@@ -98,6 +113,7 @@ func play(file_id: StringName, node_id: StringName = &"") -> Error:
 		return ERR_INVALID_PARAMETER
 	_reset()
 	_file_id = StringName(file)
+	_load_nodes(file)
 	_runner.dialogue_dir = dialogue_dir
 	var start_id: StringName = StringName(file)
 	if not node.is_empty():
@@ -186,7 +202,7 @@ func revealed_text() -> String:
 func step_typewriter(delta: float) -> void:
 	if not is_typing():
 		return
-	_accum += delta * chars_per_second
+	_accum += delta * _line_cps
 	var steps: int = int(_accum)
 	if steps <= 0:
 		return
@@ -382,6 +398,7 @@ func _remove_entry() -> void:
 
 
 func _advance_runner() -> void:
+	_stop_voice()
 	_choices_dirty = true
 	_line_seen = false
 	SoundPlayer.cue(self, &"dialogue_advance")
@@ -391,6 +408,7 @@ func _advance_runner() -> void:
 
 func _on_line_shown(speaker: StringName, text: String) -> void:
 	_line_seen = true
+	_line_cps = chars_per_second
 	var speaker_text: String = str(speaker)
 	_speaker_label.text = "" if speaker_text.is_empty() else tr(SPEAKER_KEY_PREFIX + speaker_text.to_upper())
 	_clusters = split_graphemes(text)
@@ -399,10 +417,12 @@ func _on_line_shown(speaker: StringName, text: String) -> void:
 	_choices_dirty = true
 	_clear_choices()
 	_update_text()
+	_start_voice(text)
 	line_shown.emit(speaker, text)
 
 
 func _on_shloka_shown(shloka_id: StringName) -> void:
+	_stop_voice()
 	_card_open = true
 	SoundPlayer.cue(self, &"shloka_open")
 	_panel.visible = false
@@ -421,6 +441,7 @@ func _on_card_closed(_shloka_id: StringName) -> void:
 
 
 func _on_runner_finished(_runner_id: StringName) -> void:
+	_stop_voice()
 	_remove_entry()
 	_playing = false
 	_card_open = false
@@ -454,6 +475,48 @@ func _sync() -> void:
 			_clear_text()
 		_build_choices()
 	_set_buttons_visible(not is_typing())
+
+
+func _voice_player() -> VoicePlayer:
+	if voice != null:
+		return voice
+	return get_node_or_null(^"/root/Voice") as VoicePlayer
+
+
+func _stop_voice() -> void:
+	var player: VoicePlayer = _voice_player()
+	if player != null:
+		player.stop()
+
+
+## Plays the voice-over of the line on show and paces the typewriter so the text finishes with the clip.
+## Choices have no text key of their own on a line node, so they are never voiced.
+func _start_voice(text: String) -> void:
+	var player: VoicePlayer = _voice_player()
+	if player == null or _runner == null:
+		return
+	var node: Variant = _nodes.get(_runner.current_node(), null)
+	if not (node is Dictionary):
+		player.stop()
+		return
+	var key: String = str((node as Dictionary).get("text_key", ""))
+	if key.is_empty() or not player.play_line(key):
+		return
+	var length: float = player.current_length()
+	if length > 0.0 and not _clusters.is_empty():
+		_line_cps = maxf(float(_clusters.size()) / (length * VOICE_TYPING_FRACTION), MIN_VOICE_CPS)
+
+
+func _load_nodes(file: String) -> void:
+	_nodes = {}
+	var path: String = dialogue_dir + file + ".json"
+	if not FileAccess.file_exists(path):
+		return
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+	if parsed is Dictionary:
+		var raw: Variant = (parsed as Dictionary).get("nodes", null)
+		if raw is Dictionary:
+			_nodes = raw as Dictionary
 
 
 func _clear_text() -> void:

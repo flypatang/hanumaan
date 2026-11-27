@@ -32,6 +32,8 @@ const OPTION_SECTIONS: Dictionary = {
 	"volume_master": "audio",
 	"volume_music": "audio",
 	"volume_sfx": "audio",
+	"volume_voice": "audio",
+	"voice_over": "audio",
 }
 const DEFAULTS: Dictionary = {
 	"shloka_cards": "on",
@@ -44,6 +46,8 @@ const DEFAULTS: Dictionary = {
 	"volume_master": 1.0,
 	"volume_music": 1.0,
 	"volume_sfx": 1.0,
+	"volume_voice": 1.0,
+	"voice_over": true,
 }
 const SHLOKA_MODES: PackedStringArray = ["on", "short", "off"]
 const TUTORIAL_MODES: PackedStringArray = ["on", "off"]
@@ -58,6 +62,7 @@ const MUTE_DB: float = -80.0
 const BUS_MASTER: String = "Master"
 const BUS_MUSIC: String = "Music"
 const BUS_SFX: String = "SFX"
+const BUS_VOICE: String = "Voice"
 
 var _screen: Screen = Screen.TITLE
 var _return_screen: Screen = Screen.TITLE
@@ -228,9 +233,9 @@ static func _validated(key: String, value: Variant) -> Variant:
 		"visual_style":
 			var style: String = str(value)
 			return style if VISUAL_STYLES.has(style) else null
-		"vsync", "fullscreen":
+		"vsync", "fullscreen", "voice_over":
 			return value if typeof(value) == TYPE_BOOL else null
-		"volume_master", "volume_music", "volume_sfx":
+		"volume_master", "volume_music", "volume_sfx", "volume_voice":
 			if typeof(value) != TYPE_INT and typeof(value) != TYPE_FLOAT:
 				return null
 			var level: float = value as float
@@ -269,6 +274,8 @@ func _apply(key: String, value: Variant) -> void:
 			_set_bus_volume(BUS_MUSIC, value as float)
 		"volume_sfx":
 			_set_bus_volume(BUS_SFX, value as float)
+		"volume_voice":
+			_set_bus_volume(BUS_VOICE, value as float)
 
 
 func _apply_saved_all() -> void:
@@ -377,6 +384,8 @@ func _build_settings_panel() -> void:
 	_add_slider_row(column, "volume_master", "VolumeMasterLabel", "UI_MENU_VOLUME_MASTER", "VolumeMasterSlider")
 	_add_slider_row(column, "volume_music", "VolumeMusicLabel", "UI_MENU_VOLUME_MUSIC", "VolumeMusicSlider")
 	_add_slider_row(column, "volume_sfx", "VolumeSfxLabel", "UI_MENU_VOLUME_SFX", "VolumeSfxSlider")
+	_add_slider_row(column, "volume_voice", "VolumeVoiceLabel", "UI_MENU_VOLUME_VOICE", "VolumeVoiceSlider")
+	_add_check(column, "voice_over", "VoiceOverCheck", "UI_MENU_VOICE_OVER")
 	_add_button(column, "BackButton", "UI_MENU_BACK", _on_back_pressed)
 
 

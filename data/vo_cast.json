@@ -1,0 +1,21 @@
+{
+  "_note": "VO1: speaker id -> Kokoro-82M voice per language. pitch < 1 is deeper. 'shloka' is the Sanskrit recitation.",
+  "narrator":  {"en": {"voice": "bm_george",  "speed": 0.92, "pitch": 1.0},  "hi": {"voice": "hm_omega", "speed": 0.92, "pitch": 1.0}},
+  "hanuman":   {"en": {"voice": "am_michael", "speed": 0.98, "pitch": 1.0},  "hi": {"voice": "hm_psi",   "speed": 0.98, "pitch": 1.0}},
+  "jambavan":  {"en": {"voice": "bm_lewis",   "speed": 0.85, "pitch": 0.88}, "hi": {"voice": "hm_omega", "speed": 0.85, "pitch": 0.88}},
+  "angada":    {"en": {"voice": "am_liam",    "speed": 1.0,  "pitch": 1.03}, "hi": {"voice": "hm_psi",   "speed": 1.0,  "pitch": 1.03}},
+  "mainaka":   {"en": {"voice": "bm_daniel",  "speed": 0.9,  "pitch": 0.95}, "hi": {"voice": "hm_omega", "speed": 0.9,  "pitch": 0.95}},
+  "surasa":    {"en": {"voice": "af_nicole",  "speed": 0.9,  "pitch": 0.9},  "hi": {"voice": "hf_beta",  "speed": 0.9,  "pitch": 0.9}},
+  "lankini":   {"en": {"voice": "bf_isabella","speed": 0.92, "pitch": 0.95}, "hi": {"voice": "hf_beta",  "speed": 0.95, "pitch": 1.0}},
+  "simhika":   {"en": {"voice": "af_heart",   "speed": 0.85, "pitch": 0.8},  "hi": {"voice": "hf_beta",  "speed": 0.85, "pitch": 0.8}},
+  "sita":      {"en": {"voice": "bf_emma",    "speed": 0.92, "pitch": 1.0},  "hi": {"voice": "hf_alpha", "speed": 0.92, "pitch": 1.0}},
+  "trijata":   {"en": {"voice": "af_sarah",   "speed": 0.95, "pitch": 0.97}, "hi": {"voice": "hf_alpha", "speed": 0.95, "pitch": 0.95}},
+  "ravana":    {"en": {"voice": "am_onyx",    "speed": 0.9,  "pitch": 0.82}, "hi": {"voice": "hm_omega", "speed": 0.9,  "pitch": 0.82}},
+  "vibhishana":{"en": {"voice": "bm_fable",   "speed": 0.92, "pitch": 0.95}, "hi": {"voice": "hm_psi",   "speed": 0.92, "pitch": 0.93}},
+  "indrajit":  {"en": {"voice": "am_fenrir",  "speed": 0.98, "pitch": 0.9},  "hi": {"voice": "hm_omega", "speed": 0.98, "pitch": 0.92}},
+  "akshaya":   {"en": {"voice": "am_puck",    "speed": 1.05, "pitch": 1.08}, "hi": {"voice": "hm_psi",   "speed": 1.05, "pitch": 1.08}},
+  "jambumali": {"en": {"voice": "am_eric",    "speed": 0.95, "pitch": 0.85}, "hi": {"voice": "hm_omega", "speed": 0.95, "pitch": 0.85}},
+  "rama":      {"en": {"voice": "am_adam",    "speed": 0.9,  "pitch": 0.93}, "hi": {"voice": "hm_psi",   "speed": 0.9,  "pitch": 0.93}},
+  "nala":      {"en": {"voice": "bm_daniel",  "speed": 1.0,  "pitch": 1.05}, "hi": {"voice": "hm_psi",   "speed": 1.0,  "pitch": 1.05}},
+  "shloka":    {"en": {"voice": "hm_omega",   "speed": 0.82, "pitch": 0.95}, "hi": {"voice": "hm_omega", "speed": 0.82, "pitch": 0.95}}
+}
