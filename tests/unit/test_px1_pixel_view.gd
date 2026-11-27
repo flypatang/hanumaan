@@ -253,6 +253,46 @@ func test_material_tuning_flattens_the_light_bands_and_restores() -> void:
 	assert_float(stone.get_shader_parameter(&"band_softness") as float).is_equal_approx(soft, 0.00001)
 
 
+func test_view_without_a_host_camera_refreshes_without_crashing() -> void:
+	# No Camera3D in the host viewport: the pixel camera just keeps its transform.
+	var host: Node3D = auto_free(Node3D.new()) as Node3D
+	add_child(host)
+	var view: PixelView = PixelView.new()
+	host.add_child(view)
+	var before: Transform3D = view.pixel_camera().global_transform
+	view.refresh()
+	view.refresh()
+	assert_object(view.sub_viewport()).is_not_null()
+	assert_bool(view.pixel_camera().global_transform.is_equal_approx(before)).is_true()
+
+
+func test_two_views_share_the_tuning_until_the_last_one_leaves() -> void:
+	var stone: ShaderMaterial = Materials.get_material(&"stone")
+	var soft: float = stone.get_shader_parameter(&"band_softness") as float
+	var users: int = PixelView.tuning_users()
+	var first_host: SubViewport = auto_free(SubViewport.new()) as SubViewport
+	var second_host: SubViewport = auto_free(SubViewport.new()) as SubViewport
+	add_child(first_host)
+	add_child(second_host)
+	var first: PixelView = PixelView.new()
+	var second: PixelView = PixelView.new()
+	first_host.add_child(first)
+	second_host.add_child(second)
+	assert_int(PixelView.tuning_users()).is_equal(users + 2)
+	assert_bool(PixelView.is_material_tuning_active()).is_true()
+	first_host.remove_child(first)
+	first.free()
+	# The second view is still showing: the materials stay tuned.
+	assert_int(PixelView.tuning_users()).is_equal(users + 1)
+	assert_bool(PixelView.is_material_tuning_active()).is_true()
+	assert_bool((stone.get_shader_parameter(&"band_softness") as float) < soft).is_true()
+	second_host.remove_child(second)
+	second.free()
+	assert_int(PixelView.tuning_users()).is_equal(users)
+	assert_bool(PixelView.is_material_tuning_active()).is_false()
+	assert_float(stone.get_shader_parameter(&"band_softness") as float).is_equal_approx(soft, 0.00001)
+
+
 # ---------------------------------------------------------------- settings and LevelRuntime
 
 func _make_runtime() -> LevelRuntime:
@@ -289,15 +329,18 @@ func test_style_setting_defaults_to_painterly_persists_and_rejects_unknown_value
 
 
 func test_style_strings_exist_in_english_and_hindi() -> void:
-	var rows: PackedStringArray = FileAccess.get_file_as_string("res://i18n/strings.csv").split("\n")
+	var file: FileAccess = FileAccess.open("res://i18n/strings.csv", FileAccess.READ)
+	assert_object(file).is_not_null()
+	var filled: Dictionary[String, bool] = {}
+	while not file.eof_reached():
+		# get_csv_line honours quoted cells, so a translation may contain commas.
+		var cells: PackedStringArray = file.get_csv_line()
+		if cells.size() >= 3:
+			filled[cells[0]] = cells[1].strip_edges() != "" and cells[2].strip_edges() != ""
+	file.close()
 	var keys: Array[String] = ["UI_MENU_STYLE", "UI_MENU_STYLE_PAINTERLY", "UI_MENU_STYLE_PIXEL"]
 	for key: String in keys:
-		var found: bool = false
-		for row: String in rows:
-			var cells: PackedStringArray = row.strip_edges().split(",")
-			if cells.size() >= 3 and cells[0] == key:
-				found = cells[1].strip_edges() != "" and cells[2].strip_edges() != ""
-		assert_bool(found).is_true()
+		assert_bool(filled.get(key, false) as bool).is_true()
 
 
 func test_runtime_is_painterly_by_default() -> void:

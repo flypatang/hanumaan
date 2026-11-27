@@ -13,6 +13,8 @@ extends CanvasLayer
 ##     the light bands of the shared Materials, quantises the colours a little and drops the effects that smear
 ##     pixels (glow, SSAO, SSIL, SDFGI, volumetric fog; depth fog is thinned);
 ##   * switches 3D drawing off in the host viewport while it exists, and restores everything when it leaves.
+## Use one PixelView per host viewport. Several views in different viewports may coexist: the global material
+## tuning and shadow filter are reference-counted and restored when the last view leaves the tree.
 
 const DEFAULT_ART_PIXEL: int = 4
 const REFERENCE_HEIGHT: int = 1080
@@ -29,6 +31,8 @@ const SATURATION_BOOST: float = 1.08
 const BRIGHTNESS_BOOST: float = 0.97
 ## Steps of brightness the upscaled image is quantised to (0 switches the quantisation off).
 const COLOUR_LEVELS: float = 18.0
+## Strength of the world-anchored 4x4 ordered dither of that quantisation. It is 0 (off) on purpose: the flat
+## bands read cleaner in the comparison renders. The dither path in _UPSCALE_SHADER is kept as a tuning knob.
 const DITHER: float = 0.0
 
 const _DIRECTIONAL_FILTER_SETTING: String = "rendering/lights_and_shadows/directional_shadow/soft_shadow_filter_quality"
@@ -63,6 +67,9 @@ void fragment() {
 """
 
 static var _tuning_active: bool = false
+## How many PixelViews are in the tree. The material tuning and the hard shadow filter are global, so they are
+## shared: the first view to enter switches them on and the last one to leave restores them.
+static var _tuning_users: int = 0
 static var _tuning_saved: Dictionary[int, Dictionary] = {}
 
 ## Screen pixels per art pixel on a 1080-pixel-high window. Changing it rebuilds the low-resolution viewport.
@@ -180,6 +187,25 @@ static func is_material_tuning_active() -> bool:
 	return _tuning_active
 
 
+## How many PixelViews currently hold the shared (global) tuning.
+static func tuning_users() -> int:
+	return _tuning_users
+
+
+static func _retain_tuning() -> void:
+	_tuning_users += 1
+	if _tuning_users == 1:
+		apply_material_tuning(true)
+		_set_hard_shadows(true)
+
+
+static func _release_tuning() -> void:
+	_tuning_users = maxi(_tuning_users - 1, 0)
+	if _tuning_users == 0:
+		apply_material_tuning(false)
+		_set_hard_shadows(false)
+
+
 # ---------------------------------------------------------------- public API
 
 ## The low-resolution viewport the world is rendered into.
@@ -249,15 +275,13 @@ func _enter_tree() -> void:
 	_host.disable_3d = true
 	if not _host.size_changed.is_connected(_layout):
 		_host.size_changed.connect(_layout)
-	apply_material_tuning(true)
-	_set_hard_shadows(true)
+	_retain_tuning()
 	_layout()
 	refresh()
 
 
 func _exit_tree() -> void:
-	apply_material_tuning(false)
-	_set_hard_shadows(false)
+	_release_tuning()
 	_restore_light()
 	if _host != null:
 		if _host.size_changed.is_connected(_layout):
@@ -273,7 +297,7 @@ func _process(_delta: float) -> void:
 
 ## Unfiltered shadow maps give a short, stepped shadow edge at the art resolution instead of a wide blur;
 ## leaving restores the project's soft filter.
-func _set_hard_shadows(hard: bool) -> void:
+static func _set_hard_shadows(hard: bool) -> void:
 	var directional: int = ProjectSettings.get_setting(_DIRECTIONAL_FILTER_SETTING, RenderingServer.SHADOW_QUALITY_SOFT_LOW) as int
 	var positional: int = ProjectSettings.get_setting(_POSITIONAL_FILTER_SETTING, RenderingServer.SHADOW_QUALITY_SOFT_LOW) as int
 	if hard:
