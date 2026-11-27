@@ -26,6 +26,8 @@ const KEY_NAME: StringName = &"Sun"
 const FILL_NAME: StringName = &"Fill"
 const RIM_NAME: StringName = &"BackRim"
 const SUN_GROUP: StringName = &"sun"
+## Metadata key on the rig's WorldEnvironment that names its mood (the Pixel style picks its palette from it).
+const MOOD_META: StringName = &"look_mood"
 
 const LOW_RENDER_SCALE: float = 0.75
 const NIGHT_LEVEL_PREFIX: String = "lanka_"
@@ -244,6 +246,16 @@ static func apply(mood: StringName, parent: Node3D, preset: StringName = &"") ->
 	return _build(resolved, mood_settings(resolved), parent, preset)
 
 
+## The mood of the rig Look built under `parent` (read from its WorldEnvironment), or &"" when there is none.
+static func mood_of(parent: Node) -> StringName:
+	if parent == null:
+		return &""
+	var we: Node = parent.get_node_or_null(NodePath(String(WORLD_ENVIRONMENT_NAME)))
+	if we == null or we.is_queued_for_deletion() or not we.has_meta(MOOD_META):
+		return &""
+	return StringName(str(we.get_meta(MOOD_META)))
+
+
 # ---------------------------------------------------------------- building
 
 static func _build(mood: StringName, spec: Mood, parent: Node3D, preset: StringName) -> Dictionary:
@@ -253,6 +265,7 @@ static func _build(mood: StringName, spec: Mood, parent: Node3D, preset: StringN
 	var we: WorldEnvironment = WorldEnvironment.new()
 	we.name = WORLD_ENVIRONMENT_NAME
 	we.environment = env
+	we.set_meta(MOOD_META, mood)
 	parent.add_child(we)
 	var key: DirectionalLight3D = _make_key(spec, quality)
 	parent.add_child(key)

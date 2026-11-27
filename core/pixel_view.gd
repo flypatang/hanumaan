@@ -1,17 +1,22 @@
 class_name PixelView
 extends CanvasLayer
-## PX1 (experiment): the optional 'Pixel' visual style, next to the default 'Painterly' one.
+## PX1 + PX2: the 'Pixel' visual style (the default look; 'Painterly' stays selectable in Settings).
 ## Add a PixelView next to a 3D world (as a child of the node that holds the camera, the lights and the
 ## WorldEnvironment). It then:
 ##   * renders that same world (the shared World3D, nothing is re-parented) into a low-resolution SubViewport,
 ##     by default 4 screen pixels per art pixel at 1080p (480 x 270), and shows it upscaled with nearest filtering
 ##     on a CanvasLayer below every UI layer, so the HUD, dialogue and Devanagari text stay at full resolution;
 ##   * mirrors the host viewport's current camera each frame; an orthographic camera is snapped to the art-pixel
-##     grid in camera space and the upscaled image is shifted by the sub-pixel remainder, so panning is smooth
-##     and static pixels never shimmer;
-##   * draws outlines and highlights with core/pixel_outline.gdshader, hardens the key light's shadows, flattens
-##     the light bands of the shared Materials, quantises the colours a little and drops the effects that smear
-##     pixels (glow, SSAO, SSIL, SDFGI, volumetric fog; depth fog is thinned);
+##     grid in camera space (for any yaw) and the upscaled image is shifted by the sub-pixel remainder, so
+##     panning is smooth and static pixels never shimmer;
+##   * maps every art pixel to a curated, limited palette of the level's mood (dawn, day, dusk, night, inferno)
+##     with a world-anchored 4x4 ordered (Bayer) dither on the transitions between two shades;
+##   * draws 1-art-pixel dark outlines, lighter top-edge highlights and crease lines with
+##     core/pixel_outline.gdshader, hardens the key light's shadows, turns the light bands of the shared Materials
+##     into pure steps with stronger hue-shifted shadows, and drops the effects that smear pixels (glow, SSAO,
+##     SSIL, SDFGI, volumetric fog; depth fog is thinned);
+##   * uses finer art pixels by itself when the camera is close (a small orthographic size, or a perspective
+##     cutscene camera), so faces and ornaments stay legible;
 ##   * switches 3D drawing off in the host viewport while it exists, and restores everything when it leaves.
 ## Use one PixelView per host viewport. Several views in different viewports may coexist: the global material
 ## tuning and shadow filter are reference-counted and restored when the last view leaves the tree.
@@ -29,11 +34,53 @@ const KEY_LIGHT_NAME: StringName = &"Sun"
 const FOG_KEEP: float = 0.3
 const SATURATION_BOOST: float = 1.08
 const BRIGHTNESS_BOOST: float = 0.97
-## Steps of brightness the upscaled image is quantised to (0 switches the quantisation off).
-const COLOUR_LEVELS: float = 18.0
-## Strength of the world-anchored 4x4 ordered dither of that quantisation. It is 0 (off) on purpose: the flat
-## bands read cleaner in the comparison renders. The dither path in _UPSCALE_SHADER is kept as a tuning knob.
-const DITHER: float = 0.0
+## Screen pixels per art pixel (at 1080p) for close views, so faces and ornaments stay legible.
+const CLOSE_ART_PIXEL: int = 2
+const MID_ART_PIXEL: int = 3
+## Orthographic sizes below which the view steps down to MID_ART_PIXEL and then CLOSE_ART_PIXEL.
+const MID_ORTHO_SIZE: float = 6.5
+const CLOSE_ORTHO_SIZE: float = 4.8
+## The size must pass a threshold by this fraction before the pixel size changes (no flapping while zooming).
+const DETAIL_HYSTERESIS: float = 0.06
+
+## The moods that have a curated palette. Other moods borrow one (see resolve_palette_mood).
+const PALETTE_MOODS: Array[StringName] = [&"dawn", &"day", &"dusk", &"night", &"inferno"]
+const DEFAULT_PALETTE_MOOD: StringName = &"day"
+## The most colours a palette may hold (the size of the shader's array).
+const MAX_PALETTE: int = 64
+## Width of the world-anchored 4x4 ordered dither. A colour between two palette colours sits at 0 (on the
+## nearest) to 0.5 (half-way); only colours within DITHER / 2 of half-way are dithered between the two, so the
+## transitions dither and flat areas stay flat.
+const DITHER: float = 0.1
+## Matching weights: a colour may change shade (brightness) more easily than hue.
+const LUMA_WEIGHT: float = 1.0
+const CHROMA_WEIGHT: float = 2.6
+## Palette entries closer than this (RGB distance) are merged.
+const PALETTE_MIN_DISTANCE: float = 0.06
+## How much the shared materials' coloured shadow is strengthened (hue-shifted shadows, never grey).
+const SHADOW_BOOST: float = 1.7
+
+const _BAYER: Array[int] = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5]
+const _BORROWED_MOODS: Dictionary[StringName, StringName] = {&"divine": &"dawn"}
+## The hue families of the game (DESIGN §6.1) as mid-tones. Every mood grades them and builds a 4-shade ramp.
+const _RAMP_BASES: Array[Color] = [
+	Color("#D9A05E"),  # sand, sunlit earth
+	Color("#A8603A"),  # terracotta, bark, brick
+	Color("#B8A88A"),  # stone
+	Color("#7FA63A"),  # sunlit grass
+	Color("#2E7D4F"),  # grove green
+	Color("#F28C28"),  # saffron
+	Color("#E9B949"),  # gold
+	Color("#D7263D"),  # sindoor, Ashoka red
+	Color("#C98B3B"),  # Hanuman's fur
+	Color("#5A4A86"),  # rakshasa violet
+	Color("#2A7D9C"),  # ocean
+	Color("#8FC3E0"),  # sky
+	Color("#D8C9B0"),  # marble, moonlit white
+	Color("#7C8DA0"),  # slate, sea foam shadow, cool stone
+]
+## Ramps that are lit by their own fire (lamps, gold, flames): the mood grade touches them only half as much.
+const _WARM_ACCENTS: Array[int] = [5, 6, 7]
 
 const _DIRECTIONAL_FILTER_SETTING: String = "rendering/lights_and_shadows/directional_shadow/soft_shadow_filter_quality"
 const _POSITIONAL_FILTER_SETTING: String = "rendering/lights_and_shadows/positional_shadow/soft_shadow_filter_quality"
@@ -41,26 +88,61 @@ const _POSITIONAL_FILTER_SETTING: String = "rendering/lights_and_shadows/positio
 const _MATERIAL_SUFFIXES: Array[String] = ["", "_local", "_world"]
 ## Shared painterly material uniforms retuned for chunky pixels: hard light bands, no screen-space bevel
 ## highlights (the post pass draws them) and calmer grain.
-const _TUNED_ABSOLUTE: Dictionary[StringName, float] = {&"band_softness": 0.012, &"edge_strength": 0.0}
-const _TUNED_SCALED: Dictionary[StringName, float] = {&"detail_strength": 0.55, &"cavity_strength": 0.5, &"band_wobble": 0.6}
+const _TUNED_ABSOLUTE: Dictionary[StringName, float] = {&"band_softness": 0.012, &"band_continuous": 0.0, &"edge_strength": 0.0}
+const _TUNED_SCALED: Dictionary[StringName, float] = {
+	&"detail_strength": 0.3, &"cavity_strength": 0.5, &"band_wobble": 0.6, &"value_variation": 0.55, &"hue_variation": 0.5,
+	&"shadow_strength": SHADOW_BOOST,
+}
 
 const _UPSCALE_SHADER: String = """shader_type canvas_item;
-// Nearest upscale of the low-resolution world with a small brightness quantisation. The 4x4 ordered dither is
-// anchored to the world (grid_origin = the snapped camera position in art pixels), so it never crawls.
-uniform float levels = 20.0;
-uniform float dither = 0.0;
+// Nearest upscale of the low-resolution world. Every art pixel is matched to the mood's palette (the same
+// maths as PixelView.quantise_dithered). The 4x4 ordered dither is anchored to the world (grid_origin = the
+// snapped camera position in art pixels), so it never crawls while the camera pans.
+uniform vec3 palette[64];
+uniform int palette_size = 0;
+uniform float dither = 0.1;
+uniform float luma_weight = 1.0;
+uniform float chroma_weight = 2.6;
 uniform vec2 grid_origin = vec2(0.0);
 
 const float BAYER[16] = float[16](0.0, 8.0, 2.0, 10.0, 12.0, 4.0, 14.0, 6.0, 3.0, 11.0, 1.0, 9.0, 15.0, 7.0, 13.0, 5.0);
+const vec3 LUMA = vec3(0.299, 0.587, 0.114);
 
 void fragment() {
 	vec3 colour = texture(TEXTURE, UV).rgb;
-	if (levels > 0.5) {
+	if (palette_size > 0) {
 		vec2 cell = mod(floor(UV / TEXTURE_PIXEL_SIZE) + grid_origin, 4.0);
 		float threshold = (BAYER[int(cell.y) * 4 + int(cell.x)] + 0.5) / 16.0 - 0.5;
-		float value = max(colour.r, max(colour.g, colour.b));
-		float stepped = floor(value * levels + 0.5 + threshold * dither) / levels;
-		colour *= stepped / max(value, 0.0001);
+		float best = 1000.0;
+		float second = 1000.0;
+		vec3 pick = colour;
+		vec3 other = colour;
+		for (int i = 0; i < palette_size; i++) {
+			vec3 diff = colour - palette[i];
+			float dl = dot(diff, LUMA);
+			vec3 dc = diff - vec3(dl);
+			float d = dl * dl * luma_weight + dot(dc, dc) * chroma_weight;
+			if (d < best) {
+				second = best;
+				other = pick;
+				best = d;
+				pick = palette[i];
+			} else if (d < second) {
+				second = d;
+				other = palette[i];
+			}
+		}
+		// Between two palette colours: 0 on the nearest, 0.5 half-way. Only the half-way zone dithers, always
+		// from the darker toward the lighter colour, so the pattern is continuous across the transition.
+		float near = sqrt(best);
+		float toward = near / max(near + sqrt(second), 0.00001);
+		bool pick_is_dark = dot(pick, LUMA) <= dot(other, LUMA);
+		float position = pick_is_dark ? toward : 1.0 - toward;
+		bool want_light = position + threshold * dither > 0.5;
+		if (want_light == pick_is_dark) {
+			pick = other;
+		}
+		colour = pick;
 	}
 	COLOR = vec4(colour, 1.0);
 }
@@ -71,12 +153,18 @@ static var _tuning_active: bool = false
 ## shared: the first view to enter switches them on and the last one to leave restores them.
 static var _tuning_users: int = 0
 static var _tuning_saved: Dictionary[int, Dictionary] = {}
+static var _palettes: Dictionary[StringName, PackedColorArray] = {}
 
 ## Screen pixels per art pixel on a 1080-pixel-high window. Changing it rebuilds the low-resolution viewport.
 var art_pixel: int = DEFAULT_ART_PIXEL:
 	set(value):
 		art_pixel = maxi(value, 1)
+		_current_px = art_pixel
 		_layout()
+
+## When true (the default) close cameras get finer art pixels (see art_pixel_for_view); `art_pixel` is then the
+## coarsest size, used for the normal gameplay framing.
+var auto_detail: bool = true
 
 var _viewport: SubViewport = null
 var _camera: Camera3D = null
@@ -91,6 +179,9 @@ var _scale: int = DEFAULT_ART_PIXEL
 var _env_source: Environment = null
 var _light_id: int = 0
 var _light_saved: Dictionary = {}
+var _current_px: int = DEFAULT_ART_PIXEL
+var _mood_override: StringName = &""
+var _palette_mood: StringName = &""
 
 
 # ---------------------------------------------------------------- the maths (static, tested)
@@ -149,6 +240,165 @@ static func project_to_art(camera: Transform3D, ortho_size: float, art_size: Vec
 ## The shift of the upscaled image, in screen pixels, that puts back what the snap took away.
 static func image_offset(remainder: Vector2, scale_px: int) -> Vector2:
 	return Vector2(-remainder.x, remainder.y) * float(scale_px)
+
+
+# ---------------------------------------------------------------- palettes and dithering (static, tested)
+
+## The palette mood a Look mood maps to: itself when it has a palette, a borrowed one (divine uses dawn), else day.
+static func resolve_palette_mood(mood: StringName) -> StringName:
+	if PALETTE_MOODS.has(mood):
+		return mood
+	if _BORROWED_MOODS.has(mood):
+		return _BORROWED_MOODS[mood]
+	return DEFAULT_PALETTE_MOOD
+
+
+## The curated colours of a mood: a 4-shade ramp for every hue family of the game, graded by the mood's light
+## (shadows shift toward the mood's shadow hue, lights toward its highlight), plus an ink and a paper colour.
+static func palette(mood: StringName) -> PackedColorArray:
+	var resolved: StringName = resolve_palette_mood(mood)
+	if not _palettes.has(resolved):
+		_palettes[resolved] = _build_palette(resolved)
+	return _palettes[resolved]
+
+
+## The -0.5 .. 0.5 threshold of an art-pixel cell in the repeating 4x4 Bayer pattern.
+static func bayer_threshold(cell: Vector2i) -> float:
+	return (float(_BAYER[posmod(cell.y, 4) * 4 + posmod(cell.x, 4)]) + 0.5) / 16.0 - 0.5
+
+
+## How different two colours are for the palette match: hue differences count more than brightness differences.
+static func colour_distance(a: Color, b: Color) -> float:
+	var diff: Vector3 = Vector3(a.r - b.r, a.g - b.g, a.b - b.b)
+	var luma: float = diff.x * 0.299 + diff.y * 0.587 + diff.z * 0.114
+	var chroma: Vector3 = diff - Vector3(luma, luma, luma)
+	return luma * luma * LUMA_WEIGHT + chroma.length_squared() * CHROMA_WEIGHT
+
+
+## The palette colour nearest to `colour`.
+static func quantise(colour: Color, colours: PackedColorArray) -> Color:
+	var best: float = INF
+	var pick: Color = colour
+	for entry: Color in colours:
+		var distance: float = colour_distance(colour, entry)
+		if distance < best:
+			best = distance
+			pick = entry
+	return pick
+
+
+## The palette colour an art pixel in dither cell `cell` gets (what the upscale shader does on the GPU).
+static func quantise_dithered(colour: Color, colours: PackedColorArray, cell: Vector2i, strength: float = DITHER) -> Color:
+	var best: float = INF
+	var second: float = INF
+	var pick: Color = colour
+	var other: Color = colour
+	for entry: Color in colours:
+		var distance: float = colour_distance(colour, entry)
+		if distance < best:
+			second = best
+			other = pick
+			best = distance
+			pick = entry
+		elif distance < second:
+			second = distance
+			other = entry
+	if second == INF:
+		return pick
+	var near: float = sqrt(best)
+	var toward: float = near / maxf(near + sqrt(second), 0.00001)
+	var pick_is_dark: bool = _luma(pick) <= _luma(other)
+	var position: float = toward if pick_is_dark else 1.0 - toward
+	var want_light: bool = position + bayer_threshold(cell) * strength > 0.5
+	return other if want_light == pick_is_dark else pick
+
+
+static func _luma(colour: Color) -> float:
+	return colour.r * 0.299 + colour.g * 0.587 + colour.b * 0.114
+
+
+## Screen pixels per art pixel (at 1080p) for an orthographic camera of `ortho_size`: `base` for the gameplay
+## framings, finer for close-ups. Pass the size in use as `current` to get hysteresis around the thresholds.
+static func art_pixel_for_view(ortho_size: float, base: int = DEFAULT_ART_PIXEL, current: int = 0) -> int:
+	var coarse: int = maxi(base, 1)
+	if current <= 0:
+		return _art_pixel_at(ortho_size, coarse)
+	var low: int = _art_pixel_at(ortho_size * (1.0 - DETAIL_HYSTERESIS), coarse)
+	var high: int = _art_pixel_at(ortho_size * (1.0 + DETAIL_HYSTERESIS), coarse)
+	return clampi(current, mini(low, high), maxi(low, high))
+
+
+## Screen pixels per art pixel for a perspective camera (the cutscene close-ups): the close size.
+static func art_pixel_for_perspective(base: int = DEFAULT_ART_PIXEL) -> int:
+	return mini(maxi(base, 1), CLOSE_ART_PIXEL)
+
+
+static func _art_pixel_at(ortho_size: float, coarse: int) -> int:
+	if ortho_size < CLOSE_ORTHO_SIZE:
+		return mini(coarse, CLOSE_ART_PIXEL)
+	if ortho_size < MID_ORTHO_SIZE:
+		return mini(coarse, MID_ART_PIXEL)
+	return coarse
+
+
+static func _grade(base: Color, tint: Color, saturation: float, amount: float) -> Color:
+	var graded: Color = Color(base.r * tint.r, base.g * tint.g, base.b * tint.b)
+	var grey: float = graded.r * 0.299 + graded.g * 0.587 + graded.b * 0.114
+	graded = Color(lerpf(grey, graded.r, saturation), lerpf(grey, graded.g, saturation), lerpf(grey, graded.b, saturation))
+	return base.lerp(graded, amount)
+
+
+static func _scaled(colour: Color, factor: float) -> Color:
+	return Color(clampf(colour.r * factor, 0.0, 1.0), clampf(colour.g * factor, 0.0, 1.0), clampf(colour.b * factor, 0.0, 1.0))
+
+
+static func _build_palette(mood: StringName) -> PackedColorArray:
+	# tint = the mood's light on a mid-tone; shadow = the hue the darks drift to; light = the hue of the lights.
+	var tint: Color = Color(1.0, 0.97, 0.9)
+	var shadow: Color = Color("#3A2A52")
+	var light: Color = Color("#FFF1C9")
+	var saturation: float = 1.05
+	match mood:
+		&"dawn":
+			tint = Color(1.06, 0.93, 0.82)
+			shadow = Color("#4A2F5E")
+			light = Color("#FFE3B0")
+			saturation = 1.0
+		&"dusk":
+			tint = Color(1.05, 0.8, 0.72)
+			shadow = Color("#33214F")
+			light = Color("#FFC98A")
+			saturation = 1.0
+		&"night":
+			tint = Color(0.5, 0.62, 0.95)
+			shadow = Color("#141433")
+			light = Color("#DDE6F2")
+			saturation = 0.8
+		&"inferno":
+			tint = Color(1.1, 0.66, 0.5)
+			shadow = Color("#2B1026")
+			light = Color("#FFD166")
+			saturation = 1.05
+	var colours: PackedColorArray = PackedColorArray()
+	_add_colour(colours, _scaled(shadow, 0.42))
+	for i: int in _RAMP_BASES.size():
+		var mid: Color = _grade(_RAMP_BASES[i], tint, saturation, 0.5 if _WARM_ACCENTS.has(i) else 1.0)
+		_add_colour(colours, _scaled(mid, 0.3).lerp(shadow, 0.5))
+		_add_colour(colours, _scaled(mid, 0.6).lerp(shadow, 0.22))
+		_add_colour(colours, mid)
+		_add_colour(colours, _scaled(mid, 1.28).lerp(light, 0.32))
+	_add_colour(colours, light)
+	return colours
+
+
+static func _add_colour(colours: PackedColorArray, colour: Color) -> void:
+	if colours.size() >= MAX_PALETTE:
+		return
+	var opaque: Color = Color(colour.r, colour.g, colour.b, 1.0)
+	for entry: Color in colours:
+		if Vector3(entry.r - opaque.r, entry.g - opaque.g, entry.b - opaque.b).length() < PALETTE_MIN_DISTANCE:
+			return
+	colours.append(opaque)
 
 
 ## Retunes (or restores) the shared painterly materials for the pixel style: hard light bands, calmer grain.
@@ -238,6 +488,23 @@ func screen_scale() -> int:
 	return _scale
 
 
+## The art-pixel size in use right now (screen pixels per art pixel at 1080p): `art_pixel`, or finer while the
+## camera is close and `auto_detail` is on.
+func current_art_pixel() -> int:
+	return _current_px
+
+
+## The mood whose palette is shown (it follows the Look rig next to this view unless set_palette_mood names one).
+func palette_mood() -> StringName:
+	return _palette_mood
+
+
+## Fixes the palette to a mood; an empty name follows the Look rig again.
+func set_palette_mood(mood: StringName) -> void:
+	_mood_override = mood
+	_sync_palette()
+
+
 ## The host viewport's size in real pixels.
 func window_size() -> Vector2i:
 	if _host == null:
@@ -253,7 +520,9 @@ func refresh() -> void:
 	if _viewport == null or _host == null:
 		return
 	_sync_environment()
+	_sync_palette()
 	_sync_light()
+	_sync_detail()
 	_sync_camera()
 
 
@@ -351,8 +620,9 @@ func _build() -> void:
 	var shader: Shader = Shader.new()
 	shader.code = _UPSCALE_SHADER
 	_upscale.shader = shader
-	_upscale.set_shader_parameter(&"levels", COLOUR_LEVELS)
 	_upscale.set_shader_parameter(&"dither", DITHER)
+	_upscale.set_shader_parameter(&"luma_weight", LUMA_WEIGHT)
+	_upscale.set_shader_parameter(&"chroma_weight", CHROMA_WEIGHT)
 	_display.material = _upscale
 	add_child(_display)
 
@@ -362,8 +632,8 @@ func _layout() -> void:
 	if _viewport == null or _host == null:
 		return
 	var window: Vector2i = window_size()
-	_scale = pixel_scale(window.y, art_pixel)
-	_art_size = art_resolution(window, art_pixel)
+	_scale = pixel_scale(window.y, _current_px)
+	_art_size = art_resolution(window, _current_px)
 	var padded: Vector2i = _art_size + Vector2i.ONE * 2 * MARGIN
 	if _viewport.size != padded:
 		_viewport.size = padded
@@ -379,6 +649,42 @@ func _place_display(shift: Vector2) -> void:
 	var corner: Vector2 = ((window - padded) * 0.5).floor() + shift.round()
 	_display.position = corner * canvas_per_pixel
 	_display.size = padded * canvas_per_pixel
+
+
+## Sends the palette of the current mood to the upscale pass when the mood changes.
+func _sync_palette() -> void:
+	if _upscale == null:
+		return
+	var wanted: StringName = _mood_override
+	if wanted == &"":
+		wanted = Look.mood_of(get_parent())
+	wanted = resolve_palette_mood(wanted)
+	if wanted == _palette_mood:
+		return
+	_palette_mood = wanted
+	var colours: PackedColorArray = palette(wanted)
+	var values: PackedVector3Array = PackedVector3Array()
+	for colour: Color in colours:
+		values.append(Vector3(colour.r, colour.g, colour.b))
+	_upscale.set_shader_parameter(&"palette_size", colours.size())
+	values.resize(MAX_PALETTE)
+	_upscale.set_shader_parameter(&"palette", values)
+	if _outline != null and colours.size() > 0:
+		_outline.set_shader_parameter(&"outline_tint", colours[0])
+
+
+## Picks finer art pixels while the host camera is close (and the coarse size again when it leaves).
+func _sync_detail() -> void:
+	var wanted: int = art_pixel
+	var source: Camera3D = _host.get_camera_3d()
+	if auto_detail and source != null and source.is_inside_tree():
+		if source.projection == Camera3D.PROJECTION_ORTHOGONAL:
+			wanted = art_pixel_for_view(source.size, art_pixel, _current_px)
+		else:
+			wanted = art_pixel_for_perspective(art_pixel)
+	if wanted != _current_px:
+		_current_px = wanted
+		_layout()
 
 
 func _sync_camera() -> void:

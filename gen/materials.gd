@@ -51,6 +51,7 @@ const _DEFAULT_PARAMS: Dictionary[StringName, Variant] = {
 	&"saturation": 1.0,
 	&"band_softness": 0.12,
 	&"band_wobble": 0.05,
+	&"band_continuous": 0.22,
 	&"wrap": 0.0,
 	&"terminator_strength": 0.0,
 	&"terminator_tint": Color(1.0, 0.5, 0.3),
@@ -176,6 +177,8 @@ uniform float saturation = 1.0;
 // Diffuse.
 uniform float band_softness = 0.12;
 uniform float band_wobble = 0.05;
+// How much continuous falloff is blended into the bands (0 = pure steps: the Pixel style, PX2).
+uniform float band_continuous = 0.22;
 uniform float wrap = 0.0;
 uniform vec3 shadow_tint : source_color = vec3(0.47, 0.47, 1.0);
 uniform float shadow_strength = 0.2;
@@ -313,7 +316,7 @@ void light() {
 	// Soft banded diffuse: three soft-edged bands with a little continuous falloff blended in.
 	float s = band_softness;
 	float band = 0.46 * smoothstep(-s, s, ndl - 0.02) + 0.30 * smoothstep(-s, s, ndl - 0.36) + 0.24 * smoothstep(-s, s, ndl - 0.72);
-	band = mix(band, clamp(ndl, 0.0, 1.0), 0.22);
+	band = mix(band, clamp(ndl, 0.0, 1.0), band_continuous);
 	// Shadows are never grey: the unlit side is lifted toward indigo, scaled by the light itself.
 	vec3 shade = shadow_tint * shadow_strength;
 	float lit = band * ATTENUATION;
