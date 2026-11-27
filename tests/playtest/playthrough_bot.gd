@@ -8,7 +8,9 @@ extends Node
 ##    puzzle (grow / shrink actions), the leap steering and the Simhika fight (attack and shrink actions), one Kinkara
 ##    fight with the player's own light attacks, dialogue advancing (input events), the Ch3 story choices (choice
 ##    buttons, including one wrong answer), the cutscenes, the shloka cards, the grove waves, the court and the credits.
-##  - Shortcuts (allowed by the brief): long walks are teleports; most enemies are finished with apply_hit; the player
+##    The climb from the training rocks up the Mahendra terraces to the peak is a real walk too (keyboard input along
+##    a route planned by plan_route), since the player now steps up the 0.5 m terraces (FX1).
+##  - Shortcuts (allowed by the brief): the other long walks are teleports; most enemies are finished with apply_hit; the player
 ##    is made invulnerable during fights so that no fight depends on luck.
 ## The bot never edits game code. When a step cannot be completed it records a blocker (with the exact detail) and
 ## continues with a direct state change, so the rest of the game is still exercised.
@@ -33,6 +35,8 @@ const SAFE_LATERAL_GAP: float = 5.5
 var speed: int = 8
 var _saved_ticks: int = 60
 var _saved_steps: int = 8
+## When valid and it returns true, walk_to ends (successfully) at once: the goal's trigger fired on the way in.
+var walk_stop: Callable = Callable()
 var real_budget_msec: int = REAL_BUDGET_MSEC
 ## Development hook: stop after this chapter id ("prologue", "ch1" ...). Empty plays everything.
 var stop_after: StringName = &""
@@ -371,6 +375,11 @@ func walk_to(goal: Vector2, tolerance: float = WALK_TOLERANCE, max_seconds: floa
 	for i: int in frames:
 		if aborted:
 			break
+		if walk_stop.is_valid() and walk_stop.call() as bool:
+			_hold_direction(Vector2.ZERO)
+			return true
+		if not is_instance_valid(player) or not player.is_inside_tree():
+			return false
 		var here: Vector2 = Vector2(player.global_position.x, player.global_position.z)
 		if here.distance_to(goal) <= tolerance:
 			_hold_direction(Vector2.ZERO)
@@ -418,9 +427,114 @@ func teleport(x: float, z: float) -> void:
 		await frame()
 
 
+## Plans a walkable route across a level's tile grid with an A* search over 4-neighbour cells: only ground, stone floor,
+## grass and sand tiles, steps of at most one between neighbours, and no cell whose centre is within CLEARANCE of a solid
+## prop (or an NPC spawn). Returns the cell centres to visit (not the start cell) followed by `to`; empty when no route
+## exists. The start and goal cells are always allowed.
+static func plan_route(level: Dictionary, from: Vector2, to: Vector2) -> Array[Vector2]:
+	var cells: Dictionary = {}
+	for entry: Variant in level.get("tiles", []) as Array:
+		var tile: Dictionary = entry as Dictionary
+		var kind: String = str(tile.get("type", "ground"))
+		if kind == "ground" or kind == "stone_floor" or kind == "grass" or kind == "sand":
+			cells[Vector2i(tile.get("x", 0) as int, tile.get("z", 0) as int)] = tile.get("step", 0) as int
+	var start: Vector2i = Vector2i(floori(from.x / 2.0), floori(from.y / 2.0))
+	var goal: Vector2i = Vector2i(floori(to.x / 2.0), floori(to.y / 2.0))
+	var solids: Array[Dictionary] = _route_solids(level)
+	var open: Array[Vector2i] = [start]
+	var came: Dictionary = {start: start}
+	var cost: Dictionary = {start: 0.0}
+	var found: bool = false
+	while not open.is_empty():
+		var best: int = 0
+		for i: int in open.size():
+			var fi: float = (cost[open[i]] as float) + Vector2(open[i]).distance_to(Vector2(goal))
+			var fb: float = (cost[open[best]] as float) + Vector2(open[best]).distance_to(Vector2(goal))
+			if fi < fb:
+				best = i
+		var here: Vector2i = open[best]
+		open.remove_at(best)
+		if here == goal:
+			found = true
+			break
+		for d: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			var next: Vector2i = here + d
+			if not cells.has(next) or absi((cells[next] as int) - (cells[here] as int)) > 1:
+				continue
+			if next != goal and _route_blocked(next, solids):
+				continue
+			var new_cost: float = (cost[here] as float) + 1.0
+			if not cost.has(next) or new_cost < (cost[next] as float):
+				cost[next] = new_cost
+				came[next] = here
+				open.append(next)
+	var route: Array[Vector2] = []
+	if not found:
+		return route
+	var walk: Vector2i = goal
+	while walk != start:
+		route.push_front(Vector2(float(walk.x) * 2.0 + 1.0, float(walk.y) * 2.0 + 1.0))
+		walk = came[walk] as Vector2i
+	if not route.is_empty():
+		route[route.size() - 1] = to
+	return route
+
+
+const ROUTE_CLEARANCE: float = 1.2
+
+
+static func _route_solids(level: Dictionary) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for entry: Variant in level.get("props", []) as Array:
+		var prop: Dictionary = entry as Dictionary
+		var kind: String = str(prop.get("kind", ""))
+		if kind == "grass_patch":
+			continue
+		var pos: Array = prop.get("pos", [0.0, 0.0]) as Array
+		var size: Array = prop.get("size", [2.0, 3.0, 2.0]) as Array
+		var half: float = maxf(size[0] as float, size[2] as float) * 0.5
+		if kind.ends_with("_tree"):
+			half = 0.6
+		out.append({"x": pos[0] as float, "z": pos[1] as float, "half": half})
+	for entry: Variant in level.get("spawns", []) as Array:
+		var spawn: Dictionary = entry as Dictionary
+		if str(spawn.get("kind", "")).begins_with("npc_"):
+			var at: Array = spawn.get("pos", [0.0, 0.0]) as Array
+			out.append({"x": at[0] as float, "z": at[1] as float, "half": 0.7})
+	return out
+
+
+static func _route_blocked(cell: Vector2i, solids: Array[Dictionary]) -> bool:
+	var cx: float = float(cell.x) * 2.0 + 1.0
+	var cz: float = float(cell.y) * 2.0 + 1.0
+	for solid: Dictionary in solids:
+		var reach: float = (solid["half"] as float) + ROUTE_CLEARANCE
+		if absf(cx - (solid["x"] as float)) < reach and absf(cz - (solid["z"] as float)) < reach:
+			return true
+	return false
+
+
+## Walks the player along plan_route's waypoints with the keyboard. Returns true when the goal is reached.
+func walk_route(level_id: StringName, goal: Vector2, max_seconds: float = 10.0) -> bool:
+	var rt: LevelRuntime = runtime()
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://levels/%s.json" % str(level_id)))
+	if not (parsed is Dictionary):
+		return false
+	var here: Vector3 = rt.player().global_position
+	var route: Array[Vector2] = plan_route(parsed as Dictionary, Vector2(here.x, here.z), goal)
+	if route.is_empty():
+		return false
+	for i: int in route.size():
+		var last: bool = i == route.size() - 1
+		var ok: bool = await walk_to(route[i], 0.6 if last else 0.9, max_seconds)
+		if not ok:
+			return false
+	return true
+
+
 ## Gets the level trigger `id` to fire: first by standing in it, and if the physics did not route it, by firing it
 ## directly (and noting that the entry did not work).
-func enter_trigger(trigger_id: StringName, at: Vector2) -> void:
+func enter_trigger(trigger_id: StringName, at: Vector2, walk_level: StringName = &"") -> void:
 	var rt: LevelRuntime = runtime()
 	var fired: Array[bool] = [false]
 	var rt_id: int = rt.get_instance_id()
@@ -428,7 +542,15 @@ func enter_trigger(trigger_id: StringName, at: Vector2) -> void:
 		if tid == trigger_id:
 			fired[0] = true
 	rt.trigger_fired.connect(handler)
-	await teleport(at.x, at.y)
+	if walk_level != &"":
+		walk_stop = func() -> bool: return fired[0]
+		var walked: bool = await walk_route(walk_level, at)
+		walk_stop = Callable()
+		if not walked:
+			note("could not walk to trigger %s at %s; teleported" % [str(trigger_id), str(at)])
+			await teleport(at.x, at.y)
+	else:
+		await teleport(at.x, at.y)
 	await until(func() -> bool:
 		var now: LevelRuntime = runtime()
 		return fired[0] or now == null or now.get_instance_id() != rt_id, 1.0)
@@ -535,7 +657,7 @@ func _play_prologue() -> void:
 	var rt: LevelRuntime = runtime()
 	var start: Vector3 = rt.player().global_position
 	# Real movement: walk to Jambavan (his trigger is 6 m east of the start).
-	var ok: bool = await walk_to(Vector2(19.0, 13.0), 1.0, 10.0)
+	var ok: bool = await walk_to(Vector2(19.0, 13.0), 1.8, 10.0)
 	if not ok:
 		block("walk_to_jambavan", "the player could not walk 6 m east from %s to the t_jambavan trigger with the keyboard" % str(start))
 		rt.fire_trigger(&"t_jambavan")
@@ -568,8 +690,8 @@ func _play_prologue() -> void:
 		await enter_trigger(&"t_training_done", Vector2(13.0, 17.0))
 	if not flow.is_objective_done(&"training"):
 		block("training_objective", "objective 'training' not done after standing in t_training_done")
-	# The leap point at the peak.
-	await enter_trigger(&"t_leap", Vector2(43.0, 43.0))
+	# The leap point at the peak: a real climb up the terraces.
+	await enter_trigger(&"t_leap", Vector2(43.0, 43.0), &"mahendra")
 	await free_control(60.0, "leap dialogue")
 	await wait_chapter(&"ch1", 40.0)
 

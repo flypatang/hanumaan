@@ -44,6 +44,9 @@ const GROW_MIN_SMARANA: float = 6.0
 const GROW_SCALE: float = 2.5
 const GREYED: Color = Color(0.55, 0.55, 0.6, 0.5)
 const HINDI_PREFIX: String = "hi"
+## The objective arrow (FX1): sits on the screen edge, inside this margin, and points toward an off-screen goal.
+const ARROW_MARGIN: float = 56.0
+const ARROW_SIZE: float = 22.0
 
 ## The HUD's own labels, used whenever tr() returns the key unchanged (the translation row is missing).
 ## Keeps the HUD readable in both languages without depending on strings.csv.
@@ -108,6 +111,7 @@ var _ability_state: Node = null
 var _ability_player: Player = null
 var _ability_size: SizeShift = null
 var _ability_devotion: Devotion = null
+var _arrow: Polygon2D = null
 
 
 func _init() -> void:
@@ -411,6 +415,40 @@ func alarm_position() -> Vector3:
 	return _alarm_pos
 
 
+## Shows the edge arrow toward `target` (a point in HUD pixels, from the camera's unproject_position) when that point
+## lies outside the screen margin of a `screen_size` viewport; hides it when the goal is on screen.
+func show_objective_arrow(target: Vector2, screen_size: Vector2) -> void:
+	var centre: Vector2 = screen_size * 0.5
+	var half: Vector2 = centre - Vector2(ARROW_MARGIN, ARROW_MARGIN)
+	var offset: Vector2 = target - centre
+	if absf(offset.x) <= half.x and absf(offset.y) <= half.y:
+		hide_objective_arrow()
+		return
+	if offset.length_squared() < 0.0001:
+		hide_objective_arrow()
+		return
+	var scale_to_edge: float = minf(half.x / maxf(absf(offset.x), 0.0001), half.y / maxf(absf(offset.y), 0.0001))
+	_arrow.position = centre + offset * scale_to_edge
+	_arrow.rotation = offset.angle()
+	_arrow.visible = true
+
+
+func hide_objective_arrow() -> void:
+	_arrow.visible = false
+
+
+func objective_arrow_visible() -> bool:
+	return _arrow.visible
+
+
+func objective_arrow_position() -> Vector2:
+	return _arrow.position
+
+
+func objective_arrow_angle() -> float:
+	return _arrow.rotation
+
+
 # --- Event handlers --------------------------------------------------------------------------
 
 func _on_vitality_changed(value: int, max_value: int) -> void:
@@ -673,6 +711,15 @@ func _build_ui() -> void:
 	_ability_box.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT, Control.PRESET_MODE_MINSIZE, MARGIN)
 	_ability_box.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	_root.add_child(_ability_box)
+
+	_arrow = Polygon2D.new()
+	_arrow.name = "ObjectiveArrow"
+	_arrow.polygon = PackedVector2Array([
+		Vector2(ARROW_SIZE, 0.0), Vector2(-ARROW_SIZE * 0.6, -ARROW_SIZE * 0.7),
+		Vector2(-ARROW_SIZE * 0.25, 0.0), Vector2(-ARROW_SIZE * 0.6, ARROW_SIZE * 0.7)])
+	_arrow.color = Palette.GOLD
+	_arrow.visible = false
+	_root.add_child(_arrow)
 
 
 func _make_label(size: int) -> Label:

@@ -28,6 +28,12 @@ const INTERACT_RANGE: float = 2.0
 const MAX_HEALTH: int = 100
 const WALK_POSE_PERIOD: float = 0.25
 const KNOCK_DECAY: float = 30.0
+## Highest ledge (metres above the feet, at normal size) that Hanuman steps up onto without jumping: terraces rise 0.5 m.
+const STEP_MAX: float = 0.55
+const STEP_SNAP_EXTRA: float = 0.02
+const STEP_MIN_RISE: float = 0.01
+const FLOOR_NORMAL_Y: float = 0.7
+const WALL_NORMAL_Y: float = 0.7
 
 enum State { IDLE, LIGHT, HEAVY_WINDUP, HEAVY_STRIKE, HEAVY_RECOVER, DODGE }
 
@@ -69,6 +75,7 @@ var _hurtbox: Hurtbox = null
 var _light_hitbox: Hitbox = null
 var _heavy_hitbox: Hitbox = null
 var _pivot: Node3D = null
+var _body_shape: CollisionShape3D = null
 var _model: HanumanModel = null
 
 
@@ -88,6 +95,7 @@ func _build_nodes() -> void:
 	body_shape.shape = capsule
 	body_shape.position = Vector3(0.0, 0.85, 0.0)
 	add_child(body_shape)
+	_body_shape = body_shape
 
 	_health = Health.new()
 	_health.name = "Health"
@@ -325,20 +333,60 @@ func _move() -> void:
 
 
 ## Moves by `motion` with one slide pass. Done by hand (not move_and_slide) so the step is always exactly one tick,
-## whatever delta the engine reports to the caller.
+## whatever delta the engine reports to the caller. Every move, dodge and knockback goes through here, so the body
+## always collides with the world layer (rocks, trees, walls, NPCs).
+## A near-vertical face whose top is within STEP_MAX of the feet is stepped onto instead of blocking (terraces, stairs).
 func _slide_move(motion: Vector3) -> void:
 	_grounded = false
+	var flat: Vector3 = Vector3(motion.x, 0.0, motion.z)
+	if flat.length_squared() > 0.0000001 and _try_step_up(flat):
+		_grounded = true
+		velocity.y = 0.0
+		return
 	var col: KinematicCollision3D = move_and_collide(motion)
 	var passes: int = 0
 	while col != null and passes < 3:
 		var n: Vector3 = col.get_normal()
-		if n.y > 0.7:
+		if n.y > FLOOR_NORMAL_Y:
 			_grounded = true
 		var rest: Vector3 = col.get_remainder().slide(n)
 		if rest.length_squared() <= 0.0000001:
 			break
 		col = move_and_collide(rest)
 		passes += 1
+
+
+## How far up a ledge may be, for the current size.
+func step_height() -> float:
+	var s: float = _body_shape.scale.y if _body_shape != null else 1.0
+	return STEP_MAX * s
+
+
+## When moving by `flat` (horizontal) would hit a wall-like face, tries: up by the step height, forward, then down onto
+## the ledge. Succeeds only when there is headroom, the way forward is clear at the raised height and a floor is found
+## that is higher than where the feet are now. Returns true when the body was moved (the whole `flat` is consumed).
+func _try_step_up(flat: Vector3) -> bool:
+	var start: Transform3D = global_transform
+	var hit: KinematicCollision3D = KinematicCollision3D.new()
+	if not test_move(start, flat, hit):
+		return false
+	if hit.get_normal().y > WALL_NORMAL_Y:
+		return false
+	var step: float = step_height()
+	if test_move(start, Vector3.UP * step):
+		return false
+	var raised: Transform3D = start.translated(Vector3.UP * step)
+	if test_move(raised, flat):
+		return false
+	var forward: Transform3D = raised.translated(flat)
+	var drop: KinematicCollision3D = KinematicCollision3D.new()
+	if not test_move(forward, Vector3.DOWN * (step + STEP_SNAP_EXTRA), drop):
+		return false
+	var landed: Transform3D = forward.translated(drop.get_travel())
+	if landed.origin.y - start.origin.y < STEP_MIN_RISE:
+		return false
+	global_transform = landed
+	return true
 
 
 func _animate() -> void:

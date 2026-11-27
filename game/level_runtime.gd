@@ -61,6 +61,10 @@ const CARD_FLAG_PREFIX: String = "unlock_card_"
 ## Dialogue triggers that wait for the Interact key near their NPC while tutorial hints are on: trigger id -> actor id.
 const TALK_GATES: Dictionary = {"t_jambavan": "jambavan"}
 const PROLOGUE_TRIGGER: StringName = &"t_jambavan"
+const BEACON_REFRESH: float = 0.25
+const NPC_BODY_DEFAULT: Vector2 = Vector2(0.45, 1.8)
+## Collision capsule (radius, height) of the NPCs that are bigger than a person.
+const NPC_BODIES: Dictionary = {"jambavan": Vector2(0.7, 2.3), "ravana": Vector2(0.9, 2.8), "sita": Vector2(0.4, 1.7)}
 const BOSS_HINT_FRACTION: float = 0.66
 const TALK_FLAG: StringName = &"grow_unlocked"
 
@@ -108,6 +112,9 @@ var _unlock_card: UnlockCard = null
 var _controls: ControlsScreen = null
 var _tutorial: TutorialDirector = null
 var _talk_nodes: Dictionary = {}
+var _beacon: ObjectiveBeacon = null
+var _beacon_clock: float = 0.0
+var _beacon_locked: bool = false
 ## PX1 (experiment): the low-resolution view of the 'pixel' visual style, or null in the 'painterly' style.
 var _pixel_view: PixelView = null
 ## A style chosen with set_visual_style(); empty means "use the saved Settings choice".
@@ -284,6 +291,8 @@ func _clear() -> void:
 	_controls = null
 	_tutorial = null
 	_talk_nodes = {}
+	_beacon = null
+	_beacon_clock = 0.0
 	_pixel_view = null
 	_cut_camera = null
 	_actors = {}
@@ -344,6 +353,7 @@ func _load_world(data: Dictionary, id: StringName) -> void:
 	_ensure_shrine_record()
 	_apply_sync_unlocks()
 	_build_teaching()
+	_build_beacon()
 
 
 # ---------------------------------------------------------------- UI, dialogue and cutscenes
@@ -856,6 +866,7 @@ func _spawn_npc(spot: Marker3D, npc_id: String) -> void:
 	_level_root.add_child(npc)
 	npc.position = safe_spawn(spot.position)
 	npc.rotation.y = spot.rotation.y
+	_add_npc_body(npc, npc_id)
 	_actors[marker_id] = npc
 	_actors[npc_id] = npc
 
@@ -877,7 +888,25 @@ func _spawn_extra_npcs() -> void:
 		var pair: Array = pos as Array if pos is Array else [0.0, 0.0]
 		npc.position = _ground_point(Vector2(pair[0] as float, pair[1] as float))
 		npc.rotation.y = deg_to_rad((record.get("facing", 0) as float))
+		_add_npc_body(npc, npc_id)
 		_actors[npc_id] = npc
+
+
+## NPCs are static models; each gets a capsule on the world layer so Hanuman and the enemies cannot walk through them.
+func _add_npc_body(npc: Node3D, npc_id: String) -> void:
+	var size: Vector2 = NPC_BODIES.get(npc_id, NPC_BODY_DEFAULT) as Vector2
+	var body: StaticBody3D = StaticBody3D.new()
+	body.name = "Body"
+	body.collision_layer = Layers.mask([Layers.WORLD])
+	body.collision_mask = 0
+	var shape_node: CollisionShape3D = CollisionShape3D.new()
+	var capsule: CapsuleShape3D = CapsuleShape3D.new()
+	capsule.radius = size.x
+	capsule.height = maxf(size.y, size.x * 2.0)
+	shape_node.shape = capsule
+	shape_node.position = Vector3(0.0, capsule.height * 0.5, 0.0)
+	body.add_child(shape_node)
+	npc.add_child(body)
 
 
 ## A point on the floor at flat position `flat` (the level's tile height, found by a downward ray).
@@ -1170,6 +1199,88 @@ func _apply_sync_unlocks() -> void:
 		_tail_fire = true
 
 
+# ---------------------------------------------------------------- objective beacon (FX1)
+
+func beacon() -> ObjectiveBeacon:
+	return _beacon
+
+
+func _build_beacon() -> void:
+	if _player == null or _tiles.is_empty():
+		return
+	_beacon = ObjectiveBeacon.new()
+	add_child(_beacon)
+	refresh_beacon()
+
+
+## True when the objective is registered with the Objectives autoload and not yet done.
+func _objective_open(id: StringName) -> bool:
+	var objectives: Node = _autoload("Objectives")
+	if objectives == null:
+		return false
+	var texts: Dictionary = objectives.get("_texts") as Dictionary
+	return texts != null and texts.has(id) and not (objectives.call("is_done", id) as bool)
+
+
+## The node the current objective points at (an actor, a trigger area), or null when it has no place.
+func beacon_target_node() -> Node3D:
+	var entry: Dictionary = ObjectiveBeacon.pick(_level_id, Callable(self, "_objective_open"))
+	if entry.is_empty():
+		return null
+	var ref: String = str(entry["ref"])
+	match str(entry["kind"]):
+		"actor":
+			return _actors.get(ref, null) as Node3D
+		"search":
+			var ids: Array[String] = []
+			for key: Variant in _triggers_in_level():
+				var tid: String = str(key)
+				if tid.begins_with(ref) and not _fired.has(tid):
+					ids.append(tid)
+			ids.sort()
+			return _trigger_node(ids[0]) if not ids.is_empty() else null
+		_:
+			if _fired.has(ref) and (_trigger_node(ref) == null or _trigger_node(ref).get_meta("once", false) as bool):
+				return null
+			return _trigger_node(ref)
+
+
+func _triggers_in_level() -> Array[String]:
+	var out: Array[String] = []
+	var group: Node = _level_root.get_node_or_null(NodePath("Triggers")) if _level_root != null else null
+	if group != null:
+		for child: Node in group.get_children():
+			out.append(str(child.get_meta("id", child.name)))
+	return out
+
+
+func _trigger_node(trigger_id: String) -> Node3D:
+	if _level_root == null:
+		return null
+	return _level_root.get_node_or_null(NodePath("Triggers/%s" % trigger_id)) as Node3D
+
+
+## Re-reads the objectives, points the beacon at the right place and hides it during dialogue and cutscenes.
+func refresh_beacon() -> void:
+	if _beacon == null:
+		return
+	_beacon.set_target(beacon_target_node())
+	_beacon_locked = input_locked()
+	_beacon.set_suppressed(_beacon_locked)
+	_update_beacon_arrow()
+
+
+func _update_beacon_arrow() -> void:
+	if _hud == null:
+		return
+	var cam: Camera3D = _camera.get_camera() if _camera != null else null
+	if _beacon == null or cam == null or not _beacon.is_active() or not cam.is_inside_tree():
+		_hud.hide_objective_arrow()
+		return
+	var goal: Vector3 = ObjectiveBeacon.ground_position(_beacon.target_node()) + Vector3(0.0, 1.0, 0.0)
+	_hud.show_objective_arrow(cam.unproject_position(goal), get_viewport().get_visible_rect().size)
+
+
 # ---------------------------------------------------------------- per-frame
 
 func _process(delta: float) -> void:
@@ -1177,6 +1288,13 @@ func _process(delta: float) -> void:
 	if _player == null or not is_instance_valid(_player):
 		return
 	_update_camera_zoom(delta)
+	if _beacon != null:
+		_beacon_clock += delta
+		if _beacon_clock >= BEACON_REFRESH or input_locked() != _beacon_locked:
+			_beacon_clock = 0.0
+			refresh_beacon()
+		else:
+			_update_beacon_arrow()
 	if _lock_depth == 0 and not _bound and _devotion != null and not _devotion.is_exhausted():
 		if Input.is_action_just_pressed(&"grow"):
 			_size_shift.grow()

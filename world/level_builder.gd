@@ -43,6 +43,12 @@ const WATER_WAVE_SCALE: float = 0.18
 ## Where water reaches the edge of the level, the surface runs on this far so the sea has no visible end.
 const WATER_OVERRUN: float = 48.0
 ## The Materials kind of every tile surface.
+## Collider sizes of the nature props (FX1): how much of the prop's size box the solid part fills, and trunk radii.
+const ROCK_FILL: float = 0.85
+const CLIFF_FILL: float = 0.8
+const TRUNK_RADIUS_PER_HEIGHT: float = 0.06
+const TRUNK_RADIUS_MIN: float = 0.3
+const TRUNK_RADIUS_MAX: float = 1.0
 const TILE_MATERIAL: StringName = &"stone"
 
 const TILE_TYPES: Array[String] = ["ground", "water", "stone_floor", "grass", "sand", "wall"]
@@ -880,7 +886,44 @@ static func _nature_node(kind: String, size: Vector3, seed_value: int) -> Node3D
 		_:
 			mesh_node = NatureKit.grass_patch(seed_value, maxf(size.x, size.z) * 0.5)
 	holder.add_child(mesh_node)
+	var body: StaticBody3D = _nature_collider(kind, size)
+	if body != null:
+		holder.add_child(body)
 	return holder
+
+
+## Solid shapes for the nature props, which are meshes only: a trunk cylinder for trees, a box for rocks and cliffs.
+## Grass patches stay walk-through. Rocks sit centred on the prop origin, trees and cliffs stand on it.
+static func _nature_collider(kind: String, size: Vector3) -> StaticBody3D:
+	var shape: Shape3D = null
+	var centre: Vector3 = Vector3.ZERO
+	match kind:
+		"rock":
+			var box: BoxShape3D = BoxShape3D.new()
+			box.size = Vector3(size.x * ROCK_FILL, size.y * ROCK_FILL, size.z * ROCK_FILL)
+			shape = box
+		"cliff":
+			var cliff_box: BoxShape3D = BoxShape3D.new()
+			cliff_box.size = Vector3(size.x * CLIFF_FILL, size.y, size.z * CLIFF_FILL)
+			shape = cliff_box
+			centre = Vector3(0.0, size.y * 0.5, 0.0)
+		"ashoka_tree", "shimshapa_tree":
+			var trunk: CylinderShape3D = CylinderShape3D.new()
+			trunk.radius = clampf(size.y * TRUNK_RADIUS_PER_HEIGHT, TRUNK_RADIUS_MIN, TRUNK_RADIUS_MAX)
+			trunk.height = maxf(size.y, 1.0)
+			shape = trunk
+			centre = Vector3(0.0, trunk.height * 0.5, 0.0)
+		_:
+			return null
+	var body: StaticBody3D = StaticBody3D.new()
+	body.name = "Collider"
+	body.collision_layer = Layers.mask([Layers.WORLD])
+	body.collision_mask = 0
+	var shape_node: CollisionShape3D = CollisionShape3D.new()
+	shape_node.shape = shape
+	shape_node.position = centre
+	body.add_child(shape_node)
+	return body
 
 
 static func _build_props(props: Array[Dictionary], heights: Dictionary) -> Node3D:
