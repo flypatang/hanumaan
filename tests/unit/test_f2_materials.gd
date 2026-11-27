@@ -212,3 +212,10 @@ func test_set_exposure_updates_every_material() -> void:
 func test_direct_light_matches_standard_material_brightness() -> void:
 	# LIGHT_COLOR arrives multiplied by PI in light(); the shader must divide it out.
 	assert_bool(Materials.shader_source().contains("exposure / PI")).is_true()
+
+
+func test_light_bands_can_be_made_pure_steps() -> void:
+	# PX2: the Pixel style switches the continuous falloff off; Painterly keeps the default blend.
+	assert_bool(Materials.shader_source().contains("uniform float band_continuous")).is_true()
+	for kind: StringName in ALL_KINDS:
+		assert_float(_f(kind, &"band_continuous")).is_equal_approx(0.22, 0.0001)

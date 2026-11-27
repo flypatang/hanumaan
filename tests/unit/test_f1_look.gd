@@ -336,3 +336,13 @@ func test_the_court_interior_is_warmer_than_the_gate() -> void:
 func test_script_can_be_loaded_directly() -> void:
 	assert_object(LookScript).is_not_null()
 	assert_bool(LookScript.can_instantiate()).is_true()
+
+
+func test_rig_names_its_mood_for_the_pixel_palette() -> void:
+	var parent: Node3D = _parent()
+	assert_str(str(Look.mood_of(parent))).is_equal("")
+	Look.apply(&"dusk", parent, &"medium")
+	assert_str(str(Look.mood_of(parent))).is_equal("dusk")
+	Look.apply_for_level(&"lanka_rooftops", parent, &"medium")
+	assert_str(str(Look.mood_of(parent))).is_equal("inferno")
+	assert_str(str(Look.mood_of(null))).is_equal("")

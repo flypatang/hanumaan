@@ -1,8 +1,10 @@
 shader_type spatial;
-// PX1 (experiment): the post pass of the 'Pixel' visual style. A quad in front of the low-resolution camera reads
+// PX1 + PX2: the post pass of the 'Pixel' visual style. A quad in front of the low-resolution camera reads
 // the depth and normal buffers (Forward+) and draws, one art pixel wide:
-//   * dark outlines where the depth jumps (silhouettes), on the pixels of the nearer surface;
-//   * light highlight lines on convex normal creases whose face is turned to the key light (top edges);
+//   * dark outlines where the depth jumps (the silhouette of every character and prop), on the pixels of the
+//     nearer surface;
+//   * a lighter rim just inside the outline on the edges that face up and toward the key light (top edges);
+//   * light highlight lines on convex normal creases whose face is turned to the key light;
 //   * thin dark lines in concave creases.
 // It runs first in the transparent pass (lowest render priority), so fire, sparks and water draw over it
 // untouched and stay bright.
@@ -20,9 +22,12 @@ uniform float pixel_world = 0.03;
 uniform float pixel_per_depth = 0.004;
 // How far, in art pixels, a neighbour must fall behind the surface plane to count as a silhouette.
 uniform float depth_threshold = 2.5;
-uniform float outline_strength = 0.9;
-uniform vec3 outline_tint : source_color = vec3(0.16, 0.10, 0.20);
-uniform float highlight_strength = 0.34;
+uniform float outline_strength = 1.0;
+// The ink of the outlines: the darkest colour of the mood palette (PixelView sets it).
+uniform vec3 outline_tint : source_color = vec3(0.08, 0.05, 0.11);
+uniform float highlight_strength = 0.4;
+// The lighter line just inside the outline of top edges.
+uniform float rim_strength = 0.3;
 uniform vec3 highlight_tint : source_color = vec3(1.0, 0.93, 0.78);
 uniform float crease_strength = 0.45;
 uniform float normal_threshold = 0.22;
@@ -79,15 +84,30 @@ void fragment() {
 			highlight = max(highlight, bend * convex * lit_side);
 			crease = max(crease, bend * (1.0 - convex) * (1.0 - lit_side));
 		}
+		// Top-edge rim: the pixel above (or toward the light's side) is an outline pixel of this same surface.
+		float rim = 0.0;
+		vec2 light_side = vec2(to_light.x > 0.0 ? 1.0 : -1.0, 0.0);
+		const float RIM_WEIGHT[2] = float[2](1.0, 0.6);
+		for (int i = 0; i < 2; i++) {
+			vec2 step_px = i == 0 ? vec2(0.0, -1.0) : light_side;
+			vec2 view_step = vec2(step_px.x, -step_px.y) * pixel;
+			float slope = dot(normal.xy, view_step) / facing;
+			float edge_depth = view_depth(uv + step_px * texel, INV_PROJECTION_MATRIX);
+			float beyond_depth = view_depth(uv + step_px * texel * 2.0, INV_PROJECTION_MATRIX);
+			float same = 1.0 - smoothstep(threshold, threshold * 2.0, abs(edge_depth - depth - slope));
+			float drop = smoothstep(threshold * 2.0, threshold * 8.0, beyond_depth - edge_depth - slope);
+			rim = max(rim, same * drop * RIM_WEIGHT[i]);
+		}
 		float lit = clamp(dot(normal, to_light), 0.0, 1.0);
+		rim *= (1.0 - outline) * (0.4 + 0.6 * lit);
 		highlight *= (1.0 - outline) * (0.35 + 0.65 * lit);
 		crease *= (1.0 - outline);
 		float luma = dot(colour, vec3(0.299, 0.587, 0.114));
 		// Outlines keep a little of the surface hue (a darker, cooler shade of it), never flat black.
-		vec3 ink = mix(vec3(luma), colour * colour / max(luma, 0.05), 0.7) * 0.13 + outline_tint * min(luma, 0.6) * 0.16;
+		vec3 ink = outline_tint + mix(vec3(luma), colour * colour / max(luma, 0.05), 0.7) * 0.035;
 		colour = mix(colour, ink, outline * outline_strength);
-		colour = mix(colour, ink * 2.4, crease * crease_strength);
-		colour += (colour * 0.9 + vec3(0.03)) * highlight_tint * highlight * highlight_strength;
+		colour = mix(colour, colour * 0.45 + ink, crease * crease_strength);
+		colour += (colour * 0.9 + vec3(0.03)) * highlight_tint * max(highlight * highlight_strength, rim * rim_strength);
 	}
 	ALBEDO = colour;
 }

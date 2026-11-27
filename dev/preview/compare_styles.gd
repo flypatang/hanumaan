@@ -1,11 +1,12 @@
 extends SceneTree
-## Dev-only (PX1 experiment): renders the SAME frame in the 'Painterly' and the 'Pixel' visual style and saves
+## Dev-only (PX1, PX2): renders the SAME frame in the 'Painterly' and the 'Pixel' visual style and saves
 ## side-by-side PNGs (left Painterly, right Pixel, labelled), plus a 2x close crop of the middle of each frame.
 ## Usage: godot --path . -s dev/preview/compare_styles.gd -- <out_dir> [lang en|hi] [only_scene]
-## Scenes: mahendra (Hanuman and Jambavan), lanka_rooftops, lanka_streets, npc_closeup (Rama, Sita, Jambavan).
+## Scenes: mahendra (dawn; Hanuman and Jambavan), ocean_leap (day), lanka_gate (dusk), lanka_streets (night),
+## lanka_rooftops (inferno), npc_closeup (Rama, Sita, Jambavan; the close camera gets finer art pixels).
 ## Writes <out_dir>/compare_<scene>.png and <out_dir>/compare_<scene>_detail.png.
 
-const LEVELS: Array[StringName] = [&"mahendra", &"lanka_rooftops", &"lanka_streets"]
+const LEVELS: Array[StringName] = [&"mahendra", &"ocean_leap", &"lanka_gate", &"lanka_streets", &"lanka_rooftops"]
 ## The NPC Hanuman stands next to in a level's shot.
 const COMPANIONS: Dictionary[StringName, StringName] = {&"mahendra": &"jambavan"}
 const COMPANION_OFFSET: Vector3 = Vector3(-1.6, 0.2, 1.0)
@@ -106,9 +107,9 @@ func _compare_level(level_id: StringName, out_dir: String) -> void:
 	await _frames(WARM_UP_FRAMES)
 	# Freeze the game so both styles show the same frame (the PixelView keeps running while paused).
 	paused = true
-	var painterly: Image = await _capture("Painterly (current)")
+	var painterly: Image = await _capture("Painterly")
 	rt.set_visual_style(&"pixel")
-	var pixel: Image = await _capture("Pixel (experiment)")
+	var pixel: Image = await _capture("Pixel (default)")
 	paused = false
 	_save_pair(painterly, pixel, out_dir, String(level_id), LEVEL_DETAIL)
 	rt.unload()
@@ -144,10 +145,10 @@ func _compare_npcs(out_dir: String) -> void:
 	cam.make_current()
 	await _frames(WARM_UP_FRAMES / 2)
 	paused = true
-	var painterly: Image = await _capture("Painterly (current)")
+	var painterly: Image = await _capture("Painterly")
 	var view: PixelView = PixelView.new()
 	stage.add_child(view)
-	var pixel: Image = await _capture("Pixel (experiment)")
+	var pixel: Image = await _capture("Pixel (default)")
 	paused = false
 	_save_pair(painterly, pixel, out_dir, String(NPC_SCENE), NPC_DETAIL)
 	_stage.remove_child(stage)
