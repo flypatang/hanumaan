@@ -34,6 +34,8 @@ const OPTION_SECTIONS: Dictionary = {
 	"volume_sfx": "audio",
 	"volume_voice": "audio",
 	"voice_over": "audio",
+	"voice_over_hindi": "audio",
+	"mouse_sensitivity": "controls",
 }
 const DEFAULTS: Dictionary = {
 	"shloka_cards": "on",
@@ -48,6 +50,8 @@ const DEFAULTS: Dictionary = {
 	"volume_sfx": 1.0,
 	"volume_voice": 1.0,
 	"voice_over": true,
+	"voice_over_hindi": false,
+	"mouse_sensitivity": 0.5,  # owner 2026-11-27: the old mouse orbit was too fast; 0.5 is about 2.4x slower  # owner decision 2026-11-27: Hindi TTS quality is poor, subtitles only by default
 }
 const SHLOKA_MODES: PackedStringArray = ["on", "short", "off"]
 const TUTORIAL_MODES: PackedStringArray = ["on", "off"]
@@ -57,6 +61,8 @@ const GRAPHICS_PRESETS: PackedStringArray = ["low", "medium", "high"]
 const VISUAL_STYLES: PackedStringArray = ["painterly", "pixel"]
 ## Nodes in this group get set_visual_style(style: StringName) when the player changes the style.
 const VISUAL_STYLE_GROUP: StringName = &"visual_style"
+## Nodes in this group get set_mouse_sensitivity(slider 0..1) when the Settings slider moves (the camera rig).
+const MOUSE_SENSITIVITY_GROUP: StringName = &"mouse_sensitivity"
 const LOW_RENDER_SCALE: float = 0.75
 const MUTE_DB: float = -80.0
 const BUS_MASTER: String = "Master"
@@ -233,9 +239,9 @@ static func _validated(key: String, value: Variant) -> Variant:
 		"visual_style":
 			var style: String = str(value)
 			return style if VISUAL_STYLES.has(style) else null
-		"vsync", "fullscreen", "voice_over":
+		"vsync", "fullscreen", "voice_over", "voice_over_hindi":
 			return value if typeof(value) == TYPE_BOOL else null
-		"volume_master", "volume_music", "volume_sfx", "volume_voice":
+		"volume_master", "volume_music", "volume_sfx", "volume_voice", "mouse_sensitivity":
 			if typeof(value) != TYPE_INT and typeof(value) != TYPE_FLOAT:
 				return null
 			var level: float = value as float
@@ -276,6 +282,9 @@ func _apply(key: String, value: Variant) -> void:
 			_set_bus_volume(BUS_SFX, value as float)
 		"volume_voice":
 			_set_bus_volume(BUS_VOICE, value as float)
+		"mouse_sensitivity":
+			if is_inside_tree():
+				get_tree().call_group(MOUSE_SENSITIVITY_GROUP, &"set_mouse_sensitivity", value as float)
 
 
 func _apply_saved_all() -> void:
@@ -381,11 +390,13 @@ func _build_settings_panel() -> void:
 	_add_option_row(column, "visual_style", "StyleLabel", "UI_MENU_STYLE", "StyleOption")
 	_add_check(column, "vsync", "VsyncCheck", "UI_MENU_VSYNC")
 	_add_check(column, "fullscreen", "FullscreenCheck", "UI_MENU_FULLSCREEN")
+	_add_slider_row(column, "mouse_sensitivity", "MouseSensitivityLabel", "UI_MENU_MOUSE_SENSITIVITY", "MouseSensitivitySlider")
 	_add_slider_row(column, "volume_master", "VolumeMasterLabel", "UI_MENU_VOLUME_MASTER", "VolumeMasterSlider")
 	_add_slider_row(column, "volume_music", "VolumeMusicLabel", "UI_MENU_VOLUME_MUSIC", "VolumeMusicSlider")
 	_add_slider_row(column, "volume_sfx", "VolumeSfxLabel", "UI_MENU_VOLUME_SFX", "VolumeSfxSlider")
 	_add_slider_row(column, "volume_voice", "VolumeVoiceLabel", "UI_MENU_VOLUME_VOICE", "VolumeVoiceSlider")
 	_add_check(column, "voice_over", "VoiceOverCheck", "UI_MENU_VOICE_OVER")
+	_add_check(column, "voice_over_hindi", "VoiceOverHindiCheck", "UI_MENU_VOICE_OVER_HI")
 	_add_button(column, "BackButton", "UI_MENU_BACK", _on_back_pressed)
 
 

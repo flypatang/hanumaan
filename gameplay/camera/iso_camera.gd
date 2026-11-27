@@ -17,8 +17,11 @@ const CAMERA_DISTANCE: float = 40.0
 const OCCLUDED_TRANSPARENCY: float = 0.75
 const MAX_OCCLUDERS_PER_RAY: int = 8
 const OCCLUDER_GROUP: StringName = &"occluder"
-## Radians of yaw per pixel of mouse motion (90 degrees is about 315 px).
-const MOUSE_SENSITIVITY: float = 0.005
+## Radians of yaw per pixel of mouse motion at the default Settings value (90 degrees is about 750 px).
+## Owner 2026-11-27: the old 0.005 made the world spin; the Settings slider scales this from 0.25x to 2x.
+const MOUSE_SENSITIVITY: float = 0.0021
+const MOUSE_SCALE_MIN: float = 0.25
+const MOUSE_SCALE_MAX: float = 2.0
 ## Radians per second at full right-stick deflection.
 const STICK_SPEED: float = 2.4
 ## How fast the view catches up with the orbit goal (exponential, per second).
@@ -42,6 +45,8 @@ var locked: bool = false
 var mouse_look_enabled: bool = true
 ## Radians of yaw added by free orbit since the rig was built (mouse, stick); the tutorial reads it.
 var orbit_total: float = 0.0
+## Radians of yaw per pixel of mouse motion; follows the Settings slider (set_mouse_sensitivity).
+var mouse_radians_per_pixel: float = MOUSE_SENSITIVITY
 
 var _camera: Camera3D = null
 var _target_node: Node3D = null
@@ -56,6 +61,8 @@ var _faded_ids: Array[int] = []
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS  # so the mouse is released while the tree is paused
+	add_to_group(Menus.MOUSE_SENSITIVITY_GROUP)
+	set_mouse_sensitivity(Menus.saved_option(&"mouse_sensitivity") as float)
 	_camera = Camera3D.new()
 	_camera.name = "Camera"
 	_camera.projection = Camera3D.PROJECTION_ORTHOGONAL
@@ -102,7 +109,7 @@ func _input(event: InputEvent) -> void:
 	var motion: InputEventMouseMotion = event as InputEventMouseMotion
 	if motion != null:
 		if mouse_look_enabled:
-			orbit(motion.relative.x * MOUSE_SENSITIVITY)
+			orbit(motion.relative.x * mouse_radians_per_pixel)
 		return
 	if event.is_action_pressed(&"camera_zoom_in"):
 		zoom_by(ZOOM_STEP)
@@ -116,6 +123,18 @@ func _exit_tree() -> void:
 
 func _physics_process(_delta: float) -> void:
 	_update_occlusion()
+
+
+## Maps the Settings slider (0..1, default 0.5) to radians per pixel: 0.5 gives MOUSE_SENSITIVITY, 0 gives a
+## quarter of it and 1 doubles it (exponential, so each half of the slider feels even).
+static func sensitivity_for_slider(value: float) -> float:
+	var t: float = clampf(value, 0.0, 1.0)
+	var scale: float = MOUSE_SCALE_MIN * pow(1.0 / MOUSE_SCALE_MIN, t * 2.0) if t < 0.5 else pow(MOUSE_SCALE_MAX, (t - 0.5) * 2.0)
+	return MOUSE_SENSITIVITY * scale
+
+
+func set_mouse_sensitivity(value: float) -> void:
+	mouse_radians_per_pixel = sensitivity_for_slider(value)
 
 
 ## The camera node owned by this rig.

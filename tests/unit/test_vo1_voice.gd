@@ -63,6 +63,7 @@ func _make_voice() -> VoicePlayer:
 	add_child(voice)
 	auto_free(voice)
 	voice.enabled_override = 1
+	voice.hindi_override = 1
 	return voice
 
 
@@ -232,3 +233,45 @@ func test_shloka_card_recites_only_in_mode_on() -> void:
 	key.pressed = true
 	card.handle_input_event(key)
 	assert_bool(voice.is_playing()).is_false()
+
+
+func test_hindi_voice_over_is_off_by_default() -> void:
+	assert_bool(Menus.DEFAULTS["voice_over_hindi"] as bool).is_false()
+	assert_bool(Menus.DEFAULTS["voice_over"] as bool).is_true()
+
+
+func test_hindi_off_gives_subtitles_only_but_english_still_plays() -> void:
+	var voice: VoicePlayer = _make_voice()
+	voice.hindi_override = 0
+	var key: String = _first_voiced_key()
+	assert_bool(voice.play_line(key)).is_true()
+	TranslationServer.set_locale("hi")
+	assert_bool(voice.play_line(key)).is_false()
+	assert_bool(voice.is_playing()).is_false()
+	assert_float(voice.line_length(key)).is_equal(0.0)
+	voice.hindi_override = 1
+	assert_bool(voice.play_line(key)).is_true()
+	assert_str(voice.current_path()).is_equal(VO_DIR + "hi/" + key + ".ogg")
+
+
+func test_shloka_recitation_follows_the_hindi_option() -> void:
+	var voice: VoicePlayer = _make_voice()
+	var id: String = _shloka_ids()[0]
+	voice.hindi_override = 0
+	assert_bool(voice.play_shloka(id)).is_false()
+	voice.hindi_override = 1
+	assert_bool(voice.play_shloka(id)).is_true()
+
+
+func test_hindi_dialogue_box_is_silent_and_still_types_when_hindi_is_off() -> void:
+	var voice: VoicePlayer = _make_voice()
+	voice.hindi_override = 0
+	TranslationServer.set_locale("hi")
+	var box: DialogueBox = (load(BOX_SCRIPT) as GDScript).new() as DialogueBox
+	box.voice = voice
+	add_child(box)
+	auto_free(box)
+	assert_int(box.play(StringName(FIRST_FILE))).is_equal(OK)
+	assert_bool(voice.is_playing()).is_false()
+	box.step_typewriter(30.0)
+	assert_bool(box.is_typing()).is_false()

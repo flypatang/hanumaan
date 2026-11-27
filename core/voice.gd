@@ -13,9 +13,13 @@ const BUS_MASTER: StringName = &"Master"
 const VO_DIR: String = "res://assets/vo/"
 const SANSKRIT_DIR: String = "sa"
 const OPTION_ENABLED: StringName = &"voice_over"
+## Hindi and Sanskrit clips play only when this is on too (owner: the Hindi TTS voice is not good enough yet).
+const OPTION_HINDI: StringName = &"voice_over_hindi"
 
 ## Test hook: -1 follows the Settings option, 0 forces voice-over off, 1 forces it on.
 var enabled_override: int = -1
+## Test hook for the Hindi option: -1 follows Settings, 0 off, 1 on.
+var hindi_override: int = -1
 
 var _player: AudioStreamPlayer = null
 var _clip_id: StringName = &""
@@ -44,6 +48,13 @@ func is_enabled() -> bool:
 	return Menus.saved_option(OPTION_ENABLED) as bool
 
 
+## True when the Hindi (and Sanskrit) voice-over is switched on. Off by default: Hindi players get subtitles only.
+func is_hindi_enabled() -> bool:
+	if hindi_override >= 0:
+		return hindi_override == 1
+	return Menus.saved_option(OPTION_HINDI) as bool
+
+
 ## "hi" when the game language is Hindi, otherwise "en".
 static func language_folder() -> String:
 	return "hi" if TranslationServer.get_locale().begins_with("hi") else "en"
@@ -61,11 +72,17 @@ static func shloka_path(shloka_id: String) -> String:
 
 ## Plays the voice-over of a dialogue line. Returns false (and stays silent) when off or no clip exists.
 func play_line(text_key: String) -> bool:
+	if language_folder() == "hi" and not is_hindi_enabled():
+		stop()
+		return false
 	return _play_path(line_path(text_key), StringName(text_key))
 
 
 ## Plays the Sanskrit recitation of a shloka. Returns false when off or no clip exists.
 func play_shloka(shloka_id: String) -> bool:
+	if not is_hindi_enabled():
+		stop()
+		return false
 	return _play_path(shloka_path(shloka_id), StringName(shloka_id))
 
 
@@ -103,6 +120,8 @@ func current_length() -> float:
 
 ## Length in seconds of the clip for a text key in the current language, 0 when there is none.
 func line_length(text_key: String) -> float:
+	if language_folder() == "hi" and not is_hindi_enabled():
+		return 0.0
 	var stream: AudioStream = _stream(line_path(text_key))
 	return stream.get_length() if stream != null else 0.0
 

@@ -184,8 +184,8 @@ func test_the_mahendra_tutorial_advances_on_real_input() -> void:
 	assert_str(director.card_text()).is_equal("Move the mouse to look around")
 	assert_str(director.card_glyph_text()).is_equal("Mouse")
 	_look(100.0, director)
-	assert_str(_step_names(director)).is_equal("camera")  # not yet 90 degrees
-	_look(250.0, director)
+	assert_str(_step_names(director)).is_equal("camera")  # not yet 45 degrees
+	_look(300.0, director)
 	assert_str(_step_names(director)).is_equal("talk")
 
 	# 2. talk: first "walk up to Jambavan", then the F glyph once he is near

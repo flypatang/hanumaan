@@ -9,6 +9,7 @@ func after_test() -> void:
 	add_child(menu)
 	menu.set_option(&"volume_voice", 1.0)
 	menu.set_option(&"voice_over", true)
+	menu.set_option(&"voice_over_hindi", false)
 
 
 func test_voice_settings_default_and_persist() -> void:
@@ -36,6 +37,15 @@ func test_settings_panel_has_the_voice_widgets() -> void:
 	add_child(menu)
 	assert_object(menu.find_child("VolumeVoiceSlider", true, false)).is_not_null()
 	assert_object(menu.find_child("VoiceOverCheck", true, false)).is_not_null()
+	assert_object(menu.find_child("VoiceOverHindiCheck", true, false)).is_not_null()
+
+
+func test_hindi_voice_over_toggle_defaults_off_and_persists() -> void:
+	var menu: Menus = auto_free((load(MENU_SCRIPT) as GDScript).new() as Menus) as Menus
+	add_child(menu)
+	assert_bool(menu.get_option(&"voice_over_hindi") as bool).is_false()
+	assert_bool(menu.set_option(&"voice_over_hindi", true)).is_true()
+	assert_bool(Menus.saved_option(&"voice_over_hindi") as bool).is_true()
 
 
 func test_voice_strings_exist_in_both_languages() -> void:
@@ -43,8 +53,8 @@ func test_voice_strings_exist_in_both_languages() -> void:
 	var found: Array[String] = []
 	while not file.eof_reached():
 		var row: PackedStringArray = file.get_csv_line()
-		if row.size() >= 3 and (row[0] == "UI_MENU_VOLUME_VOICE" or row[0] == "UI_MENU_VOICE_OVER"):
+		if row.size() >= 3 and (row[0] == "UI_MENU_VOLUME_VOICE" or row[0] == "UI_MENU_VOICE_OVER" or row[0] == "UI_MENU_VOICE_OVER_HI"):
 			assert_bool(row[1].is_empty()).is_false()
 			assert_bool(row[2].is_empty()).is_false()
 			found.append(row[0])
-	assert_array(found).has_size(2)
+	assert_array(found).has_size(3)

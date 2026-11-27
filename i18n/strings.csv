@@ -219,5 +219,7 @@ HINT_BOSS_LANKINI,"Lankini: strike with a light blow just as her weapon begins t
 HINT_BOSS_SIMHIKA,"Simhika: when her mouth opens wide, shrink with %s and dive in.","सिंहिका: जब उसका मुख खुले, %s से सिकुड़ो और भीतर कूद जाओ।"
 HINT_BOSS_JAMBUMALI,"Jambumali moves between the pillars. Shelter from the arrow storm, then strike with a heavy blow.","जम्बुमाली स्तंभों के बीच घूमता है। बाणों की वर्षा से बचो, फिर भारी प्रहार करो।"
 HINT_BOSS_AKSHAYA,Akshaya: only heavy blows can break his chariot.,अक्षय: केवल भारी प्रहार ही उसके रथ को तोड़ सकते हैं।
+UI_MENU_MOUSE_SENSITIVITY,Mouse camera speed,माउस कैमरा गति
 UI_MENU_VOLUME_VOICE,Voice volume,वाणी ध्वनि
 UI_MENU_VOICE_OVER,Voice-over,वाचन (वॉइस-ओवर)
+UI_MENU_VOICE_OVER_HI,Hindi voice-over (Hindi and Sanskrit),हिन्दी वाचन (हिन्दी और संस्कृत)

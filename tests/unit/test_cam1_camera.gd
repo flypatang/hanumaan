@@ -42,9 +42,9 @@ func test_mouse_motion_rotates_yaw_proportionally() -> void:
 	var iso: IsoCamera = _build()
 	var start: float = iso.yaw_goal()
 	iso._input(_motion(100.0))
-	assert_float(iso.yaw_goal() - start).is_equal_approx(100.0 * IsoCamera.MOUSE_SENSITIVITY, 0.0001)
+	assert_float(iso.yaw_goal() - start).is_equal_approx(100.0 * iso.mouse_radians_per_pixel, 0.0001)
 	iso._input(_motion(-300.0))
-	assert_float(iso.yaw_goal() - start).is_equal_approx(-200.0 * IsoCamera.MOUSE_SENSITIVITY, 0.0001)
+	assert_float(iso.yaw_goal() - start).is_equal_approx(-200.0 * iso.mouse_radians_per_pixel, 0.0001)
 	iso.finish_rotation()
 	assert_float(iso.rotation.y).is_equal_approx(iso.yaw_goal(), 0.0001)
 
@@ -182,3 +182,13 @@ func test_camera_strings_exist_in_english_and_hindi() -> void:
 		var hi: String = TranslationServer.translate(key)
 		assert_bool(en != key and hi != key and en != hi).is_true()
 	TranslationServer.set_locale("en")
+
+
+func test_mouse_sensitivity_is_gentle_and_follows_the_settings_slider() -> void:
+	# Owner 2026-11-27: the world spun too easily. Default: a 300 px flick turns well under 45 degrees.
+	assert_float(300.0 * IsoCamera.sensitivity_for_slider(0.5)).is_less(deg_to_rad(45.0))
+	assert_float(IsoCamera.sensitivity_for_slider(0.5)).is_equal_approx(IsoCamera.MOUSE_SENSITIVITY, 0.00001)
+	assert_float(IsoCamera.sensitivity_for_slider(0.0)).is_equal_approx(IsoCamera.MOUSE_SENSITIVITY * 0.25, 0.00001)
+	assert_float(IsoCamera.sensitivity_for_slider(1.0)).is_equal_approx(IsoCamera.MOUSE_SENSITIVITY * 2.0, 0.00001)
+	assert_float(IsoCamera.sensitivity_for_slider(0.25)).is_less(IsoCamera.sensitivity_for_slider(0.75))
+	assert_bool(Menus.DEFAULTS.has("mouse_sensitivity")).is_true()

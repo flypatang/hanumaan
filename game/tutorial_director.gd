@@ -34,7 +34,7 @@ const MOVE_ACTIONS: Array[StringName] = [&"move_left", &"move_right", &"move_up"
 const WATCHED_ACTIONS: Array[StringName] = [&"move_left", &"move_right", &"move_up", &"move_down", &"attack_light", &"leap"]
 const TALK_TARGET_RANGE: float = 3.0
 ## Orbit that completes the camera step: 90 degrees of mouse, stick or snap turning.
-const CAMERA_ORBIT_NEEDED: float = PI / 2.0
+const CAMERA_ORBIT_NEEDED: float = PI / 4.0  # 45 degrees: about 375 px at the (slower) default mouse speed
 const CHAIN_NEEDED: int = 3
 const CHAIN_GAP: float = 1.0
 const HEAVY_HOLD_SECONDS: float = 0.0  # heavy has its own button (RMB / B) since 2026-11-27: one press counts
