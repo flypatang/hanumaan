@@ -43,7 +43,7 @@ const DEFAULTS: Dictionary = {
 	"tutorial_hints": "on",
 	"fps_cap": 60,
 	"graphics": "high",
-	"visual_style": "pixel",  # owner decision 2026-11-27: pixel is the default, painterly selectable
+	"visual_style": "painterly",  # owner 2026-11-28: painterly is the default again, pixel selectable
 	"vsync": true,
 	"fullscreen": false,
 	"volume_master": 1.0,
@@ -162,7 +162,8 @@ func get_option(option: StringName) -> Variant:
 ## The saved value of an option without needing a Menus instance. Returns null for an unknown option.
 ## Settings file version. 2: voice-over became off by default (2026-11-28), so a stored voice_over from an older
 ## build (which may simply be the old default) is dropped once.
-const SETTINGS_VERSION: int = 2
+## 3: painterly became the default style again (2026-11-28), so a stored visual_style is dropped once.
+const SETTINGS_VERSION: int = 3
 const META_SECTION: String = "meta"
 
 
@@ -174,9 +175,15 @@ static func migrate_settings() -> void:
 	var version: int = config.get_value(META_SECTION, "version", 1) as int
 	if version >= SETTINGS_VERSION:
 		return
-	var section: String = str(OPTION_SECTIONS["voice_over"])
-	if config.has_section_key(section, "voice_over"):
-		config.erase_section_key(section, "voice_over")
+	var drop: Array[String] = []
+	if version < 2:
+		drop.append("voice_over")
+	if version < 3:
+		drop.append("visual_style")
+	for key: String in drop:
+		var section: String = str(OPTION_SECTIONS[key])
+		if config.has_section_key(section, key):
+			config.erase_section_key(section, key)
 	config.set_value(META_SECTION, "version", SETTINGS_VERSION)
 	config.save(SETTINGS_PATH)
 

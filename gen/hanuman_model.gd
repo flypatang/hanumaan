@@ -199,6 +199,27 @@ const POSES: Dictionary = {
 		"tail_5": Vector3(12.0, 8.0, 0.0),
 		"tail_8": Vector3(14.0, 0.0, 0.0),
 	},
+	## Flying (the leap): leaning into the flight, the free arm stretched forward, the gada resting back over his
+	## shoulder ready to swing, the legs trailing and the tail streaming behind. Added 2026-11-28: the leap used
+	## attack_strike as its flight pose, so a strike at Simhika showed no swing at all.
+	"fly": {
+		"hips": Vector3(-10.0, 0.0, 0.0),
+		"spine": Vector3(-10.0, 0.0, 0.0),
+		"chest": Vector3(-8.0, 0.0, 0.0),
+		"head": Vector3(16.0, 0.0, 0.0),
+		"upper_arm_l": Vector3(150.0, 0.0, 10.0),
+		"lower_arm_l": Vector3(10.0, 0.0, 0.0),
+		"upper_arm_r": Vector3(-30.0, 0.0, -12.0),
+		"lower_arm_r": Vector3(96.0, 0.0, 0.0),
+		"gada_socket": Vector3(-60.0, 0.0, 12.0),
+		"upper_leg_l": Vector3(-24.0, 0.0, 0.0),
+		"lower_leg_l": Vector3(-56.0, 0.0, 0.0),
+		"upper_leg_r": Vector3(8.0, 0.0, 0.0),
+		"lower_leg_r": Vector3(-28.0, 0.0, 0.0),
+		"tail_0": Vector3(22.0, 0.0, 0.0),
+		"tail_3": Vector3(10.0, 0.0, 0.0),
+		"tail_6": Vector3(8.0, 0.0, 0.0),
+	},
 	## Seated in the air with his legs crossed, the gada held upright like a staff, the free hand resting in his lap.
 	"meditate": {
 		"chest": Vector3(-3.0, 0.0, 0.0),

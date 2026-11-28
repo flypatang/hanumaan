@@ -71,8 +71,11 @@ func test_an_old_settings_file_loses_its_stored_voice_over_once() -> void:
 	if config.has_section(Menus.META_SECTION):
 		config.erase_section(Menus.META_SECTION)
 	config.save(Menus.SETTINGS_PATH)
+	config.set_value("video", "visual_style", "pixel")
+	config.save(Menus.SETTINGS_PATH)
 	Menus.migrate_settings()
 	assert_bool(Menus.saved_option(&"voice_over") as bool).is_false()
+	assert_str(str(Menus.saved_option(&"visual_style"))).is_equal("painterly")
 	var menu: Menus = auto_free((load(MENU_SCRIPT) as GDScript).new() as Menus) as Menus
 	add_child(menu)
 	menu.set_option(&"voice_over", true)

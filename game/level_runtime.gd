@@ -54,7 +54,7 @@ const FLAG_UNLOCKS: Dictionary = {
 	"tail_fire": "tail_fire",
 }
 const SPAWN_META_SKIP: Array[String] = ["id", "kind", "pos", "facing"]
-const FLIGHT_POSE: StringName = &"attack_strike"
+const FLIGHT_POSE: StringName = &"fly"
 ## Abilities that get an unlock card (DESIGN §4.1a point 3) and the GameState flag that remembers the card was shown.
 const CARD_ABILITIES: Array[StringName] = [&"grow", &"shrink", &"surge", &"tail_fire"]
 const CARD_FLAG_PREFIX: String = "unlock_card_"

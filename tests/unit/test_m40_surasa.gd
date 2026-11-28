@@ -305,3 +305,18 @@ func test_simhika_fight_narrates_every_phase_with_controls() -> void:
 	flow.tick_leap(2.0)
 	assert_str(flow.simhika_status_key()).is_equal("SIM_INSIDE")
 	boss.free()
+
+
+## Owner 2026-11-28: striking Simhika showed no gada swing (the flight pose was already attack_strike).
+func test_a_leap_strike_swings_the_gada_and_returns_to_flight() -> void:
+	var parts: Array = _make_leap()
+	var rt: LevelRuntime = parts[0] as LevelRuntime
+	var flow: ChapterFlow = parts[1] as ChapterFlow
+	assert_str(str(flow.leap_rider_pose())).is_equal("fly")
+	flow.leap_attack(ChapterFlow.LEAP_LIGHT_DAMAGE, false)  # no boss: a miss still swings
+	assert_str(str(flow.leap_rider_pose())).is_equal("attack_wind")
+	flow.tick_leap(ChapterFlow.LEAP_SWING_WIND + 0.01)
+	assert_str(str(flow.leap_rider_pose())).is_equal("attack_strike")
+	flow.tick_leap(ChapterFlow.LEAP_SWING_HOLD + 0.01)
+	assert_str(str(flow.leap_rider_pose())).is_equal("fly")
+	assert_object(rt.rider()).is_not_null()

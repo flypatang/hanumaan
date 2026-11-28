@@ -305,12 +305,13 @@ func _make_runtime() -> LevelRuntime:
 	return rt
 
 
-func test_style_setting_defaults_to_pixel_persists_and_rejects_unknown_values() -> void:
+func test_style_setting_defaults_to_painterly_persists_and_rejects_unknown_values() -> void:
 	if FileAccess.file_exists(SETTINGS_PATH):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(SETTINGS_PATH))
-	assert_str(Menus.visual_style()).is_equal("pixel")
+	assert_str(Menus.visual_style()).is_equal("painterly")
 	var menu: Menus = auto_free(Menus.new()) as Menus
 	add_child(menu)
+	menu.set_option(&"visual_style", "pixel")
 	assert_bool(menu.set_option(&"visual_style", "painterly")).is_true()
 	assert_str(Menus.visual_style()).is_equal("painterly")
 	var config: ConfigFile = ConfigFile.new()
@@ -344,14 +345,14 @@ func test_style_strings_exist_in_english_and_hindi() -> void:
 		assert_bool(filled.get(key, false) as bool).is_true()
 
 
-func test_runtime_is_pixel_by_default() -> void:
-	# Owner decision 2026-11-27: Pixel is the default style; Painterly stays selectable in Settings.
+func test_runtime_is_painterly_by_default() -> void:
+	# Owner 2026-11-28: Painterly is the default style again; Pixel stays selectable in Settings.
 	if FileAccess.file_exists(SETTINGS_PATH):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(SETTINGS_PATH))
 	var rt: LevelRuntime = _make_runtime()
 	assert_int(rt.load_level(&"test_tiny")).is_equal(OK)
-	assert_str(str(rt.visual_style())).is_equal("pixel")
-	assert_object(rt.pixel_view()).is_not_null()
+	assert_str(str(rt.visual_style())).is_equal("painterly")
+	assert_object(rt.pixel_view()).is_null()
 
 
 func test_runtime_reads_the_saved_style_and_keeps_the_hud_at_full_resolution() -> void:
@@ -387,7 +388,7 @@ func test_runtime_switches_style_live_and_back() -> void:
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(SETTINGS_PATH))
 	var menu: Menus = auto_free(Menus.new()) as Menus
 	add_child(menu)
-	menu.set_option(&"visual_style", "painterly")  # pixel is the default now; start from painterly to test switching
+	menu.set_option(&"visual_style", "painterly")  # start from painterly to test switching
 	var rt: LevelRuntime = _make_runtime()
 	assert_int(rt.load_level(&"test_tiny")).is_equal(OK)
 	assert_object(rt.pixel_view()).is_null()

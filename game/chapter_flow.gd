@@ -231,6 +231,10 @@ const LEAP_ATTACK_RANGE: float = 40.0
 const LEAP_LIGHT_DAMAGE: int = 12
 const LEAP_HEAVY_DAMAGE: int = 35
 const LEAP_HEAVY_HOLD: float = 0.5
+## Leap gada swing timing (seconds): wind-up before the blow, then how long the blow is held.
+const LEAP_SWING_WIND: float = 0.08
+const LEAP_SWING_WIND_HEAVY: float = 0.16
+const LEAP_SWING_HOLD: float = 0.3
 
 
 ## The Surasa trial (DESIGN §3 Ch1), redesigned 2026-11-27 on owner feedback ("the player should control when to
@@ -453,6 +457,8 @@ var _surasa_stage: int = 0
 var _simhika_stage: int = 0
 var _simhika_status: String = ""
 var _simhika_bitten: float = 0.0
+var _swing_time: float = -1.0
+var _swing_wind: float = 0.08
 var _gate: StringName = &""
 var _heavy_hold: float = 0.0
 
@@ -1274,6 +1280,7 @@ func tick_leap(delta: float) -> void:
 	if _puzzle != null:
 		_puzzle.tick(delta)
 		_update_surasa_visuals()
+	_tick_leap_swing(delta)
 	if _boss != null and is_instance_valid(_boss) and _boss.active and not _boss.is_defeated():
 		_simhika_bitten = maxf(_simhika_bitten - delta, 0.0)
 		_update_simhika_prompt()
@@ -1301,8 +1308,55 @@ func tick_leap(delta: float) -> void:
 			_heavy_hold = 0.0
 
 
+## Plays a gada swing on the flying Hanuman: wind-up, blow, then back to the flight pose. Every strike press swings,
+## hit or miss, so the player always sees the input (owner 2026-11-28).
+func start_leap_swing(heavy: bool) -> void:
+	var model: HanumanModel = _rider_model()
+	if model == null:
+		return
+	_swing_time = 0.0
+	_swing_wind = LEAP_SWING_WIND_HEAVY if heavy else LEAP_SWING_WIND
+	model.set_pose(&"attack_wind")
+	SoundPlayer.cue(model, &"gada_swing_heavy" if heavy else &"gada_swing_light")
+
+
+## The pose the flying Hanuman shows right now (for tests).
+func leap_rider_pose() -> StringName:
+	var model: HanumanModel = _rider_model()
+	return model.current_pose() if model != null else &""
+
+
+func _tick_leap_swing(delta: float) -> void:
+	if _swing_time < 0.0:
+		return
+	var model: HanumanModel = _rider_model()
+	if model == null:
+		_swing_time = -1.0
+		return
+	var before: float = _swing_time
+	_swing_time += delta
+	if before < _swing_wind and _swing_time >= _swing_wind:
+		model.set_pose(&"attack_strike")
+	if _swing_time >= _swing_wind + LEAP_SWING_HOLD:
+		_swing_time = -1.0
+		model.set_pose(LevelRuntime.FLIGHT_POSE)
+
+
+func _rider_model() -> HanumanModel:
+	if _rt == null or _rt.rider() == null:
+		return null
+	var pivot: Node = _rt.rider().get_node_or_null("Pivot")
+	if pivot == null:
+		return null
+	for child: Node in pivot.get_children():
+		if child is HanumanModel:
+			return child as HanumanModel
+	return null
+
+
 ## Hanuman strikes at Simhika while flying: lands only within range and while she is vulnerable.
 func leap_attack(amount: int, heavy: bool) -> bool:
+	start_leap_swing(heavy)
 	if _boss == null or not is_instance_valid(_boss) or _rt == null or _rt.rider() == null:
 		return false
 	var flat: Vector3 = _boss.global_position - _rt.rider().global_position
