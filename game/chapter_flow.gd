@@ -155,6 +155,18 @@ const TEXTS: Dictionary = {
 	"OBJ_CH5_COURT": ["Speak before Ravana", "रावण के सम्मुख वचन कहें"],
 	"OBJ_CH5_BURN": ["Spread fire to the rakshasa armouries", "राक्षसों के शस्त्रागारों में अग्नि फैलाएँ"],
 	"OBJ_CH5_OCEAN": ["Reach the ocean and cool your tail", "समुद्र तक पहुँचकर पूँछ की अग्नि शांत करें"],
+	"SIM_PHASE1": ["Simhika's dark pool hunts your shadow. Keep moving, and strike her!", "सिंहिका का काला भँवर आपकी छाया का पीछा कर रहा है। चलते रहिए, और उस पर प्रहार कीजिए!"],
+	"SIM_SHADOW_NEAR": ["Her pool is right under you - steer or dodge away!", "भँवर ठीक आपके नीचे है - हटिए या कूदकर बचिए!"],
+	"SIM_GRABBED": ["She seized your shadow!", "उसने आपकी छाया पकड़ ली!"],
+	"SIM_PHASE2": ["Simhika hurls waves at you. Strike her between them!", "सिंहिका आप पर लहरें फेंक रही है। लहरों के बीच उस पर प्रहार कीजिए!"],
+	"SIM_WAVE_COMING": ["A wave is coming - get out of the glowing band!", "लहर आ रही है - चमकती पट्टी से हट जाइए!"],
+	"SIM_JAWS_SHUT": ["Simhika rises from the sea, jaws shut. Wait for them to open...", "सिंहिका समुद्र से उठती है, मुख बंद है। उसके खुलने की प्रतीक्षा कीजिए..."],
+	"SIM_JAWS_OPEN": ["Her jaws gape - shrink now to dive inside!", "उसका मुख खुला है - अभी सिकुड़कर भीतर कूदिए!"],
+	"SIM_INSIDE": ["Inside Simhika! Strike her from within!", "सिंहिका के भीतर! भीतर से प्रहार कीजिए!"],
+	"SIM_BITTEN": ["Too slow - her jaws snapped shut on you. Wait for the next opening.", "देर हो गई - उसका मुख आप पर बंद हो गया। अगले अवसर की प्रतीक्षा कीजिए।"],
+	"SIM_CONTROLS_FIGHT": ["%s / %s Steer    %s Dodge    %s Strike (hold: heavy)", "%s / %s दिशा    %s बचाव    %s प्रहार (दबाए रखें: भारी)"],
+	"SIM_CONTROLS_JAWS": ["%s Shrink", "%s सिकुड़ें"],
+	"SIM_CONTROLS_INSIDE": ["%s Strike", "%s प्रहार"],
 	"SUR_START": ["Surasa bars the way: none may pass but through her jaws.", "सुरसा मार्ग रोके खड़ी है: उसके मुख से होकर ही कोई आगे जा सकता है।"],
 	"SUR_OPENING": ["Surasa's jaws stretch wider than you...", "सुरसा का मुख आपसे भी बड़ा फैल रहा है..."],
 	"SUR_OPEN": ["Her jaws gape wide open.", "उसका मुख पूरा खुल गया है।"],
@@ -191,6 +203,10 @@ const SIMHIKA_FILE: String = "ch1_simhika"
 const SEA_LEVEL: float = -12.0
 const SURASA_SCALE: float = 6.0
 const SURASA_DISTANCE: float = 34.0
+## The Simhika narration warns when her shadow pool is this close to Hanuman (metres).
+const SIMHIKA_SHADOW_WARN: float = 6.0
+## How long "her jaws snapped shut on you" stays up after a missed dive (seconds).
+const SIMHIKA_BITTEN_SHOW: float = 1.5
 ## The chase camera offset of the rider at normal flight size (level_runtime builds it there).
 const CHASE_BASE: Vector3 = Vector3(0.0, 5.0, 17.0)
 const MOUTH_MESH_RADIUS: float = 0.3
@@ -203,6 +219,10 @@ const CHASE_ROTATION: Vector3 = Vector3(-10.0, 0.0, 0.0)
 ## Direction (rider-local) of the trial camera from the midpoint of Hanuman and Surasa: to the side, a little up and
 ## behind, so both stand side by side and her jaws face the camera at an angle.
 const SURASA_CAMERA_DIR: Vector3 = Vector3(0.85, 0.2, 0.55)
+## Simhika fight camera: higher than Surasa's so the pool and wave band on the water read clearly.
+const SIMHIKA_CAMERA_DIR: Vector3 = Vector3(0.8, 0.55, 0.5)
+## Height of Simhika's body to keep in frame (metres).
+const SIMHIKA_FRAME_HEIGHT: float = 14.0
 ## Breathing room around the framed pair (1 = edge to edge).
 const SURASA_FRAME_MARGIN: float = 1.75
 const MAINAKA_SCALE: float = 5.0
@@ -431,6 +451,8 @@ var _mainaka: Node3D = null
 var _boss: BossSimhika = null
 var _surasa_stage: int = 0
 var _simhika_stage: int = 0
+var _simhika_status: String = ""
+var _simhika_bitten: float = 0.0
 var _gate: StringName = &""
 var _heavy_hold: float = 0.0
 
@@ -1003,12 +1025,17 @@ func _place_simhika() -> void:
 	_boss.defeated.connect(_on_simhika_defeated)
 	_boss.inner_phase_cleared.connect(_on_simhika_inside_done)
 	_boss.window_missed.connect(_restore_rider_size)
+	_boss.window_missed.connect(func() -> void: _simhika_bitten = SIMHIKA_BITTEN_SHOW)
 	_boss.event_bus = _bus()
 	_rt.hook_boss_hints(_boss, "boss_simhika")
 
 
 func _on_simhika_defeated() -> void:
 	_simhika_stage = 2
+	_simhika_status = ""
+	_set_chase_scale(1.0)
+	if _rt != null:
+		_rt.show_prompt("")
 	_restore_rider_size()
 	_rt.play_dialogue("%s#w1" % SIMHIKA_FILE)
 
@@ -1032,6 +1059,50 @@ static func hanuman_height_metres(growth: int) -> float:
 	if growth <= 0:
 		return SizeShift.BODY_HEIGHT * SizeShift.SCALES[SizeShift.SIZE.SMALL]
 	return HANUMAN_GIANT_HEIGHT * SurasaPuzzle.GROWTH_SCALES[growth - 1]
+
+
+## Narration for the Simhika fight (owner 2026-11-28: "not clear what the player needs to do"). One line says what
+## Simhika is doing right now, the next lists the controls that matter in this phase.
+func simhika_status_key() -> String:
+	if _boss == null or not is_instance_valid(_boss):
+		return ""
+	if _simhika_bitten > 0.0:
+		return "SIM_BITTEN"
+	if _boss.player_stun_left > 0.0:
+		return "SIM_GRABBED"
+	match _boss.phase:
+		1:
+			if _boss.shadow_active and _rt != null and _rt.rider() != null:
+				var rider: Vector3 = _rt.rider().global_position
+				var gap: Vector3 = Vector3(rider.x, 0.0, rider.z) - _boss.shadow_pos
+				if gap.length() < SIMHIKA_SHADOW_WARN:
+					return "SIM_SHADOW_NEAR"
+			return "SIM_PHASE1"
+		2:
+			return "SIM_WAVE_COMING" if _boss.wave_telegraph_visible() else "SIM_PHASE2"
+	if _boss.is_inside():
+		return "SIM_INSIDE"
+	if _boss.window_open():
+		return "SIM_JAWS_OPEN"
+	return "SIM_JAWS_SHUT"
+
+
+func _update_simhika_prompt() -> void:
+	var key: String = simhika_status_key()
+	if key.is_empty() or _rt == null:
+		return
+	var controls: String
+	if _boss.phase < 3:
+		controls = ChapterFlow.text("SIM_CONTROLS_FIGHT") % [KeyGlyph.text_for(&"move_left"), KeyGlyph.text_for(&"move_right"),
+			KeyGlyph.text_for(&"leap"), KeyGlyph.text_for(&"attack_light")]
+	elif _boss.is_inside():
+		controls = ChapterFlow.text("SIM_CONTROLS_INSIDE") % KeyGlyph.text_for(&"attack_light")
+	else:
+		controls = ChapterFlow.text("SIM_CONTROLS_JAWS") % KeyGlyph.text_for(&"shrink")
+	var text: String = ChapterFlow.text(key) + "\n" + controls
+	if text != _simhika_status:
+		_simhika_status = text
+		_rt.show_prompt(text)
 
 
 ## Narration for each moment of the Surasa trial. It describes what Surasa does, never which key to press next;
@@ -1140,6 +1211,25 @@ func _frame_surasa(_factor: float) -> void:
 	chase.look_at(rider.to_global(centre), Vector3.UP)
 
 
+## During the Simhika fight: the same three-quarter view, framing Hanuman, Simhika and the water between them (her
+## shadow pool and wave band), so the giant Hanuman never hides her (owner 2026-11-28).
+func _frame_simhika() -> void:
+	var chase: Camera3D = _chase_camera()
+	var rider: Node3D = _rt.rider() if _rt != null else null
+	if chase == null or rider == null or not rider.is_inside_tree() or not _boss.is_inside_tree():
+		return
+	var tall: float = HANUMAN_GIANT_HEIGHT * _rt.size_shift().get_visual_scale() / SizeShift.SCALES[SizeShift.SIZE.GIANT] \
+		if _rt.size_shift() != null else HANUMAN_GIANT_HEIGHT
+	var boss_local: Vector3 = rider.to_local(_boss.global_position)
+	var top: float = maxf(tall, boss_local.y + SIMHIKA_FRAME_HEIGHT)
+	var bottom: float = minf(0.0, boss_local.y)
+	var centre: Vector3 = Vector3(boss_local.x * 0.5, (top + bottom) * 0.5, boss_local.z * 0.5)
+	var extent: float = maxf(top - bottom, Vector2(boss_local.x, boss_local.z).length() + SIMHIKA_FRAME_HEIGHT * 0.5)
+	var distance: float = extent * SURASA_FRAME_MARGIN / tan(deg_to_rad(chase.fov) * 0.5) * 0.5
+	chase.position = centre + SIMHIKA_CAMERA_DIR.normalized() * distance
+	chase.look_at(rider.to_global(centre), Vector3.UP)
+
+
 func _chase_camera() -> Camera3D:
 	if _rt == null or _rt.rider() == null:
 		return null
@@ -1184,6 +1274,10 @@ func tick_leap(delta: float) -> void:
 	if _puzzle != null:
 		_puzzle.tick(delta)
 		_update_surasa_visuals()
+	if _boss != null and is_instance_valid(_boss) and _boss.active and not _boss.is_defeated():
+		_simhika_bitten = maxf(_simhika_bitten - delta, 0.0)
+		_update_simhika_prompt()
+		_frame_simhika()
 	if _rt == null or _rt.input_locked():
 		return
 	if _puzzle != null and _puzzle.is_active():

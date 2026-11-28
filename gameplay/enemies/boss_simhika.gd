@@ -32,11 +32,13 @@ const SHADOW_SPAWN_DISTANCE: float = 14.0
 const SHADOW_DELAY: float = 1.0
 const SHADOW_COOLDOWN: float = 3.0
 const SHADOW_LIFETIME: float = 8.0
-const CATCH_RADIUS: float = 1.2
+const CATCH_RADIUS: float = 2.5  # was 1.2: next to a GIANT Hanuman the pool was a speck (2026-11-28)
 const GRAB_DAMAGE: int = 15
 const GRAB_STUN: float = 1.0
 
-const WAVE_TELEGRAPH: float = 0.6
+## Height of the pool and wave band above the water surface (metres).
+const MARK_LIFT: float = 0.4
+const WAVE_TELEGRAPH: float = 0.9  # was 0.6: easier to read with the new narration (2026-11-28)
 const WAVE_GAP: float = 2.5
 const WAVE_HALF_WIDTH: float = 3.5
 const WAVE_LENGTH: float = 40.0
@@ -423,15 +425,20 @@ func _update_visuals() -> void:
 	if _shadow_mesh == null:
 		return
 	_shadow_mesh.visible = shadow_active
-	_shadow_mesh.global_position = shadow_pos + Vector3(0.0, 0.05, 0.0)
+	# Drawn on the water: the boss stands at sea level, which is far below y = 0 on the leap (owner 2026-11-28:
+	# the pool and the wave band floated in the air and could not be read).
+	var water_y: float = global_position.y + MARK_LIFT
+	_shadow_mesh.global_position = Vector3(shadow_pos.x, water_y, shadow_pos.z)
+	var pulse: float = 0.5 + 0.5 * sin(float(Time.get_ticks_msec()) * 0.012)
+	_shadow_mesh.scale = Vector3.ONE * (1.0 + 0.08 * pulse)
 	var telegraph: bool = wave_telegraph_visible()
 	_wave_visual = maxf(_wave_visual - get_physics_process_delta_time(), 0.0)
 	_wave_mesh.visible = telegraph or _wave_visual > 0.0
 	var mid: Vector3 = global_position + _wave_dir * WAVE_LENGTH * 0.5
-	_wave_mesh.global_position = Vector3(mid.x, 0.06, mid.z)
+	_wave_mesh.global_position = Vector3(mid.x, water_y + 0.05, mid.z)
 	_wave_mesh.rotation.y = atan2(-_wave_dir.x, -_wave_dir.z)
 	var mat: StandardMaterial3D = _wave_mesh.material_override as StandardMaterial3D
-	mat.albedo_color = Color(Palette.SINDOOR, 0.5) if telegraph else Color(Palette.MOON, 0.7)
+	mat.albedo_color = Color(Palette.SINDOOR, 0.45 + 0.35 * pulse) if telegraph else Color(Palette.MOON, 0.85)
 
 
 func _build() -> void:
@@ -456,7 +463,7 @@ func _build() -> void:
 	model = SimhikaModel.build()
 	add_child(model)
 
-	_shadow_mesh = _flat_disc("ShadowPool", CATCH_RADIUS * 1.6, Color(Palette.NIGHT_INDIGO, 0.8))
+	_shadow_mesh = _flat_disc("ShadowPool", CATCH_RADIUS * 1.2, Color(Palette.RAKSHASA_SKIN.darkened(0.3), 0.9))
 	_shadow_mesh.top_level = true
 	_wave_mesh = MeshInstance3D.new()
 	_wave_mesh.name = "WaveBand"

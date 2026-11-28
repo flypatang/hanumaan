@@ -264,3 +264,44 @@ func test_a_failed_flight_heals_and_never_ends_the_run() -> void:
 	leap.health.damage(1000, null)
 	assert_int(leap.health.value).is_equal(leap.health.max_value)
 	assert_float(leap.distance).is_equal_approx(220.0, 0.01)
+
+
+## Owner 2026-11-28: "It's not clear what the player needs to do for the encounter with Simhika." Every phase now
+## says what she is doing and which controls matter.
+func test_simhika_fight_narrates_every_phase_with_controls() -> void:
+	var parts: Array = _make_leap()
+	var rt: LevelRuntime = parts[0] as LevelRuntime
+	var flow: ChapterFlow = parts[1] as ChapterFlow
+	var leap: LeapController = rt.leap()
+	leap.paused_at_gate = true
+	leap.gate_reached.emit(&"simhika")
+	rt.dialogue_box().finished.emit(&"ch1_simhika")
+	var boss: BossSimhika = rt.get_node("BossSimhika") as BossSimhika
+	assert_bool(boss.active).is_true()
+	flow.tick_leap(0.01)
+	assert_str(flow.simhika_status_key()).is_equal("SIM_PHASE1")
+	assert_str(rt.prompt_text()).contains("Strike")
+	assert_str(rt.prompt_text()).contains("Dodge")
+	boss.shadow_start(rt.rider().global_position)
+	assert_str(flow.simhika_status_key()).is_equal("SIM_SHADOW_NEAR")
+	boss.shadow_active = false
+	boss.health.value = BossSimhika.PHASE2_HP
+	boss.tick(0.01)
+	assert_str(flow.simhika_status_key()).is_equal("SIM_PHASE2")
+	boss.wave_start()
+	assert_str(flow.simhika_status_key()).is_equal("SIM_WAVE_COMING")
+	boss.health.value = BossSimhika.PHASE3_HP
+	boss.tick(0.01)
+	assert_str(flow.simhika_status_key()).is_equal("SIM_JAWS_SHUT")
+	boss.tick(BossSimhika.CLOSED_TIME)
+	assert_bool(boss.window_open()).is_true()
+	flow.tick_leap(0.01)
+	assert_str(flow.simhika_status_key()).is_equal("SIM_JAWS_OPEN")
+	assert_str(rt.prompt_text()).contains("Shrink")
+	boss.tick(BossSimhika.WINDOW_TIME)
+	flow.tick_leap(0.01)
+	assert_str(flow.simhika_status_key()).is_equal("SIM_BITTEN")
+	boss.force_inside()
+	flow.tick_leap(2.0)
+	assert_str(flow.simhika_status_key()).is_equal("SIM_INSIDE")
+	boss.free()

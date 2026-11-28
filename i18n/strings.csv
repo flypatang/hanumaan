@@ -229,6 +229,18 @@ HINT_NARR_TASK,Remember your task: %s,अपना कार्य स्मर�
 HINT_NARR_NONE,Look about you. The way forward is near.,चारों ओर देखो। आगे का मार्ग निकट है।
 HINT_BOSS_LANKINI,"Lankini: strike with a light blow just as her weapon begins to fall, and she will stagger.","लंकिनी: जैसे ही उसका शस्त्र गिरने लगे, हल्का प्रहार करो, वह लड़खड़ा जाएगी।"
 HINT_BOSS_SIMHIKA,"Simhika: when her mouth opens wide, shrink with %s and dive in.","सिंहिका: जब उसका मुख खुले, %s से सिकुड़ो और भीतर कूद जाओ।"
+SIM_PHASE1,"Simhika's dark pool hunts your shadow. Keep moving, and strike her!","सिंहिका का काला भँवर आपकी छाया का पीछा कर रहा है। चलते रहिए, और उस पर प्रहार कीजिए!"
+SIM_SHADOW_NEAR,Her pool is right under you - steer or dodge away!,भँवर ठीक आपके नीचे है - हटिए या कूदकर बचिए!
+SIM_GRABBED,She seized your shadow!,उसने आपकी छाया पकड़ ली!
+SIM_PHASE2,Simhika hurls waves at you. Strike her between them!,सिंहिका आप पर लहरें फेंक रही है। लहरों के बीच उस पर प्रहार कीजिए!
+SIM_WAVE_COMING,A wave is coming - get out of the glowing band!,लहर आ रही है - चमकती पट्टी से हट जाइए!
+SIM_JAWS_SHUT,"Simhika rises from the sea, jaws shut. Wait for them to open...","सिंहिका समुद्र से उठती है, मुख बंद है। उसके खुलने की प्रतीक्षा कीजिए..."
+SIM_JAWS_OPEN,Her jaws gape - shrink now to dive inside!,उसका मुख खुला है - अभी सिकुड़कर भीतर कूदिए!
+SIM_INSIDE,Inside Simhika! Strike her from within!,सिंहिका के भीतर! भीतर से प्रहार कीजिए!
+SIM_BITTEN,Too slow - her jaws snapped shut on you. Wait for the next opening.,देर हो गई - उसका मुख आप पर बंद हो गया। अगले अवसर की प्रतीक्षा कीजिए।
+SIM_CONTROLS_FIGHT,%s / %s Steer    %s Dodge    %s Strike (hold: heavy),%s / %s दिशा    %s बचाव    %s प्रहार (दबाए रखें: भारी)
+SIM_CONTROLS_JAWS,%s Shrink,%s सिकुड़ें
+SIM_CONTROLS_INSIDE,%s Strike,%s प्रहार
 HINT_BOSS_JAMBUMALI,"Jambumali moves between the pillars. Shelter from the arrow storm, then strike with a heavy blow.","जम्बुमाली स्तंभों के बीच घूमता है। बाणों की वर्षा से बचो, फिर भारी प्रहार करो।"
 HINT_BOSS_AKSHAYA,Akshaya: only heavy blows can break his chariot.,अक्षय: केवल भारी प्रहार ही उसके रथ को तोड़ सकते हैं।
 UI_MENU_MOUSE_SENSITIVITY,Mouse camera speed,माउस कैमरा गति

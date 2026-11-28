@@ -97,12 +97,12 @@ func test_wave_telegraph_is_at_least_0_6_seconds() -> void:
 	b.tick(DT)
 	b.wave_start()
 	assert_bool(b.wave_telegraph_visible()).is_true()
-	_run(b, 0.55)
+	_run(b, BossSimhika.WAVE_TELEGRAPH - 0.05)
 	assert_bool(b.wave_telegraph_visible()).is_true()
 	assert_int(b.waves_struck).is_equal(0)
 	_run(b, 0.1)
 	assert_int(b.waves_struck).is_equal(1)
-	assert_float(BossSimhika.WAVE_TELEGRAPH).is_equal_approx(0.6, 0.0001)
+	assert_float(BossSimhika.WAVE_TELEGRAPH).is_greater_equal(0.6)
 
 
 func test_wave_hits_player_in_band_but_not_dodging_player() -> void:
@@ -110,11 +110,11 @@ func test_wave_hits_player_in_band_but_not_dodging_player() -> void:
 	b.health.value = BossSimhika.PHASE2_HP
 	b.tick(DT)
 	b.wave_start()
-	_run(b, 0.7)
+	_run(b, BossSimhika.WAVE_TELEGRAPH + 0.1)
 	assert_int(b.player_health.value).is_equal(100 - BossSimhika.WAVE_DAMAGE)
 	b.player_health.invulnerable = true
 	b.wave_start()
-	_run(b, 0.7)
+	_run(b, BossSimhika.WAVE_TELEGRAPH + 0.1)
 	assert_int(b.player_health.value).is_equal(100 - BossSimhika.WAVE_DAMAGE)
 
 
