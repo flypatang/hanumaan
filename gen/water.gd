@@ -359,7 +359,16 @@ static func mood_params(mood: StringName) -> Dictionary[String, Variant]:
 ## keep it unrotated and unscaled (the waves are computed in its local space).
 ## `wave_scale` enlarges the waves (1 suits the gameplay camera; 2-4 reads better from high in the air).
 ## `depth_effects = false` gives the cheaper opaque variant for the Low graphics preset.
+## False on the Compatibility renderer (the web build): it has no RenderingDevice and shaders cannot read the depth
+## buffer, so depth effects fall back to the opaque variant (the web ocean drew as a flat white sheet otherwise).
+static func depth_supported() -> bool:
+	# The project setting resolves its ".web" override on the web, so this is "gl_compatibility" there and the
+	# desktop renderer everywhere else (also in headless tests, which have no RenderingDevice either).
+	return str(ProjectSettings.get_setting("rendering/renderer/rendering_method")) != "gl_compatibility"
+
+
 static func ocean(size: Vector2, mood: StringName, wave_scale: float = 1.0, depth_effects: bool = true) -> MeshInstance3D:
+	depth_effects = depth_effects and depth_supported()
 	var plane: PlaneMesh = PlaneMesh.new()
 	plane.size = size
 	plane.subdivide_width = subdivisions_for(size.x)

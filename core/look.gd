@@ -427,7 +427,12 @@ static func _make_environment(spec: Mood, quality: StringName) -> Environment:
 	env.fog_sky_affect = spec.fog_sky_affect
 	env.fog_aerial_perspective = 0.0
 	env.fog_height = spec.fog_height
-	if low:
+	if not WaterKit.depth_supported():
+		# Web (Compatibility renderer): no volumetrics at all, so a thicker depth haze hides the ocean's far edge.
+		env.fog_density = spec.fog_density * 4.0 + spec.volumetric_density * 0.4
+		env.fog_height_density = spec.fog_height_density * 1.3
+		env.fog_sky_affect = maxf(spec.fog_sky_affect, 0.5)
+	elif low:
 		# Simple fog: the depth and height haze stand in for the missing volumetrics.
 		env.fog_density = spec.fog_density * 1.6 + spec.volumetric_density * 0.25
 		env.fog_height_density = spec.fog_height_density * 1.3

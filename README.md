@@ -1,5 +1,8 @@
 # Hanumaan — Sundara Kanda
 
+**Play in your browser:** https://flypatang.github.io/hanumaan/ (the desktop builds on the Releases page look best).
+
+
 An isometric 3D action RPG based on the *Sundara Kanda* of the Valmiki Ramayana, built in Godot 4.7 by the
 [game factory](https://github.com/flypatang/game-factory). The full design is in [`docs/DESIGN.md`](docs/DESIGN.md).
 

@@ -227,6 +227,9 @@ static func graphics_preset() -> String:
 
 ## "painterly" or "pixel": the visual style the level views render in (PX1 experiment).
 static func visual_style() -> String:
+	# The pixel style's outline pass reads the depth buffer, which the web (Compatibility) renderer cannot.
+	if not WaterKit.depth_supported():
+		return "painterly"
 	return str(saved_option(&"visual_style"))
 
 

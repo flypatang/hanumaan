@@ -26,7 +26,9 @@ uniform vec4 tint : source_color = vec4(1.0);
 uniform float ring_width = 0.12;
 uniform float self_lit = 0.0;
 uniform float soft = 0.0;
+#ifdef VFX_SOFT
 uniform sampler2D vfx_depth : hint_depth_texture, filter_nearest, repeat_disable;
+#endif
 varying float v_seed;
 
 float vfx_noise(vec2 p) {
@@ -78,12 +80,14 @@ void fragment() {
 		float body = 1.0 - smoothstep(0.15, 0.95, length(vec2(q.x, q.y * 0.9 + 0.1)) + (n - 0.5) * 0.5);
 		a = body * body * (1.0 - smoothstep(0.7, 1.0, r));
 	}
+#ifdef VFX_SOFT
 	if (soft > 0.0) {
 		float scene_depth = textureLod(vfx_depth, SCREEN_UV, 0.0).r;
 		vec4 scene_pos = INV_PROJECTION_MATRIX * vec4(SCREEN_UV * 2.0 - 1.0, scene_depth, 1.0);
 		scene_pos.xyz /= scene_pos.w;
 		a *= clamp((VERTEX.z - scene_pos.z) / soft, 0.0, 1.0);
 	}
+#endif
 	vec4 c = COLOR * tint;
 	ALBEDO = c.rgb * energy;
 	EMISSION = c.rgb * self_lit;
@@ -338,7 +342,9 @@ static func shader(mode: String, billboard: bool) -> Shader:
 	var key: String = mode + ("|b" if billboard else "|n")
 	if _shaders.has(key):
 		return _shaders[key]
-	var code: String = "shader_type spatial;\nrender_mode " + mode + ";\n" + _SHADER_BODY
+	# Soft particles read the depth buffer, which the Compatibility renderer (web) cannot.
+	var soft_define: String = "#define VFX_SOFT\n" if WaterKit.depth_supported() else ""
+	var code: String = "shader_type spatial;\n" + soft_define + "render_mode " + mode + ";\n" + _SHADER_BODY
 	if billboard:
 		var bb: String = """
 	{
