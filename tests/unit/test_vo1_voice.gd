@@ -237,7 +237,7 @@ func test_shloka_card_recites_only_in_mode_on() -> void:
 
 func test_hindi_voice_over_is_off_by_default() -> void:
 	assert_bool(Menus.DEFAULTS["voice_over_hindi"] as bool).is_false()
-	assert_bool(Menus.DEFAULTS["voice_over"] as bool).is_true()
+	assert_bool(Menus.DEFAULTS["voice_over"] as bool).is_false()  # owner 2026-11-28: subtitles only by default
 
 
 func test_hindi_off_gives_subtitles_only_but_english_still_plays() -> void:

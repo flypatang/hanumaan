@@ -46,19 +46,19 @@ func test_mouse_motion_rotates_yaw_proportionally() -> void:
 	iso._input(_motion(-300.0))
 	assert_float(iso.yaw_goal() - start).is_equal_approx(-200.0 * iso.mouse_radians_per_pixel, 0.0001)
 	iso.finish_rotation()
-	assert_float(iso.rotation.y).is_equal_approx(iso.yaw_goal(), 0.0001)
+	assert_float(iso.yaw()).is_equal_approx(iso.yaw_goal(), 0.0001)
 
 
 func test_view_follows_the_orbit_smoothly() -> void:
 	var iso: IsoCamera = _build()
 	iso._input(_motion(200.0))
-	var before: float = iso.rotation.y
+	var before: float = iso.yaw()
 	iso._process(0.016)
-	assert_float(iso.rotation.y).is_greater(before)
-	assert_float(iso.rotation.y).is_less(iso.yaw_goal())
+	assert_float(iso.yaw()).is_greater(before)
+	assert_float(iso.yaw()).is_less(iso.yaw_goal())
 	for i: int in range(60):
 		iso._process(0.016)
-	assert_float(iso.rotation.y).is_equal_approx(iso.yaw_goal(), 0.001)
+	assert_float(iso.yaw()).is_equal_approx(iso.yaw_goal(), 0.001)
 
 
 func test_movement_maps_correctly_after_arbitrary_yaw() -> void:
@@ -82,12 +82,12 @@ func test_snap_turn_from_a_free_yaw_lands_on_the_grid() -> void:
 	iso._input(_motion(100.0))  # 0.5 rad off the grid
 	assert_bool(iso.rotate_right()).is_true()
 	iso.finish_rotation()
-	var steps: float = (iso.rotation.y - IsoCamera.BASE_YAW) / IsoCamera.STEP_ANGLE
+	var steps: float = (iso.yaw() - IsoCamera.BASE_YAW) / IsoCamera.STEP_ANGLE
 	assert_float(steps).is_equal_approx(1.0, 0.0001)
 	iso._input(_motion(100.0))
 	assert_bool(iso.rotate_left()).is_true()
 	iso.finish_rotation()
-	assert_float((iso.rotation.y - IsoCamera.BASE_YAW) / IsoCamera.STEP_ANGLE).is_equal_approx(1.0, 0.0001)
+	assert_float((iso.yaw() - IsoCamera.BASE_YAW) / IsoCamera.STEP_ANGLE).is_equal_approx(1.0, 0.0001)
 
 
 func test_wheel_zoom_changes_and_clamps() -> void:
@@ -232,3 +232,27 @@ func test_tilt_is_refused_while_locked() -> void:
 	iso.locked = true
 	assert_bool(iso.tilt(0.3)).is_false()
 	assert_bool(InputMap.has_action(&"camera_orbit_up")).is_true()
+
+
+## Owner bug 2026-11-28: after turning past 180 degrees the view kept spinning with no input. The rig moves every
+## frame (global_position), which makes Godot re-derive `rotation` wrapped to -PI..PI.
+func test_the_view_never_spins_without_input() -> void:
+	var iso: IsoCamera = _build()
+	var follow: Node3D = Node3D.new()
+	add_child(follow)
+	auto_free(follow)
+	for i: int in 40:  # slow, steady motion to the right: well past 180 degrees
+		iso._input(_motion(40.0))
+		follow.global_position += Vector3(0.1, 0.0, 0.0)
+		iso.global_position = follow.global_position
+		iso._process(1.0 / 60.0)
+	for i: int in 60:  # input stops: the view must settle on the goal
+		iso.global_position += Vector3(0.05, 0.0, 0.0)
+		iso._process(1.0 / 60.0)
+	assert_float(iso.yaw()).is_equal_approx(iso.yaw_goal(), 0.001)
+	var settled: Basis = iso.global_transform.basis
+	for i: int in 120:
+		iso.global_position += Vector3(0.05, 0.0, 0.0)
+		iso._process(1.0 / 60.0)
+	assert_float(iso.global_transform.basis.x.distance_to(settled.x)).is_less(0.0001)
+	assert_float(absf(iso.yaw_goal())).is_less(4.0 * TAU + 0.01)

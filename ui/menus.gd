@@ -50,7 +50,7 @@ const DEFAULTS: Dictionary = {
 	"volume_music": 1.0,
 	"volume_sfx": 1.0,
 	"volume_voice": 1.0,
-	"voice_over": true,
+	"voice_over": false,  # owner 2026-11-28: dialogue audio off by default in every language, subtitles only
 	"voice_over_hindi": false,
 	"invert_look_y": false,
 	"mouse_sensitivity": 0.5,  # owner 2026-11-27: the old mouse orbit was too fast; 0.5 is about 2.4x slower  # owner decision 2026-11-27: Hindi TTS quality is poor, subtitles only by default
@@ -91,6 +91,7 @@ func _ready() -> void:
 		add_theme_font_override("font", locale.call("font_for", &"ui") as Font)
 		if not locale.is_connected("language_changed", _on_language_changed):
 			locale.connect("language_changed", _on_language_changed)
+	migrate_settings()
 	_add_backdrop()
 	_build_title_panel()
 	_build_pause_panel()
@@ -159,6 +160,27 @@ func get_option(option: StringName) -> Variant:
 
 
 ## The saved value of an option without needing a Menus instance. Returns null for an unknown option.
+## Settings file version. 2: voice-over became off by default (2026-11-28), so a stored voice_over from an older
+## build (which may simply be the old default) is dropped once.
+const SETTINGS_VERSION: int = 2
+const META_SECTION: String = "meta"
+
+
+## One-time upgrades of an older settings file. Safe to call repeatedly.
+static func migrate_settings() -> void:
+	var config: ConfigFile = ConfigFile.new()
+	if config.load(SETTINGS_PATH) != OK:
+		return
+	var version: int = config.get_value(META_SECTION, "version", 1) as int
+	if version >= SETTINGS_VERSION:
+		return
+	var section: String = str(OPTION_SECTIONS["voice_over"])
+	if config.has_section_key(section, "voice_over"):
+		config.erase_section_key(section, "voice_over")
+	config.set_value(META_SECTION, "version", SETTINGS_VERSION)
+	config.save(SETTINGS_PATH)
+
+
 static func saved_option(option: StringName) -> Variant:
 	var key: String = str(option)
 	if key == LANGUAGE_OPTION:

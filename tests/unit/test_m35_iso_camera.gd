@@ -52,34 +52,34 @@ func test_up_input_maps_to_screen_up_after_each_rotation() -> void:
 
 func test_rotation_is_an_eased_tween_over_point_three_seconds() -> void:
 	var iso: IsoCamera = _build_scene()
-	var start_yaw: float = iso.rotation.y
+	var start_yaw: float = iso.yaw()
 	assert_bool(iso.rotate_right()).is_true()
 	assert_bool(iso.is_rotating()).is_true()
 	await get_tree().create_timer(ROTATE_WAIT).timeout
 	assert_bool(iso.is_rotating()).is_false()
-	assert_float(iso.rotation.y - start_yaw).is_equal_approx(PI / 2.0, 0.001)
+	assert_float(iso.yaw() - start_yaw).is_equal_approx(PI / 2.0, 0.001)
 	_assert_up_is_screen_up(iso)
 
 
 func test_each_rotation_turns_exactly_ninety_degrees() -> void:
 	var iso: IsoCamera = _build_scene()
-	var previous: float = iso.rotation.y
+	var previous: float = iso.yaw()
 	for i: int in range(4):
 		iso.rotate_left()
 		iso.finish_rotation()
-		assert_float(absf(iso.rotation.y - previous)).is_equal_approx(PI / 2.0, 0.001)
-		previous = iso.rotation.y
+		assert_float(absf(iso.yaw() - previous)).is_equal_approx(PI / 2.0, 0.001)
+		previous = iso.yaw()
 
 
 func test_locked_rig_refuses_rotation() -> void:
 	var iso: IsoCamera = _build_scene()
-	var start_yaw: float = iso.rotation.y
+	var start_yaw: float = iso.yaw()
 	iso.locked = true
 	assert_bool(iso.rotate_right()).is_false()
 	assert_bool(iso.rotate_left()).is_false()
 	assert_bool(iso.is_rotating()).is_false()
 	iso.finish_rotation()
-	assert_float(iso.rotation.y).is_equal_approx(start_yaw, 0.001)
+	assert_float(iso.yaw()).is_equal_approx(start_yaw, 0.001)
 	iso.locked = false
 	assert_bool(iso.rotate_right()).is_true()
 

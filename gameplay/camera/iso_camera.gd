@@ -59,6 +59,10 @@ var invert_pitch: bool = false
 var _camera: Camera3D = null
 var _target_node: Node3D = null
 var _yaw_goal: float = BASE_YAW
+## The drawn yaw. Kept here and never read back from `rotation`: the rig sets global_position every frame, after
+## which Godot rebuilds `rotation` from the basis wrapped to -PI..PI. Smoothing toward an unwrapped goal from a
+## wrapped value went the long way round and kept spinning with no input (owner bug report 2026-11-28).
+var _yaw: float = BASE_YAW
 var _pitch: float = deg_to_rad(ISO_ELEVATION_DEG)
 var _pitch_goal: float = deg_to_rad(ISO_ELEVATION_DEG)
 var _zoom: float = 1.0
@@ -81,8 +85,8 @@ func _ready() -> void:
 	add_child(_camera)
 	_apply_pitch()
 	_camera.current = true
-	rotation.y = BASE_YAW
 	_yaw_goal = BASE_YAW
+	_set_yaw(BASE_YAW)
 	_target_node = get_node_or_null(target) as Node3D
 	if _target_node != null:
 		global_position = _target_node.global_position
@@ -116,7 +120,7 @@ func _process(delta: float) -> void:
 		_pitch = _pitch_goal
 		_apply_pitch()
 	if not is_rotating():
-		rotation.y = lerpf(rotation.y, _yaw_goal, 1.0 - exp(-ORBIT_SMOOTHING * delta)) if absf(rotation.y - _yaw_goal) > 0.0001 else _yaw_goal
+		_set_yaw(lerpf(_yaw, _yaw_goal, 1.0 - exp(-ORBIT_SMOOTHING * delta)) if absf(_yaw - _yaw_goal) > 0.0001 else _yaw_goal)
 	if _target_node != null and is_instance_valid(_target_node):
 		var weight: float = 1.0 - exp(-maxf(follow_lerp, 0.0) * delta)
 		global_position = global_position.lerp(_target_node.global_position, weight)
@@ -182,7 +186,7 @@ func finish_rotation() -> void:
 	if _rotation_tween != null:
 		_rotation_tween.kill()
 	_rotation_tween = null
-	rotation.y = _yaw_goal
+	_set_yaw(_yaw_goal)
 
 
 ## Free orbit: adds `radians` to the yaw goal (positive turns like rotate_right). The view follows smoothly.
@@ -193,6 +197,7 @@ func orbit(radians: float) -> bool:
 	if is_rotating():
 		return false # a snap turn is easing; ignore orbit input rather than popping the view
 	_yaw_goal += radians
+	_keep_yaw_small()
 	orbit_total += absf(radians)
 	return true
 
@@ -227,7 +232,26 @@ func _apply_pitch() -> void:
 	_camera.rotation.x = -_pitch
 
 
-## The yaw the view is heading for (rotation.y once smoothing and turns are done).
+## The yaw drawn right now (radians, not wrapped).
+func yaw() -> float:
+	return _yaw
+
+
+func _set_yaw(value: float) -> void:
+	_yaw = value
+	rotation = Vector3(0.0, _yaw, 0.0)
+
+
+## Shifts the drawn yaw and its goal together by whole turns so they never grow without bound (the view is unchanged).
+func _keep_yaw_small() -> void:
+	if absf(_yaw_goal) < 4.0 * TAU or is_rotating():
+		return
+	var shift: float = TAU * roundf(_yaw_goal / TAU)
+	_yaw_goal -= shift
+	_set_yaw(_yaw - shift)
+
+
+## The yaw the view is heading for (the drawn yaw once smoothing and turns are done).
 func yaw_goal() -> float:
 	return _yaw_goal
 
@@ -296,7 +320,7 @@ func _set_mouse_mode(mode: Input.MouseMode) -> void:
 ## Maps 2D input (x right, y up on screen) to world XZ for the current yaw, as a Basis.
 ## Use as: world_direction = world_to_input_basis() * Vector3(input.x, input.y, 0.0).
 func world_to_input_basis() -> Basis:
-	var yaw_basis: Basis = Basis(Vector3.UP, rotation.y)
+	var yaw_basis: Basis = Basis(Vector3.UP, _yaw)
 	var screen_right: Vector3 = yaw_basis * Vector3.RIGHT
 	var screen_up: Vector3 = yaw_basis * Vector3.FORWARD
 	return Basis(screen_right, screen_up, Vector3.UP)
@@ -310,7 +334,7 @@ func _rotate(direction: int) -> bool:
 	var next: float = floorf(grid + 0.001) + 1.0 if direction > 0 else ceilf(grid - 0.001) - 1.0
 	_yaw_goal = BASE_YAW + next * STEP_ANGLE
 	_rotation_tween = create_tween()
-	_rotation_tween.tween_property(self, "rotation:y", _yaw_goal, ROTATE_TIME) \
+	_rotation_tween.tween_method(_set_yaw, _yaw, _yaw_goal, ROTATE_TIME) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	return true
 
